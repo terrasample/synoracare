@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">SynoraCare AI Logo Concept 5</title>
+  <desc id="desc">Minimal badge icon with modern healthcare AI wordmark.</desc>
+  <defs>
+    <linearGradient id="badgeG" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0F7338"/>
+      <stop offset="100%" stop-color="#9BDD59"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="900" fill="white"/>
+
+  <g transform="translate(600 286)">
+    <rect x="-198" y="-198" width="396" height="396" rx="102" fill="url(#badgeG)"/>
+    <rect x="-166" y="-166" width="332" height="332" rx="84" fill="white"/>
+
+    <path d="M-118,-8 C-118,-88 -56,-146 28,-146 C92,-146 148,-110 166,-54" fill="none" stroke="#1B8D46" stroke-width="34" stroke-linecap="round"/>
+    <path d="M124,56 C89,108 30,140 -32,140 C-94,140 -152,108 -186,54" fill="none" stroke="#7FCE47" stroke-width="34" stroke-linecap="round"/>
+
+    <path d="M-26,8 H-2 V-16 H22 V8 H46 V32 H22 V56 H-2 V32 H-26 Z" fill="#7ED245"/>
+
+    <path d="M36,60 C82,42 128,34 170,30 C158,74 130,106 90,118 C68,124 50,134 36,154 Z" fill="#68C44A"/>
+  </g>
+
+  <g transform="translate(600 650)">
+    <text x="0" y="0" text-anchor="middle" font-size="86" font-weight="700" font-family="Avenir Next, Montserrat, Poppins, sans-serif" letter-spacing="0.2">
+      <tspan fill="#0B592B">SynoraCare </tspan><tspan fill="#84D24A">AI</tspan>
+    </text>
+    <text x="0" y="56" text-anchor="middle" font-size="28" font-weight="500" fill="#4A7E52" font-family="Avenir Next, Montserrat, Poppins, sans-serif" letter-spacing="1.8">HEALTHCARE INTELLIGENCE</text>
+  </g>
+</svg>

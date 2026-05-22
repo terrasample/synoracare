@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">SynoraCare AI Logo Concept 1</title>
+  <desc id="desc">Dual-care heart icon with medical cross and SynoraCare AI wordmark.</desc>
+  <defs>
+    <linearGradient id="gLeft" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0F7A3A"/>
+      <stop offset="100%" stop-color="#35B565"/>
+    </linearGradient>
+    <linearGradient id="gRight" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#69C743"/>
+      <stop offset="100%" stop-color="#A8E063"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="900" fill="white"/>
+
+  <g transform="translate(600 290)">
+    <circle cx="-140" cy="-145" r="23" fill="#118041"/>
+    <circle cx="140" cy="-145" r="23" fill="#84CF49"/>
+
+    <path d="M-150,-105 C-248,-105 -288,-8 -248,89 C-214,175 -128,206 -78,278 C-78,118 20,106 20,8 C20,-69 -45,-105 -108,-105 C-123,-105 -137,-103 -150,-98 Z" fill="url(#gLeft)"/>
+    <path d="M150,-105 C248,-105 288,-8 248,89 C214,175 128,206 78,278 C78,118 -20,106 -20,8 C-20,-69 45,-105 108,-105 C123,-105 137,-103 150,-98 Z" fill="url(#gRight)"/>
+
+    <path d="M-42,7 H-8 V-27 H8 V7 H42 V23 H8 V57 H-8 V23 H-42 Z" fill="#7FD441"/>
+
+    <path d="M8,172 C76,146 156,124 238,106 C218,172 174,226 106,248 C66,260 34,272 8,302 Z" fill="#7FCE47"/>
+    <path d="M2,188 C54,168 117,153 182,139 C166,180 131,218 80,237 C49,248 23,263 2,288 Z" fill="#4BB04A"/>
+  </g>
+
+  <g transform="translate(600 640)">
+    <text x="0" y="0" text-anchor="middle" font-size="96" font-weight="700" font-family="Avenir Next, Montserrat, Poppins, sans-serif" letter-spacing="0.5">
+      <tspan fill="#0D5E2E">SynoraCare </tspan><tspan fill="#7FCF46">AI</tspan>
+    </text>
+  </g>
+</svg>

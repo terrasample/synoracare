@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">SynoraCare AI Logo Concept 2</title>
+  <desc id="desc">Shield plus leaf and AI circuit motif with brand wordmark.</desc>
+  <defs>
+    <linearGradient id="shieldG" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0F7A3A"/>
+      <stop offset="100%" stop-color="#8AD04E"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="900" fill="white"/>
+
+  <g transform="translate(600 300)">
+    <path d="M0,-190 C85,-160 172,-154 224,-120 V20 C224,140 126,236 0,286 C-126,236 -224,140 -224,20 V-120 C-172,-154 -85,-160 0,-190 Z" fill="url(#shieldG)"/>
+    <path d="M0,-156 C70,-130 142,-126 186,-97 V18 C186,115 107,194 0,241 C-107,194 -186,115 -186,18 V-97 C-142,-126 -70,-130 0,-156 Z" fill="white"/>
+
+    <path d="M-36,-4 H-10 V-30 H10 V-4 H36 V16 H10 V42 H-10 V16 H-36 Z" fill="#76C843"/>
+
+    <path d="M-124,110 C-44,72 48,74 126,112 C66,176 -58,188 -124,110 Z" fill="#4BAE4A"/>
+    <path d="M-76,116 C-14,98 20,104 78,120" fill="none" stroke="#A0DE5C" stroke-width="11" stroke-linecap="round"/>
+
+    <g fill="none" stroke="#77C447" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M-72,-88 H72"/>
+      <path d="M-112,-52 H112" opacity="0.8"/>
+      <path d="M-92,-16 H92" opacity="0.7"/>
+      <path d="M-42,-88 V-16"/>
+      <path d="M0,-88 V-16"/>
+      <path d="M42,-88 V-16"/>
+    </g>
+
+    <g fill="#0F7A3A">
+      <circle cx="-112" cy="-88" r="7"/>
+      <circle cx="112" cy="-88" r="7"/>
+      <circle cx="-112" cy="-52" r="7"/>
+      <circle cx="112" cy="-52" r="7"/>
+      <circle cx="-92" cy="-16" r="7"/>
+      <circle cx="92" cy="-16" r="7"/>
+    </g>
+  </g>
+
+  <g transform="translate(600 650)">
+    <text x="0" y="0" text-anchor="middle" font-size="90" font-weight="700" font-family="Avenir Next, Montserrat, Poppins, sans-serif">
+      <tspan fill="#0D5E2E">SynoraCare </tspan><tspan fill="#7FCF46">AI</tspan>
+    </text>
+  </g>
+</svg>

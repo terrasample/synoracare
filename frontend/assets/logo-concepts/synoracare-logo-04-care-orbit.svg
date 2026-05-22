@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">SynoraCare AI Logo Concept 4</title>
+  <desc id="desc">Care orbit symbol with AI node accents and wordmark.</desc>
+
+  <rect width="1200" height="900" fill="white"/>
+
+  <g transform="translate(600 300)">
+    <ellipse cx="0" cy="0" rx="238" ry="166" fill="none" stroke="#DCF0DA" stroke-width="34"/>
+
+    <path d="M-154,52 C-226,-15 -224,-121 -150,-186" fill="none" stroke="#118141" stroke-width="38" stroke-linecap="round"/>
+    <path d="M154,52 C226,-15 224,-121 150,-186" fill="none" stroke="#88CF4D" stroke-width="38" stroke-linecap="round"/>
+    <path d="M-148,58 C-74,151 74,151 148,58" fill="none" stroke="#5DB94C" stroke-width="38" stroke-linecap="round"/>
+
+    <circle cx="-171" cy="-208" r="21" fill="#0F7E3E"/>
+    <circle cx="171" cy="-208" r="21" fill="#92D954"/>
+    <circle cx="0" cy="184" r="17" fill="#6AC247"/>
+
+    <path d="M-40,3 H-12 V-25 H12 V3 H40 V21 H12 V49 H-12 V21 H-40 Z" fill="#7FD447"/>
+
+    <path d="M36,90 C112,70 154,66 204,63 C189,106 154,141 102,154 C74,161 52,173 36,196 Z" fill="#88D34E"/>
+  </g>
+
+  <g transform="translate(600 650)">
+    <text x="0" y="0" text-anchor="middle" font-size="90" font-weight="700" font-family="Avenir Next, Montserrat, Poppins, sans-serif">
+      <tspan fill="#0D5D2E">SynoraCare </tspan><tspan fill="#84D24A">AI</tspan>
+    </text>
+  </g>
+</svg>
