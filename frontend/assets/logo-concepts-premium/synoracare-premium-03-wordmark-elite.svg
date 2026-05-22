@@ -15,9 +15,9 @@
       <tspan fill="#0C5A2C">SynoraCare </tspan><tspan fill="#83CF4B">AI</tspan>
     </text>
 
-    <g transform="translate(0 -190)">
-      <path d="M-68,0 C-40,-34 -5,-34 0,0 C5,-34 40,-34 68,0 C36,18 12,42 0,74 C-12,42 -36,18 -68,0 Z" fill="url(#leaf)"/>
-      <path d="M-14,26 H-4 V16 H4 V26 H14 V36 H4 V46 H-4 V36 H-14 Z" fill="#7DCB47"/>
+    <g transform="translate(0 -210)">
+      <path d="M0,86 C-28,58 -78,30 -78,-18 C-78,-52 -54,-76 -24,-76 C-10,-76 -2,-70 0,-58 C2,-70 10,-76 24,-76 C54,-76 78,-52 78,-18 C78,30 28,58 0,86 Z" fill="url(#leaf)"/>
+      <path d="M-12,6 H-4 V-2 H4 V6 H12 V14 H4 V22 H-4 V14 H-12 Z" fill="#7DCB47"/>
     </g>
 
     <text x="0" y="84" text-anchor="middle" font-size="36" font-weight="500" fill="#3F714A" font-family="Avenir Next, Helvetica Neue, Segoe UI, Arial, sans-serif" letter-spacing="2.6">AI-POWERED CLINICAL WORKFLOWS</text>
