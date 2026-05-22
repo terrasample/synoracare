@@ -238,31 +238,67 @@
 
         <!-- Leaf decoration – top right -->
         <div class="login-deco login-deco-tr" aria-hidden="true">
-          <svg viewBox="0 0 260 300" width="260" height="300" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M240 0 C210 40 170 50 145 95 C120 140 130 190 100 230" stroke="#5dab65" stroke-width="6" stroke-linecap="round" opacity="0.55"/>
-            <path d="M260 70 C230 80 205 110 185 145 C165 180 162 215 140 245" stroke="#5dab65" stroke-width="5" stroke-linecap="round" opacity="0.45"/>
-            <ellipse cx="185" cy="55" rx="36" ry="16" fill="#6fbe75" opacity="0.6" transform="rotate(-38 185 55)"/>
-            <ellipse cx="160" cy="100" rx="40" ry="18" fill="#5dab65" opacity="0.55" transform="rotate(-52 160 100)"/>
-            <ellipse cx="130" cy="148" rx="38" ry="17" fill="#7ccc80" opacity="0.5" transform="rotate(-65 130 148)"/>
-            <ellipse cx="110" cy="195" rx="34" ry="15" fill="#5dab65" opacity="0.45" transform="rotate(-72 110 195)"/>
-            <ellipse cx="222" cy="115" rx="30" ry="14" fill="#7ccc80" opacity="0.55" transform="rotate(-22 222 115)"/>
-            <ellipse cx="200" cy="160" rx="34" ry="16" fill="#6fbe75" opacity="0.5" transform="rotate(-40 200 160)"/>
-            <ellipse cx="172" cy="205" rx="32" ry="14" fill="#5dab65" opacity="0.45" transform="rotate(-55 172 205)"/>
+          <svg viewBox="0 0 300 340" width="300" height="340" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="leafTR1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#b1dc9c"/>
+                <stop offset="45%" stop-color="#6fbf66"/>
+                <stop offset="100%" stop-color="#3f8e4a"/>
+              </linearGradient>
+              <linearGradient id="leafTR2" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#c5e7b2"/>
+                <stop offset="55%" stop-color="#8acb78"/>
+                <stop offset="100%" stop-color="#4e9a55"/>
+              </linearGradient>
+            </defs>
+            <path d="M294 0 C257 36 214 45 182 86 C149 127 138 179 112 238" stroke="#6cac67" stroke-width="5.5" stroke-linecap="round" opacity="0.55"/>
+            <path d="M300 76 C262 92 234 122 210 160 C188 197 178 231 154 271" stroke="#72b06e" stroke-width="4.5" stroke-linecap="round" opacity="0.4"/>
+
+            <path d="M206 40 C227 28 254 34 268 54 C247 72 219 71 200 56 C197 49 199 43 206 40 Z" fill="url(#leafTR1)"/>
+            <path d="M174 84 C198 66 229 70 246 95 C218 120 186 118 164 96 C162 90 166 86 174 84 Z" fill="url(#leafTR2)"/>
+            <path d="M146 130 C170 112 199 115 218 138 C193 163 162 166 140 145 C138 139 140 133 146 130 Z" fill="url(#leafTR1)"/>
+            <path d="M122 176 C144 160 171 161 188 181 C168 204 140 208 121 190 C119 184 119 180 122 176 Z" fill="url(#leafTR2)"/>
+
+            <path d="M240 115 C260 103 285 108 300 125 C283 144 258 147 238 135 C234 129 235 120 240 115 Z" fill="url(#leafTR2)"/>
+            <path d="M214 160 C237 147 264 152 281 171 C259 194 231 195 210 178 C206 172 208 164 214 160 Z" fill="url(#leafTR1)"/>
+            <path d="M188 208 C209 196 234 200 250 217 C230 238 204 240 186 226 C182 220 183 212 188 208 Z" fill="url(#leafTR2)"/>
+
+            <path d="M198 48 C210 52 220 59 228 70" stroke="#d7efc8" stroke-width="1.5" opacity="0.55"/>
+            <path d="M168 93 C183 97 197 106 206 119" stroke="#d7efc8" stroke-width="1.5" opacity="0.55"/>
+            <path d="M140 139 C154 143 166 152 176 166" stroke="#d7efc8" stroke-width="1.5" opacity="0.55"/>
           </svg>
         </div>
 
         <!-- Leaf decoration – bottom left -->
         <div class="login-deco login-deco-bl" aria-hidden="true">
-          <svg viewBox="0 0 260 300" width="260" height="300" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 300 C50 260 90 250 115 205 C140 160 130 110 160 70" stroke="#5dab65" stroke-width="6" stroke-linecap="round" opacity="0.55"/>
-            <path d="M0 230 C30 220 55 190 75 155 C95 120 98 85 120 55" stroke="#5dab65" stroke-width="5" stroke-linecap="round" opacity="0.45"/>
-            <ellipse cx="75" cy="245" rx="36" ry="16" fill="#6fbe75" opacity="0.6" transform="rotate(-38 75 245)"/>
-            <ellipse cx="100" cy="200" rx="40" ry="18" fill="#5dab65" opacity="0.55" transform="rotate(-52 100 200)"/>
-            <ellipse cx="130" cy="152" rx="38" ry="17" fill="#7ccc80" opacity="0.5" transform="rotate(-65 130 152)"/>
-            <ellipse cx="150" cy="105" rx="34" ry="15" fill="#5dab65" opacity="0.45" transform="rotate(-72 150 105)"/>
-            <ellipse cx="38" cy="185" rx="30" ry="14" fill="#7ccc80" opacity="0.55" transform="rotate(-22 38 185)"/>
-            <ellipse cx="60" cy="140" rx="34" ry="16" fill="#6fbe75" opacity="0.5" transform="rotate(-40 60 140)"/>
-            <ellipse cx="88" cy="95" rx="32" ry="14" fill="#5dab65" opacity="0.45" transform="rotate(-55 88 95)"/>
+          <svg viewBox="0 0 320 360" width="320" height="360" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="leafBL1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#bce2a9"/>
+                <stop offset="52%" stop-color="#70bf66"/>
+                <stop offset="100%" stop-color="#3f8f49"/>
+              </linearGradient>
+              <linearGradient id="leafBL2" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#d5f0c8"/>
+                <stop offset="58%" stop-color="#8fd27d"/>
+                <stop offset="100%" stop-color="#4b9a53"/>
+              </linearGradient>
+            </defs>
+            <path d="M22 354 C57 312 102 300 136 258 C169 217 180 168 208 112" stroke="#6cad68" stroke-width="5.8" stroke-linecap="round" opacity="0.58"/>
+            <path d="M0 286 C39 272 70 240 94 202 C118 165 126 131 152 88" stroke="#73b16f" stroke-width="4.8" stroke-linecap="round" opacity="0.42"/>
+
+            <path d="M40 304 C59 286 88 281 111 292 C96 320 66 332 40 323 C34 317 34 310 40 304 Z" fill="url(#leafBL1)"/>
+            <path d="M74 260 C97 241 130 238 153 252 C132 285 100 299 72 287 C66 279 67 268 74 260 Z" fill="url(#leafBL2)"/>
+            <path d="M114 218 C138 200 170 199 192 214 C171 248 140 261 111 248 C106 240 106 226 114 218 Z" fill="url(#leafBL1)"/>
+            <path d="M154 176 C176 160 204 160 223 174 C205 203 176 218 150 207 C146 199 147 183 154 176 Z" fill="url(#leafBL2)"/>
+
+            <path d="M14 244 C34 231 62 228 82 240 C67 266 41 279 17 268 C12 261 11 252 14 244 Z" fill="url(#leafBL2)"/>
+            <path d="M49 200 C70 185 100 184 122 198 C104 228 76 241 50 229 C45 221 45 208 49 200 Z" fill="url(#leafBL1)"/>
+            <path d="M88 154 C109 140 138 141 160 155 C143 182 117 198 91 188 C86 180 84 164 88 154 Z" fill="url(#leafBL2)"/>
+
+            <path d="M48 308 C63 308 79 312 94 320" stroke="#e6f7db" stroke-width="1.6" opacity="0.6"/>
+            <path d="M83 263 C99 262 116 268 132 277" stroke="#e6f7db" stroke-width="1.6" opacity="0.6"/>
+            <path d="M121 221 C137 221 153 228 168 237" stroke="#e6f7db" stroke-width="1.6" opacity="0.6"/>
           </svg>
         </div>
 
