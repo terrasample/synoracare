@@ -238,14 +238,9 @@ function applyRoleMode(role) {
 
   if (!currentUser) {
     document.body.classList.add('guest-mode', 'role-guest');
-    // Hide all auth pages; guest layout handled by CSS
+    // Show only the login page; hide everything else
     document.querySelectorAll('.page').forEach((page) => {
-      const guestPages = ['landingHero', 'loginSection', 'bootstrapSection'];
-      if (!guestPages.includes(page.id)) {
-        page.style.display = 'none';
-      } else {
-        page.style.display = '';
-      }
+      page.style.display = page.id === 'loginSection' ? '' : 'none';
     });
     currentPage = 'guest';
     return;
@@ -799,6 +794,28 @@ document.getElementById('bootstrapForm').addEventListener('submit', async (e) =>
     alert(err.message);
   }
 });
+
+// Password eye toggle
+const pwEyeBtn = document.getElementById('pwEyeBtn');
+const loginPwInput = document.getElementById('loginPasswordInput');
+const eyeOpenIcon = document.getElementById('eyeOpenIcon');
+const eyeClosedIcon = document.getElementById('eyeClosedIcon');
+if (pwEyeBtn && loginPwInput) {
+  pwEyeBtn.addEventListener('click', () => {
+    const isPassword = loginPwInput.type === 'password';
+    loginPwInput.type = isPassword ? 'text' : 'password';
+    if (eyeOpenIcon) eyeOpenIcon.style.display = isPassword ? 'none' : '';
+    if (eyeClosedIcon) eyeClosedIcon.style.display = isPassword ? '' : 'none';
+  });
+}
+
+// Forgot password
+const forgotPwBtn = document.getElementById('forgotPwBtn');
+if (forgotPwBtn) {
+  forgotPwBtn.addEventListener('click', () => {
+    alert('Please contact your organization administrator to reset your password.');
+  });
+}
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();

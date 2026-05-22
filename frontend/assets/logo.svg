@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 120" fill="none">
+  <!-- Left figure body (dark green) – curves to form left side of heart -->
+  <path d="M30 30 C18 45 12 65 16 82 C20 98 32 110 50 118" stroke="#1b5e20" stroke-width="18" stroke-linecap="round"/>
+  <!-- Right figure body (light green) – curves to form right side of heart -->
+  <path d="M80 30 C92 45 98 65 94 82 C90 98 78 110 60 118" stroke="#4caf50" stroke-width="18" stroke-linecap="round"/>
+  <!-- Join at bottom point – leaf tip -->
+  <path d="M50 118 Q55 124 60 118" stroke="#1b5e20" stroke-width="18" stroke-linecap="round"/>
+  <!-- Leaf at bottom point -->
+  <path d="M47 116 Q40 126 44 133 Q50 138 55 140 Q60 138 66 133 Q70 126 63 116 Q59 120 55 122 Q51 120 47 116Z" fill="#1b5e20"/>
+  <!-- Left head -->
+  <circle cx="30" cy="17" r="12" fill="#1b5e20"/>
+  <!-- Right head -->
+  <circle cx="80" cy="17" r="12" fill="#4caf50"/>
+  <!-- White medical cross -->
+  <rect x="48" y="62" width="14" height="32" rx="3" fill="white"/>
+  <rect x="39" y="71" width="32" height="14" rx="3" fill="white"/>
+</svg>
