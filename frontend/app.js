@@ -235,6 +235,7 @@ function applyRoleMode(role) {
     'guest-mode', 'auth-mode',
     'role-dsp', 'role-supervisor', 'role-org_admin', 'role-super_admin', 'role-guest'
   );
+  document.body.classList.remove('sidebar-open');
 
   if (!currentUser) {
     document.body.classList.add('guest-mode', 'role-guest');
@@ -1240,8 +1241,18 @@ document.addEventListener('click', (e) => {
   const navBtn = e.target.closest('[data-nav-target]');
   if (navBtn) {
     navigateTo(navBtn.dataset.navTarget);
+    if (window.innerWidth <= 900) document.body.classList.remove('sidebar-open');
     return;
   }
+
+  if (window.innerWidth <= 900 && document.body.classList.contains('sidebar-open')) {
+    const clickedSidebar = e.target.closest('#appSidebar');
+    const clickedToggle = e.target.closest('#sidebarToggle');
+    if (!clickedSidebar && !clickedToggle) {
+      document.body.classList.remove('sidebar-open');
+    }
+  }
+
   const scrollBtn = e.target.closest('[data-scroll-target]');
   if (scrollBtn) {
     const targetSection = document.getElementById(scrollBtn.dataset.scrollTarget);
@@ -1250,7 +1261,19 @@ document.addEventListener('click', (e) => {
 });
 
 document.getElementById('sidebarToggle')?.addEventListener('click', () => {
-  document.body.classList.toggle('sidebar-collapsed');
+  if (window.innerWidth <= 900) {
+    document.body.classList.toggle('sidebar-open');
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 900) {
+    document.body.classList.remove('sidebar-open');
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') document.body.classList.remove('sidebar-open');
 });
 
 // Auto-grow chat textarea

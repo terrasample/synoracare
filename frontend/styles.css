@@ -187,7 +187,7 @@ body.guest-mode #bootstrapSection {
 /* Ask / Chat */
 #askSection {
   display: flex; flex-direction: column;
-  height: calc(100vh - var(--topbar-h));
+  height: calc(100dvh - var(--topbar-h));
   max-height: none; padding: 0; max-width: none; overflow: hidden;
 }
 .chat-header {
@@ -340,8 +340,36 @@ button:hover { background: var(--accent-dark); border-color: var(--accent-dark);
 @media (max-width: 900px) {
   :root { --sidebar-w: 60px; }
   .sidebar-toggle { display: flex; }
-  .nav-label { display: none; }
-  .nav-item { justify-content: center; padding: 10px; gap: 0; }
+  .sidebar {
+    position: fixed;
+    top: var(--topbar-h);
+    left: 0;
+    bottom: 0;
+    width: min(78vw, 280px);
+    z-index: 220;
+    transform: translateX(-106%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--shadow-md);
+    border-right: 1px solid var(--line);
+  }
+  body.sidebar-open .sidebar { transform: translateX(0); }
+  .nav-label { display: inline; }
+  .nav-item { justify-content: flex-start; padding: 10px 12px; gap: 10px; }
+  body.auth-mode.sidebar-open .main-content::before {
+    content: '';
+    position: fixed;
+    inset: var(--topbar-h) 0 0 0;
+    background: rgba(12, 20, 32, 0.28);
+    backdrop-filter: blur(1px);
+    z-index: 180;
+  }
+  .topbar-right { gap: 6px; }
+  .session-info {
+    max-width: 210px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .two-col-layout { grid-template-columns: 1fr; }
   .tracker-layout { grid-template-columns: 1fr; }
   body.guest-mode .main-content { grid-template-columns: 1fr; padding: 16px; }
@@ -353,9 +381,45 @@ button:hover { background: var(--accent-dark); border-color: var(--accent-dark);
 }
 
 @media (max-width: 600px) {
+  .topbar { padding: 0 12px; }
+  .topbar-logo { font-size: 15px; }
+  .version-badge { display: none !important; }
+  .session-info {
+    max-width: 128px;
+    font-size: 12px;
+  }
+  .logout-btn {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  .sidebar {
+    width: min(84vw, 280px);
+  }
   .page { padding: 16px; }
+  .page-header { margin-bottom: 14px; }
+  .page-header h2 { font-size: 1.1rem; }
   .chat-input-bar { padding: 10px 14px; }
+  .chat-input-bar textarea {
+    font-size: 16px;
+    border-radius: 16px;
+  }
+  .send-btn {
+    width: 40px;
+    height: 40px;
+  }
+  .chat-header {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+  .chat-header-right {
+    width: 100%;
+  }
+  .chat-header-right select {
+    width: 100%;
+    min-width: 0;
+  }
   .chat-messages { padding: 14px; }
+  .chat-message { max-width: 95%; }
   .home-header { flex-direction: column; }
   .hero-visuals { grid-template-columns: 1fr; }
   .hero-gallery { grid-template-columns: 1fr; }
@@ -650,6 +714,16 @@ body.guest-mode #loginSection {
   .login-brand { font-size: 1.65rem; }
 }
 @media (max-width: 420px) {
-  .login-card { border-radius: 0; box-shadow: none; padding: 28px 18px 22px; }
-  .login-page { padding: 0; min-height: 100vh; }
+  .login-page { padding: 14px 10px; min-height: 100vh; }
+  .login-card {
+    border-radius: 16px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+    padding: 22px 14px 18px;
+    max-width: 100%;
+    gap: 16px;
+  }
+  .login-logo-img { width: 72px; }
+  .login-brand { font-size: 1.45rem; }
+  .login-tagline-wrap p { font-size: 12px; }
+  .login-trust { padding-top: 12px; }
 }
