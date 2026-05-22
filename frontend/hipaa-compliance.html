@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SynoraCare HIPAA Compliance</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .doc-wrap { max-width: 980px; margin: 0 auto; padding: 22px 16px 48px; }
+    .doc-hero { background: linear-gradient(130deg, #ecfdf5 0%, #f0f9ff 100%); border: 1px solid #cbd5e1; border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+    .doc-hero h1 { margin-bottom: 8px; font-size: 2rem; }
+    .toc { background: #fff; border: 1px solid #d9e0ea; border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+    .toc a { color: #0b5f57; text-decoration: none; font-weight: 600; margin-right: 12px; display: inline-block; margin-bottom: 6px; }
+    .doc-card { background: #fff; border: 1px solid #d9e0ea; border-radius: 12px; padding: 18px; margin-bottom: 12px; }
+    .doc-card h2 { margin: 0 0 10px; }
+    .small-note { color: #4b5563; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>SynoraCare</h1>
+    <div><a class="link-btn" href="index.html">Back To Console</a></div>
+  </header>
+
+  <main class="doc-wrap">
+    <section class="doc-hero">
+      <h1>HIPAA Compliance Program</h1>
+      <p class="small-note">This page describes how SynoraCare is designed to support HIPAA-aligned operations for disability care providers and DSP teams. This content is informational and does not constitute legal advice.</p>
+    </section>
+
+    <section class="toc">
+      <strong>On This Page</strong><br />
+      <a href="#disclaimer">Disclaimer</a>
+      <a href="#definitions">Definitions</a>
+      <a href="#shared-responsibility">Shared Responsibility</a>
+      <a href="#safeguards">Safeguards</a>
+      <a href="#baa">Business Associate Agreements</a>
+      <a href="#customer-responsibilities">Customer Responsibilities</a>
+      <a href="#incident">Incident Response</a>
+    </section>
+
+    <section class="doc-card" id="disclaimer">
+      <h2>Disclaimer</h2>
+      <p>SynoraCare provides tooling intended to help organizations operationalize care plans and reduce avoidable workflow mistakes. HIPAA compliance is a shared responsibility between SynoraCare and each customer organization. Customers are responsible for independently evaluating legal and regulatory obligations.</p>
+    </section>
+
+    <section class="doc-card" id="definitions">
+      <h2>Definitions</h2>
+      <p>Protected Health Information (PHI) means individually identifiable health information handled by covered entities and business associates. In SynoraCare, PHI can include client care instructions, medication schedules, behavior plans, and related support documentation.</p>
+    </section>
+
+    <section class="doc-card" id="shared-responsibility">
+      <h2>Shared Responsibility Model</h2>
+      <p>SynoraCare is responsible for building and operating secure application controls. Customer organizations are responsible for user governance, workforce training, role assignment, document quality, and lawful use of the platform.</p>
+      <p>The platform is designed so users can only access data based on assigned roles and client-level permissions.</p>
+    </section>
+
+    <section class="doc-card" id="safeguards">
+      <h2>Administrative, Technical, And Physical Safeguards</h2>
+      <p><strong>Administrative:</strong> Role-based access controls, account lifecycle management, and mandatory escalation guidance where sources are missing.</p>
+      <p><strong>Technical:</strong> Authenticated API access, audit logging for uploads/questions/escalations, citation-grounded answer behavior, and tenant data boundaries.</p>
+      <p><strong>Physical:</strong> Infrastructure-level controls are inherited from cloud and hosting providers selected by the customer deployment.</p>
+    </section>
+
+    <section class="doc-card" id="baa">
+      <h2>Business Associate Agreement (BAA)</h2>
+      <p>SynoraCare can be operated under a BAA where required. The BAA should define permitted uses/disclosures, breach notification obligations, subcontractor requirements, and PHI handling expectations.</p>
+    </section>
+
+    <section class="doc-card" id="customer-responsibilities">
+      <h2>Customer Responsibilities</h2>
+      <p>Organizations must: maintain least-privilege access, verify care-plan accuracy, train DSP users, review audit logs, and implement incident escalation protocols.</p>
+      <p>SynoraCare is an assistive workflow tool and does not replace clinical judgment or supervisory oversight.</p>
+    </section>
+
+    <section class="doc-card" id="incident">
+      <h2>Security Incident And Breach Response</h2>
+      <p>SynoraCare supports event tracing through audit logs. Customers should maintain internal breach response procedures, designate points of contact, and retain records required by applicable law and contract.</p>
+    </section>
+  </main>
+</body>
+</html>

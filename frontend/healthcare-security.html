@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SynoraCare Healthcare Security</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .page { max-width: 980px; margin: 0 auto; padding: 20px 16px 48px; }
+    .hero { border: 1px solid #d9e0ea; border-radius: 14px; padding: 18px; background: linear-gradient(130deg, #f8fafc 0%, #eef2ff 100%); margin-bottom: 14px; }
+    .panel { background: #fff; border: 1px solid #d9e0ea; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+    .faq-item { border-top: 1px solid #e5e7eb; padding-top: 10px; margin-top: 10px; }
+    .kbd { background: #0f1720; color: #e5edf6; border-radius: 6px; padding: 2px 6px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>SynoraCare</h1>
+    <div><a class="link-btn" href="index.html">Back To Console</a></div>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <h1 style="margin:0 0 8px;">Healthcare And Life Sciences Security</h1>
+      <p style="margin:0;">A practical security and compliance reference for organizations using SynoraCare with PHI-related workflows.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Overview</h2>
+      <p>SynoraCare is designed to support secure care operations by combining client-level access control, grounded responses, and auditability. Answers are intended to be traceable to uploaded care documentation.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Control Highlights</h2>
+      <p><strong>Access Control:</strong> Users authenticate and are scoped by organization, role, and client assignments.</p>
+      <p><strong>Auditability:</strong> Events for login, uploads, questions, and escalations are captured for operational review.</p>
+      <p><strong>Grounding:</strong> If supporting source data is unavailable, the assistant returns a no-answer response with escalation guidance.</p>
+      <p><strong>Data Quality:</strong> Organizations are responsible for uploading current, approved ISP/MAR/behavior documentation.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Operational Checklist</h2>
+      <p>1. Enable least-privilege user roles.</p>
+      <p>2. Assign DSP users only to active clients they support.</p>
+      <p>3. Upload only approved, current plan documents.</p>
+      <p>4. Review audit events weekly.</p>
+      <p>5. Test escalation workflows monthly.</p>
+      <p>6. Rotate passwords and session controls regularly.</p>
+    </section>
+
+    <section class="panel">
+      <h2>FAQs</h2>
+      <div class="faq-item">
+        <strong>Does this page alone make us HIPAA compliant?</strong>
+        <p>No. Compliance depends on platform controls plus organizational policies, training, and legal governance.</p>
+      </div>
+      <div class="faq-item">
+        <strong>Can SynoraCare replace clinical decisions?</strong>
+        <p>No. SynoraCare is an assistive workflow system. Supervisory and clinical judgment remain required.</p>
+      </div>
+      <div class="faq-item">
+        <strong>How should we test safely?</strong>
+        <p>Use sample documents first (for example by clicking <span class="kbd">Use Sample TXT</span> or <span class="kbd">Use Sample PDF</span> on the upload card), then validate with approved production workflows.</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

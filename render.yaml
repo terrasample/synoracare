@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: synoracare-backend
+    runtime: node
+    rootDir: backend
+    plan: starter
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: ALLOW_INMEMORY_MONGO
+        value: "false"
+      - key: JWT_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_CHAT_MODEL
+        value: gpt-4o-mini
+      - key: OPENAI_EMBEDDING_MODEL
+        value: text-embedding-3-small
+      - key: APP_VERSION
+        value: 1.0.0
+      - key: BUILD_DATE
+        value: "2026-05-22"
+      - key: CORS_ORIGIN
+        value: http://localhost:8080,https://synoracare.com,https://www.synoracare.com
+
+  - type: static
+    name: synoracare-frontend
+    rootDir: frontend
+    buildCommand: ""
+    staticPublishPath: .
+    autoDeploy: true
