@@ -533,22 +533,12 @@ body.guest-mode #loginSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 0;
 }
 .login-logo-img {
-  width: 114px;
+  width: 320px;
+  max-width: 100%;
   height: auto;
-}
-.login-brand {
-  font-size: 1.95rem;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-  color: #1b5e20;
-  line-height: 1;
-  margin: 0;
-}
-.login-brand .brand-ai {
-  color: #4caf50;
 }
 
 /* Tagline */
@@ -556,9 +546,9 @@ body.guest-mode #loginSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   text-align: center;
-  margin-top: -2px;
+  margin-top: 2px;
 }
 .login-heart-div {
   display: flex;
@@ -715,7 +705,7 @@ body.guest-mode #loginSection {
   .login-deco, .login-dots, .login-deco-icons { display: none; }
   .login-page { padding: 18px 12px 20px; }
   .login-card { padding: 24px 20px 18px; max-width: 460px; }
-  .login-brand { font-size: 1.65rem; }
+  .login-logo-img { width: 260px; }
 }
 @media (max-width: 420px) {
   .login-page { padding: 14px 10px; min-height: 100vh; }
@@ -726,8 +716,7 @@ body.guest-mode #loginSection {
     max-width: 100%;
     gap: 16px;
   }
-  .login-logo-img { width: 72px; }
-  .login-brand { font-size: 1.45rem; }
+  .login-logo-img { width: 220px; }
   .login-tagline-wrap p { font-size: 12px; }
   .login-trust { padding-top: 12px; }
 }
