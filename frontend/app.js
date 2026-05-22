@@ -818,6 +818,20 @@ if (forgotPwBtn) {
   });
 }
 
+const googleLoginBtn = document.getElementById('googleLoginBtn');
+if (googleLoginBtn) {
+  googleLoginBtn.addEventListener('click', () => {
+    alert('Google sign-in is currently disabled. Please use your admin-provided credentials.');
+  });
+}
+
+const signupHintBtn = document.getElementById('signupHintBtn');
+if (signupHintBtn) {
+  signupHintBtn.addEventListener('click', () => {
+    alert('Account creation is managed by your organization administrator.');
+  });
+}
+
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const payload = Object.fromEntries(new FormData(e.target).entries());

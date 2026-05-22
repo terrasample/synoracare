@@ -472,9 +472,10 @@ body.guest-mode #loginSection {
   width: 100%;
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  padding: 24px 20px 30px;
   overflow: hidden;
 }
 
@@ -514,17 +515,17 @@ body.guest-mode #loginSection {
   position: relative;
   z-index: 1;
   background: #ffffff;
-  border-radius: 24px;
+  border-radius: 28px;
   box-shadow:
     0 24px 64px rgba(0,0,0,0.11),
     0 6px 20px rgba(0,0,0,0.07);
-  padding: 38px 34px 30px;
+  padding: 30px 38px 24px;
   width: 100%;
-  max-width: 430px;
+  max-width: 560px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 22px;
+  gap: 16px;
 }
 
 /* Logo */
@@ -532,10 +533,10 @@ body.guest-mode #loginSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 .login-logo-img {
-  width: 112px;
+  width: 114px;
   height: auto;
 }
 .login-brand {
@@ -557,7 +558,7 @@ body.guest-mode #loginSection {
   align-items: center;
   gap: 5px;
   text-align: center;
-  margin-top: -6px;
+  margin-top: -2px;
 }
 .login-heart-div {
   display: flex;
@@ -578,8 +579,8 @@ body.guest-mode #loginSection {
 }
 .login-tagline-wrap p {
   color: #5a6a7f;
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.45;
   margin: 0;
 }
 
@@ -588,7 +589,7 @@ body.guest-mode #loginSection {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
   max-width: none;
 }
 .login-field-group {
@@ -602,7 +603,7 @@ body.guest-mode #loginSection {
   justify-content: space-between;
 }
 .login-label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: #1a2b1a;
 }
@@ -620,7 +621,7 @@ body.guest-mode #loginSection {
 }
 .login-input-wrap input {
   width: 100%;
-  padding: 13px 44px;
+  padding: 12px 44px;
   border: 1.5px solid #c8e6c9;
   border-radius: 13px;
   font-size: 14px;
@@ -677,7 +678,7 @@ body.guest-mode #loginSection {
   border-radius: 13px;
   font-size: 15px;
   font-weight: 800;
-  padding: 14px 20px;
+  padding: 12px 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -694,14 +695,73 @@ body.guest-mode #loginSection {
 }
 .login-submit-btn:active { transform: scale(0.975); }
 
+.login-alt-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+.login-alt-divider span {
+  flex: 1;
+  height: 1px;
+  background: #e3e9e2;
+}
+.login-alt-divider p {
+  margin: 0;
+  color: #7a8796;
+  font-size: 16px;
+}
+
+.login-google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #fff;
+  color: #3b4450;
+  border: 1.5px solid #c8e6c9;
+  border-radius: 13px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.login-google-btn:hover {
+  background: #f9fdf8;
+  border-color: #b6dcb8;
+}
+
+.login-signup-row {
+  margin: 2px 0 0;
+  text-align: center;
+  color: #6b7786;
+  font-size: 14px;
+}
+.login-signup-link {
+  background: none;
+  border: none;
+  color: #4caf50;
+  font: inherit;
+  font-weight: 700;
+  padding: 0;
+}
+.login-signup-link:hover {
+  text-decoration: underline;
+  background: none;
+  border: none;
+  color: #2e7d32;
+}
+
 /* Trust badge */
 .login-trust {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
   gap: 10px;
-  border-top: 1px solid #e0f0e0;
-  padding-top: 18px;
-  width: 100%;
+  padding-top: 14px;
+  width: auto;
+  max-width: none;
+  margin-top: 18px;
 }
 .login-trust svg { color: #4caf50; flex-shrink: 0; margin-top: 2px; }
 .login-trust strong { font-size: 12.5px; color: #2e7d32; display: block; margin-bottom: 2px; }
@@ -710,7 +770,8 @@ body.guest-mode #loginSection {
 /* Responsive */
 @media (max-width: 700px) {
   .login-deco, .login-dots, .login-deco-icons { display: none; }
-  .login-card { padding: 30px 22px 24px; }
+  .login-page { padding: 18px 12px 20px; }
+  .login-card { padding: 24px 20px 18px; max-width: 460px; }
   .login-brand { font-size: 1.65rem; }
 }
 @media (max-width: 420px) {
@@ -725,5 +786,6 @@ body.guest-mode #loginSection {
   .login-logo-img { width: 72px; }
   .login-brand { font-size: 1.45rem; }
   .login-tagline-wrap p { font-size: 12px; }
+  .login-signup-row { font-size: 14px; }
   .login-trust { padding-top: 12px; }
 }
