@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">SynoraCare AI Premium Logo 02</title>
+  <desc id="desc">Executive badge logo with compact icon and balanced typography.</desc>
+  <defs>
+    <linearGradient id="badge" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0F6E38"/>
+      <stop offset="100%" stop-color="#8FD652"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="1200" fill="none"/>
+
+  <g transform="translate(600 420)">
+    <rect x="-240" y="-240" width="480" height="480" rx="128" fill="url(#badge)"/>
+    <rect x="-198" y="-198" width="396" height="396" rx="102" fill="#FFFFFF"/>
+
+    <path d="M-122,-14 C-122,-96 -58,-154 22,-154 C81,-154 132,-121 150,-72" fill="none" stroke="#178643" stroke-width="34" stroke-linecap="round"/>
+    <path d="M123,74 C88,124 29,156 -34,156 C-94,156 -152,127 -186,77" fill="none" stroke="#89CF4E" stroke-width="34" stroke-linecap="round"/>
+
+    <path d="M-28,16 H-2 V-10 H24 V16 H50 V38 H24 V64 H-2 V38 H-28 Z" fill="#77C944"/>
+    <path d="M40,72 C86,56 130,46 170,42 C158,84 132,116 96,130 C71,139 53,152 40,170 Z" fill="#66BF4A"/>
+  </g>
+
+  <g transform="translate(600 940)">
+    <text x="0" y="0" text-anchor="middle" font-size="112" font-weight="700" font-family="Avenir Next, Helvetica Neue, Segoe UI, Arial, sans-serif">
+      <tspan fill="#0D5B2D">SynoraCare </tspan><tspan fill="#83CF4B">AI</tspan>
+    </text>
+  </g>
+</svg>

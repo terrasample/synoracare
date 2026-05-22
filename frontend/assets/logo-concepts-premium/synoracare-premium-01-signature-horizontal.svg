@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 700" role="img" aria-labelledby="title desc">
+  <title id="title">SynoraCare AI Premium Logo 01</title>
+  <desc id="desc">Premium horizontal logo with refined healthcare icon and high-legibility wordmark.</desc>
+  <defs>
+    <linearGradient id="gDark" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0E6A37"/>
+      <stop offset="100%" stop-color="#219851"/>
+    </linearGradient>
+    <linearGradient id="gLight" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#7CCF4C"/>
+      <stop offset="100%" stop-color="#A8E063"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1800" height="700" fill="none"/>
+
+  <g transform="translate(250 350)">
+    <circle cx="-74" cy="-140" r="22" fill="#127A3E"/>
+    <circle cx="74" cy="-140" r="22" fill="#8BD34F"/>
+
+    <path d="M-92,-104 C-168,-104 -208,-42 -197,25 C-186,100 -130,146 -70,206 C-75,106 -17,64 16,21 C44,-16 34,-74 -8,-97 C-35,-112 -68,-111 -92,-96 Z" fill="url(#gDark)"/>
+    <path d="M92,-104 C168,-104 208,-42 197,25 C186,100 130,146 70,206 C75,106 17,64 -16,21 C-44,-16 -34,-74 8,-97 C35,-112 68,-111 92,-96 Z" fill="url(#gLight)"/>
+
+    <path d="M-36,5 H-10 V-21 H10 V5 H36 V25 H10 V51 H-10 V25 H-36 Z" fill="#78CA46"/>
+
+    <path d="M18,118 C67,101 117,89 165,82 C152,126 122,164 82,185 C52,200 33,214 18,236 Z" fill="#5FB94B"/>
+    <path d="M22,138 C63,124 103,114 141,110 C130,140 108,168 78,182 C56,192 37,205 22,223 Z" fill="#93DB56"/>
+  </g>
+
+  <g transform="translate(530 390)">
+    <text x="0" y="0" font-size="134" font-weight="700" font-family="Avenir Next, Helvetica Neue, Segoe UI, Arial, sans-serif" letter-spacing="0.2">
+      <tspan fill="#0C5A2C">SynoraCare </tspan><tspan fill="#81CF49">AI</tspan>
+    </text>
+    <text x="5" y="78" font-size="34" font-weight="500" fill="#3E6F4A" font-family="Avenir Next, Helvetica Neue, Segoe UI, Arial, sans-serif" letter-spacing="2.3">INTELLIGENT CARE DELIVERY</text>
+  </g>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">SynoraCare AI Premium Logo 04</title>
+  <desc id="desc">Premier SC monogram with medical cross and premium wordmark lockup.</desc>
+  <defs>
+    <linearGradient id="mono" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0F6D38"/>
+      <stop offset="100%" stop-color="#90D552"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="none"/>
+
+  <g transform="translate(420 400)">
+    <circle r="250" fill="#F5FBF6"/>
+    <circle r="250" fill="none" stroke="url(#mono)" stroke-width="20"/>
+
+    <path d="M-152,-12 C-152,-106 -80,-176 18,-176 C65,-176 108,-163 145,-136" fill="none" stroke="#168241" stroke-width="46" stroke-linecap="round"/>
+    <path d="M144,-12 C144,84 70,152 -30,152 C-76,152 -116,141 -150,120" fill="none" stroke="#8DD34F" stroke-width="46" stroke-linecap="round"/>
+
+    <path d="M98,-128 V128" fill="none" stroke="#2AA14A" stroke-width="44" stroke-linecap="round"/>
+    <path d="M98,-128 C30,-128 -14,-83 -14,0 C-14,83 30,128 98,128" fill="none" stroke="#74C645" stroke-width="44" stroke-linecap="round"/>
+
+    <path d="M-16,8 H8 V-16 H32 V8 H56 V30 H32 V54 H8 V30 H-16 Z" fill="#79CB46"/>
+  </g>
+
+  <g transform="translate(760 410)">
+    <text x="0" y="0" font-size="112" font-weight="700" font-family="Avenir Next, Helvetica Neue, Segoe UI, Arial, sans-serif">
+      <tspan fill="#0C5A2C">SynoraCare </tspan><tspan fill="#83CF4B">AI</tspan>
+    </text>
+    <text x="2" y="66" font-size="30" font-weight="500" fill="#426F4B" font-family="Avenir Next, Helvetica Neue, Segoe UI, Arial, sans-serif" letter-spacing="1.9">CARE COORDINATION INTELLIGENCE</text>
+  </g>
+</svg>
