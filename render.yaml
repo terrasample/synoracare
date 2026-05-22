@@ -9,14 +9,8 @@ services:
     healthCheckPath: /health
     autoDeploy: true
     envVars:
-      - key: MONGODB_URI
-        sync: false
       - key: ALLOW_INMEMORY_MONGO
         value: "true"
-      - key: JWT_SECRET
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
       - key: OPENAI_CHAT_MODEL
         value: gpt-4o-mini
       - key: OPENAI_EMBEDDING_MODEL
