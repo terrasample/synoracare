@@ -695,63 +695,6 @@ body.guest-mode #loginSection {
 }
 .login-submit-btn:active { transform: scale(0.975); }
 
-.login-alt-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 2px;
-}
-.login-alt-divider span {
-  flex: 1;
-  height: 1px;
-  background: #e3e9e2;
-}
-.login-alt-divider p {
-  margin: 0;
-  color: #7a8796;
-  font-size: 16px;
-}
-
-.login-google-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  background: #fff;
-  color: #3b4450;
-  border: 1.5px solid #c8e6c9;
-  border-radius: 13px;
-  padding: 10px 14px;
-  font-size: 14px;
-  font-weight: 600;
-}
-.login-google-btn:hover {
-  background: #f9fdf8;
-  border-color: #b6dcb8;
-}
-
-.login-signup-row {
-  margin: 2px 0 0;
-  text-align: center;
-  color: #6b7786;
-  font-size: 14px;
-}
-.login-signup-link {
-  background: none;
-  border: none;
-  color: #4caf50;
-  font: inherit;
-  font-weight: 700;
-  padding: 0;
-}
-.login-signup-link:hover {
-  text-decoration: underline;
-  background: none;
-  border: none;
-  color: #2e7d32;
-}
-
 /* Trust badge */
 .login-trust {
   display: flex;
@@ -786,6 +729,5 @@ body.guest-mode #loginSection {
   .login-logo-img { width: 72px; }
   .login-brand { font-size: 1.45rem; }
   .login-tagline-wrap p { font-size: 12px; }
-  .login-signup-row { font-size: 14px; }
   .login-trust { padding-top: 12px; }
 }
