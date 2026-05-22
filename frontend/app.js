@@ -5,6 +5,10 @@ const DEFAULT_API_BASE = (() => {
     return 'http://localhost:8081';
   }
 
+  if (hostname === 'synoracare-frontend.onrender.com') {
+    return 'https://synoracare-backend.onrender.com';
+  }
+
   if (hostname.startsWith('api.')) {
     return `${protocol}//${hostname}`;
   }
