@@ -28,8 +28,9 @@ services:
       - key: CORS_ORIGIN
         value: http://localhost:8080,https://synoracare.com,https://www.synoracare.com
 
-  - type: static_site
+  - type: web
     name: synoracare-frontend
+    runtime: static
     rootDir: frontend
     buildCommand: ""
     staticPublishPath: .
