@@ -3,33 +3,86 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SynoraCare Console</title>
+  <title>SynoraCare</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+<div class="app-shell">
   <header class="topbar">
-    <h1>SynoraCare</h1>
-    <div class="topbar-right">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <span class="topbar-logo">SynoraCare</span>
       <span id="versionBadge" class="version-badge" style="display:none;"></span>
-      <span id="sessionInfo">Not logged in</span>
-      <button id="logoutBtn" type="button" style="display:none;">Logout</button>
+    </div>
+    <div class="topbar-right">
+      <span id="sessionInfo" class="session-info">Not logged in</span>
+      <button id="logoutBtn" type="button" class="logout-btn" style="display:none;">Sign Out</button>
     </div>
   </header>
 
-  <main class="grid">
-    <section class="card full" id="homeSection">
-      <div class="home-header">
-        <div class="home-welcome">
-          <h2 id="homeWelcomeTitle">Welcome</h2>
-          <span id="homeWelcomeRole" class="home-role-tag"></span>
-        </div>
-        <div id="homeStats" class="home-stats-row"></div>
-      </div>
-      <div id="homeActions" class="home-quick-actions"></div>
-      <div id="homeAlerts" class="home-alerts-panel"></div>
-    </section>
+  <div class="app-body">
 
-    <section class="card full hero" id="landingHero">
+    <nav class="sidebar" id="appSidebar">
+      <div class="nav-group">
+        <button type="button" class="nav-item" data-nav-target="homeSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span class="nav-label">Dashboard</span>
+        </button>
+        <button type="button" class="nav-item nav-ask" data-nav-target="askSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <span class="nav-label">Ask AI</span>
+        </button>
+        <button type="button" class="nav-item" data-nav-target="trackerSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg>
+          <span class="nav-label">Tracker</span>
+        </button>
+        <button type="button" class="nav-item" data-nav-target="patientWorkspaceSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.582-7 8-7s8 3 8 7"/></svg>
+          <span class="nav-label">Patient</span>
+        </button>
+        <button type="button" class="nav-item nav-role-supervisor" data-nav-target="uploadSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><polyline points="12,18 12,12"/><polyline points="9,15 12,12 15,15"/></svg>
+          <span class="nav-label">Documents</span>
+        </button>
+        <button type="button" class="nav-item nav-role-supervisor" data-nav-target="assignmentSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          <span class="nav-label">Assign</span>
+        </button>
+        <button type="button" class="nav-item nav-role-admin" data-nav-target="createUserSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          <span class="nav-label">Team</span>
+        </button>
+        <button type="button" class="nav-item nav-role-admin" data-nav-target="createClientSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span class="nav-label">Clients</span>
+        </button>
+        <button type="button" class="nav-item nav-breakglass" data-nav-target="breakGlassSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span class="nav-label">Break Glass</span>
+        </button>
+      </div>
+      <div class="nav-group nav-group-bottom">
+        <button type="button" class="nav-item nav-role-supervisor" data-nav-target="auditSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6" stroke-width="2.5"/><line x1="3" y1="12" x2="3.01" y2="12" stroke-width="2.5"/><line x1="3" y1="18" x2="3.01" y2="18" stroke-width="2.5"/></svg>
+          <span class="nav-label">Audit</span>
+        </button>
+        <button type="button" class="nav-item nav-role-admin" data-nav-target="legalRecordsSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 6l3 1 3-4 3 4 3-1 3 4H0l3-4z"/><path d="M3 18h18"/><path d="M4 10v8"/><path d="M20 10v8"/><path d="M12 10v8"/></svg>
+          <span class="nav-label">Legal</span>
+        </button>
+        <button type="button" class="nav-item" data-nav-target="trainingSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+          <span class="nav-label">Training</span>
+        </button>
+      </div>
+    </nav>
+
+    <main class="main-content">
+
+      <!-- ── GUEST: landing hero ──────────────────────────────────── -->
+      <section class="page hero" id="landingHero">
       <div class="hero-copy">
         <span class="hero-kicker">Secure Care Intelligence</span>
         <h2>Faster, Safer DSP Support With Real-Time Guidance</h2>
@@ -61,23 +114,89 @@
       </div>
     </section>
 
-    <section class="card" id="complianceSection">
-      <h2>Compliance Center</h2>
-      <p>Reference pages for HIPAA-focused policies and shared responsibility guidance.</p>
-      <div class="helper-row">
-        <a class="link-btn" href="hipaa-compliance.html" target="_blank" rel="noopener noreferrer">HIPAA Compliance</a>
-        <a class="link-btn" href="healthcare-security.html" target="_blank" rel="noopener noreferrer">Healthcare Security</a>
+    <section class="card" id="complianceSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Compliance Center</h2>
+          <p class="page-desc">HIPAA-focused policies and shared responsibility guidance</p>
+        </div>
+      </div>
+      <div class="compliance-links">
+        <a class="compliance-link-card" href="hipaa-compliance.html" target="_blank" rel="noopener noreferrer">
+          <span class="compliance-title">HIPAA Compliance</span>
+          <span class="compliance-desc">Full compliance reference and obligations</span>
+        </a>
+        <a class="compliance-link-card" href="healthcare-security.html" target="_blank" rel="noopener noreferrer">
+          <span class="compliance-title">Healthcare Security</span>
+          <span class="compliance-desc">Technical and administrative safeguards</span>
+        </a>
       </div>
     </section>
 
-    <section class="card full" id="trainingSection">
-      <h2>Micro-Training</h2>
-      <p>Short, role-specific guidance for safer actions during live shifts.</p>
+    <!-- ── AUTH: Dashboard ──────────────────────────────────────── -->
+    <section class="page" id="homeSection" style="display:none;">
+      <div class="home-header">
+        <div class="home-welcome">
+          <h2 id="homeWelcomeTitle">Welcome</h2>
+          <span id="homeWelcomeRole" class="home-role-tag"></span>
+        </div>
+        <div id="homeStats" class="home-stats-row"></div>
+      </div>
+      <div id="homeActions" class="home-quick-actions"></div>
+      <div id="homeAlerts" class="home-alerts-panel"></div>
+    </section>
+
+    <!-- ── AUTH: Ask AI (chat) ──────────────────────────────────── -->
+    <section class="page" id="askSection" style="display:none;">
+      <div class="chat-header">
+        <div class="chat-header-left">
+          <h2>Ask AI</h2>
+          <p class="page-desc">Grounded answers from care documents</p>
+        </div>
+        <div class="chat-header-right">
+          <select id="askClientId">
+            <option value="">Select Client</option>
+          </select>
+          <button id="refreshAskClientsBtn" type="button" class="btn-icon" title="Refresh clients">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="chatMessages" class="chat-messages">
+        <div class="chat-welcome-state">
+          <div class="chat-welcome-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </div>
+          <p>Select a client above, then ask a care question.</p>
+          <div class="chat-starters">
+            <button type="button" class="chat-starter-btn" data-question="What is the morning medication schedule?">Morning meds schedule</button>
+            <button type="button" class="chat-starter-btn" data-question="How should I assist with bathing and personal care?">Bathing assistance</button>
+            <button type="button" class="chat-starter-btn" data-question="What are the escalation steps for this client?">Escalation steps</button>
+            <button type="button" class="chat-starter-btn" data-question="What dietary restrictions or preferences does this client have?">Dietary needs</button>
+          </div>
+        </div>
+      </div>
+      <form id="askForm" class="chat-input-bar">
+        <textarea name="question" placeholder="Ask a care question about this client…" required rows="1"></textarea>
+        <button type="submit" class="send-btn" aria-label="Send">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+        </button>
+      </form>
+    </section>
+
+    <!-- ── AUTH: Training ───────────────────────────────────────── -->
+    <section class="page" id="trainingSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Micro-Training</h2>
+          <p class="page-desc">Short, role-specific guidance for safer actions during live shifts</p>
+        </div>
+      </div>
       <div id="trainingRoleHeader" class="training-role-header"></div>
       <div class="helper-row" id="trainingContextRow">
-        <button type="button" class="training-context-btn" data-training-context="pre_shift">Pre-Shift</button>
+        <button type="button" class="training-context-btn is-active" data-training-context="pre_shift">Pre-Shift</button>
         <button type="button" class="training-context-btn" data-training-context="documentation">Documentation</button>
-        <button type="button" class="training-context-btn" data-training-context="grounded_qa">Grounded Q&A</button>
+        <button type="button" class="training-context-btn" data-training-context="grounded_qa">Grounded Q&amp;A</button>
         <button type="button" class="training-context-btn" data-training-context="escalation">Escalation</button>
       </div>
       <div class="training-grid">
@@ -96,184 +215,243 @@
       </div>
     </section>
 
-    <section class="card" id="bootstrapSection">
-      <h2>Bootstrap</h2>
-      <form id="bootstrapForm">
-        <input name="orgName" placeholder="Organization Name" required />
-        <input name="orgSlug" placeholder="organization-slug" required />
-        <input name="orgStateCode" placeholder="State Code (optional, e.g., TX)" maxlength="2" />
-        <input name="fullName" placeholder="Admin Full Name" required />
-        <input name="email" placeholder="admin@email.com" type="email" required />
-        <input name="password" placeholder="Password" type="password" required />
-        <button type="submit">Bootstrap</button>
-      </form>
-    </section>
-
-    <section class="card" id="loginSection">
-      <h2>Sign In</h2>
-      <form id="loginForm">
-        <input name="email" type="email" placeholder="Email" required />
-        <input name="password" type="password" placeholder="Password" required />
-        <button type="submit">Login</button>
-      </form>
-    </section>
-
-    <section class="card" id="createUserSection">
-      <h2>Team Members</h2>
-      <form id="userForm">
-        <input name="fullName" placeholder="Full Name" required />
-        <input name="email" type="email" placeholder="Email" required />
-        <input name="password" type="password" placeholder="Temporary Password" required />
-        <select name="role" required>
-          <option value="org_admin">org_admin</option>
-          <option value="supervisor">supervisor</option>
-          <option value="dsp">dsp</option>
-        </select>
-        <button type="submit">Add Team Member</button>
-      </form>
-      <div id="usersList" class="data-list"></div>
-      <div class="reset-pw-panel">
-        <h3>Reset Password</h3>
-        <form id="resetPasswordForm">
-          <select name="userId" id="resetPasswordUserId" required>
-            <option value="">Select Team Member</option>
-          </select>
-          <input name="newPassword" type="password" placeholder="New Password (min. 8 chars)" required minlength="8" />
-          <button type="submit">Reset Password</button>
+    <!-- ── GUEST: Bootstrap / org setup ────────────────────────── -->
+    <section class="page" id="bootstrapSection" style="display:none;">
+      <div class="auth-card-inner">
+        <h2>Organization Setup</h2>
+        <p class="page-desc">First-time setup only — creates your org and admin account.</p>
+        <form id="bootstrapForm">
+          <input name="orgName" placeholder="Organization Name" required />
+          <input name="orgSlug" placeholder="organization-slug" required />
+          <input name="orgStateCode" placeholder="State Code (e.g., TX)" maxlength="2" />
+          <input name="fullName" placeholder="Admin Full Name" required />
+          <input name="email" placeholder="admin@email.com" type="email" required />
+          <input name="password" placeholder="Password" type="password" required />
+          <button type="submit">Create Organization</button>
         </form>
-        <p id="resetPasswordOutput" class="empty-state"></p>
       </div>
     </section>
 
-    <section class="card" id="createClientSection">
-      <h2>Clients</h2>
-      <form id="clientForm">
-        <input name="displayName" placeholder="Client Name" required />
-        <input name="externalId" placeholder="External ID (optional)" />
-        <button type="submit">Add Client</button>
-      </form>
-      <button id="refreshClientsBtn" type="button">Refresh Clients</button>
-      <div id="clientsList" class="data-list"></div>
+    <!-- ── GUEST: Login ─────────────────────────────────────────── -->
+    <section class="page" id="loginSection" style="display:none;">
+      <div class="auth-card-inner">
+        <h2>Sign In</h2>
+        <form id="loginForm">
+          <input name="email" type="email" placeholder="Email" required />
+          <input name="password" type="password" placeholder="Password" required />
+          <button type="submit">Sign In</button>
+        </form>
+      </div>
     </section>
 
-    <section class="card" id="assignmentSection">
-      <h2>Assign DSP</h2>
-      <div class="helper-row">
-        <button id="refreshUsersBtn" type="button">Refresh Users</button>
-        <button id="refreshAssignmentsClientsBtn" type="button">Refresh Clients</button>
+    <!-- ── AUTH: Team Members ───────────────────────────────────── -->
+    <section class="page" id="createUserSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Team Members</h2>
+          <p class="page-desc">Add staff and manage account passwords</p>
+        </div>
+      </div>
+      <div class="two-col-layout">
+        <div class="two-col-left">
+          <h3 class="col-heading">Add Member</h3>
+          <form id="userForm">
+            <input name="fullName" placeholder="Full Name" required />
+            <input name="email" type="email" placeholder="Email" required />
+            <input name="password" type="password" placeholder="Temporary Password" required />
+            <select name="role" required>
+              <option value="org_admin">Org Admin</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="dsp">DSP</option>
+            </select>
+            <button type="submit">Add Member</button>
+          </form>
+          <div class="col-divider"></div>
+          <h3 class="col-heading">Reset Password</h3>
+          <form id="resetPasswordForm">
+            <select name="userId" id="resetPasswordUserId" required>
+              <option value="">Select Team Member</option>
+            </select>
+            <input name="newPassword" type="password" placeholder="New Password (min. 8 chars)" required minlength="8" />
+            <button type="submit">Reset Password</button>
+          </form>
+          <p id="resetPasswordOutput" class="empty-state"></p>
+        </div>
+        <div class="two-col-right">
+          <h3 class="col-heading">Team</h3>
+          <div id="usersList" class="data-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── AUTH: Clients ────────────────────────────────────────── -->
+    <section class="page" id="createClientSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Clients</h2>
+          <p class="page-desc">Manage client profiles</p>
+        </div>
+        <button id="refreshClientsBtn" type="button" class="btn-secondary">Refresh</button>
+      </div>
+      <div class="two-col-layout">
+        <div class="two-col-left">
+          <h3 class="col-heading">Add Client</h3>
+          <form id="clientForm">
+            <input name="displayName" placeholder="Client Name" required />
+            <input name="externalId" placeholder="External ID (optional)" />
+            <button type="submit">Add Client</button>
+          </form>
+        </div>
+        <div class="two-col-right">
+          <h3 class="col-heading">Client List</h3>
+          <div id="clientsList" class="data-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── AUTH: Assignments ────────────────────────────────────── -->
+    <section class="page" id="assignmentSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Assign DSP</h2>
+          <p class="page-desc">Link staff members to client care assignments</p>
+        </div>
+        <div class="page-header-actions">
+          <button id="refreshUsersBtn" type="button" class="btn-secondary">Refresh Users</button>
+          <button id="refreshAssignmentsClientsBtn" type="button" class="btn-secondary">Refresh Clients</button>
+        </div>
       </div>
       <form id="assignmentForm">
-        <select name="userId" id="assignmentUserId" required>
-          <option value="">Select User</option>
-        </select>
-        <select name="clientId" id="assignmentClientId" required>
-          <option value="">Select Client</option>
-        </select>
+        <div class="form-row">
+          <select name="userId" id="assignmentUserId" required>
+            <option value="">Select User</option>
+          </select>
+          <select name="clientId" id="assignmentClientId" required>
+            <option value="">Select Client</option>
+          </select>
+        </div>
         <input name="expiresAt" type="datetime-local" />
-        <button type="submit">Assign</button>
+        <button type="submit">Create Assignment</button>
       </form>
-      <pre id="assignmentOutput"></pre>
+      <pre id="assignmentOutput" class="output-pre"></pre>
     </section>
 
-    <section class="card" id="uploadSection">
-      <h2>Upload Care Document</h2>
-      <div class="helper-row">
-        <button id="refreshUploadClientsBtn" type="button">Refresh Clients</button>
-        <button id="sampleTxtBtn" type="button">Use Sample TXT</button>
-        <button id="samplePdfBtn" type="button">Use Sample PDF</button>
+    <!-- ── AUTH: Upload Documents ───────────────────────────────── -->
+    <section class="page" id="uploadSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Upload Care Document</h2>
+          <p class="page-desc">Add ISP, MAR, behavior plans, and other client documents</p>
+        </div>
+        <div class="page-header-actions">
+          <button id="refreshUploadClientsBtn" type="button" class="btn-secondary">Refresh Clients</button>
+          <button id="sampleTxtBtn" type="button" class="btn-secondary">Sample TXT</button>
+          <button id="samplePdfBtn" type="button" class="btn-secondary">Sample PDF</button>
+        </div>
       </div>
       <form id="uploadForm" enctype="multipart/form-data">
-        <select name="clientId" id="uploadClientId" required>
-          <option value="">Select Client</option>
-        </select>
-        <select name="docType" required>
-          <option value="isp">isp</option>
-          <option value="mar">mar</option>
-          <option value="behavior">behavior</option>
-          <option value="care-plan">care-plan</option>
-          <option value="other">other</option>
-        </select>
-        <input name="title" placeholder="Document Title" required />
-        <input name="effectiveDate" type="date" />
+        <div class="form-row">
+          <select name="clientId" id="uploadClientId" required>
+            <option value="">Select Client</option>
+          </select>
+          <select name="docType" required>
+            <option value="isp">ISP</option>
+            <option value="mar">MAR</option>
+            <option value="behavior">Behavior Plan</option>
+            <option value="care-plan">Care Plan</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <input name="title" placeholder="Document Title" required />
+          <input name="effectiveDate" type="date" />
+        </div>
         <input name="document" type="file" required />
-        <button type="submit">Upload</button>
+        <button type="submit">Upload Document</button>
       </form>
-      <pre id="uploadOutput"></pre>
+      <pre id="uploadOutput" class="output-pre"></pre>
     </section>
 
-    <section class="card full" id="askSection">
-      <h2>Grounded Q&amp;A</h2>
-      <div class="helper-row">
-        <button id="refreshAskClientsBtn" type="button">Refresh Clients</button>
+    <!-- ── AUTH: Tracker ────────────────────────────────────────── -->
+    <section class="page" id="trackerSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Patient Tracker</h2>
+          <p class="page-desc">Log shift events, medications, incidents, and handoff notes</p>
+        </div>
+        <div class="page-header-actions">
+          <button id="refreshTrackerBtn" type="button" class="btn-secondary">Refresh Feed</button>
+          <button id="refreshTrackerSummaryBtn" type="button" class="btn-secondary">Summary</button>
+        </div>
       </div>
-      <form id="askForm">
-        <select name="clientId" id="askClientId" required>
-          <option value="">Select Client</option>
-        </select>
-        <textarea name="question" placeholder="How do I assist this client with bathing?" required></textarea>
-        <button type="submit">Ask</button>
-      </form>
-      <div id="answerCard" class="answer-card"></div>
-    </section>
-
-    <section class="card full" id="trackerSection">
-      <h2>Patient Tracker</h2>
-      <p>Log shift-critical events, due tasks, incidents, and handoff notes with status tracking.</p>
-      <form id="trackerForm">
-        <select name="clientId" id="trackerClientId" required>
-          <option value="">Select Client</option>
-        </select>
-        <select name="eventType" required>
-          <option value="medication">medication</option>
-          <option value="adl">adl</option>
-          <option value="behavior">behavior</option>
-          <option value="incident">incident</option>
-          <option value="note">note</option>
-          <option value="handoff">handoff</option>
-        </select>
-        <select name="priority" required>
-          <option value="normal">normal</option>
-          <option value="low">low</option>
-          <option value="high">high</option>
-          <option value="urgent">urgent</option>
-        </select>
-        <select name="status" required>
-          <option value="pending">pending</option>
-          <option value="completed">completed</option>
-          <option value="escalated">escalated</option>
-        </select>
-        <input name="summary" placeholder="Summary (e.g., 8PM meds completed)" required />
-        <textarea name="details" placeholder="Optional details"></textarea>
-        <input name="photo" type="file" accept="image/*" capture="environment" />
-        <input name="photoCaption" placeholder="Photo caption (optional, e.g., medication blister pack after administration)" />
-        <input name="dueAt" type="datetime-local" />
-        <button type="submit">Add Tracker Entry</button>
-      </form>
-      <div class="helper-row" style="margin-top:8px;">
-        <button id="refreshTrackerBtn" type="button">Refresh Tracker Feed</button>
-        <button id="refreshTrackerSummaryBtn" type="button">Load Tracker Summary</button>
-      </div>
-      <form id="trackerStatusForm" style="margin-top:10px;">
-        <input name="entryId" placeholder="Tracker Entry ID" required />
-        <select name="status" required>
-          <option value="pending">pending</option>
-          <option value="completed">completed</option>
-          <option value="escalated">escalated</option>
-        </select>
-        <button type="submit">Update Tracker Status</button>
-      </form>
-      <div id="trackerFeed" class="tracker-feed"></div>
       <div id="trackerSummaryCards" class="summary-stats"></div>
+      <div class="tracker-layout">
+        <div class="tracker-form-col">
+          <h3 class="col-heading">Log Event</h3>
+          <form id="trackerForm">
+            <select name="clientId" id="trackerClientId" required>
+              <option value="">Select Client</option>
+            </select>
+            <select name="eventType" required>
+              <option value="medication">Medication</option>
+              <option value="adl">ADL</option>
+              <option value="behavior">Behavior</option>
+              <option value="incident">Incident</option>
+              <option value="note">Note</option>
+              <option value="handoff">Handoff</option>
+            </select>
+            <div class="form-row">
+              <select name="priority" required>
+                <option value="normal">Normal</option>
+                <option value="low">Low</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+              <select name="status" required>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+                <option value="escalated">Escalated</option>
+              </select>
+            </div>
+            <input name="summary" placeholder="Summary (e.g., 8PM meds completed)" required />
+            <textarea name="details" placeholder="Optional details"></textarea>
+            <input name="photo" type="file" accept="image/*" capture="environment" />
+            <input name="photoCaption" placeholder="Photo caption (optional)" />
+            <input name="dueAt" type="datetime-local" />
+            <button type="submit">Log Entry</button>
+          </form>
+          <div class="col-divider"></div>
+          <h3 class="col-heading">Update Status</h3>
+          <form id="trackerStatusForm">
+            <input name="entryId" placeholder="Entry ID" required />
+            <select name="status" required>
+              <option value="pending">Pending</option>
+              <option value="completed">Completed</option>
+              <option value="escalated">Escalated</option>
+            </select>
+            <button type="submit">Update</button>
+          </form>
+        </div>
+        <div class="tracker-feed-col">
+          <h3 class="col-heading">Event Feed</h3>
+          <div id="trackerFeed" class="tracker-feed"></div>
+        </div>
+      </div>
     </section>
 
-    <section class="card full" id="patientWorkspaceSection">
-      <h2>Patient Workspace</h2>
-      <p>Pull up one patient and switch tabs for focused review by care domain.</p>
-      <div class="helper-row">
-        <select id="patientWorkspaceClientId" required>
-          <option value="">Select Client</option>
-        </select>
-        <button id="loadPatientWorkspaceBtn" type="button">Load Patient</button>
+    <!-- ── AUTH: Patient Workspace ──────────────────────────────── -->
+    <section class="page" id="patientWorkspaceSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Patient Workspace</h2>
+          <p class="page-desc">Review all care records for one patient by domain</p>
+        </div>
+        <div class="page-header-actions">
+          <select id="patientWorkspaceClientId" required>
+            <option value="">Select Client</option>
+          </select>
+          <button id="loadPatientWorkspaceBtn" type="button">Load Patient</button>
+        </div>
       </div>
       <div id="patientTabRow" class="patient-tab-row">
         <button type="button" class="patient-tab-btn is-active" data-patient-tab="care">Care</button>
@@ -286,47 +464,74 @@
       <div id="patientTabContent" class="patient-tab-content"></div>
     </section>
 
-    <section class="card full" id="breakGlassSection">
-      <h2>Emergency Break-Glass Access</h2>
-      <p>Use only for immediate safety scenarios. Reason is required and fully audited.</p>
-      <form id="breakGlassForm">
-        <select name="clientId" id="breakGlassClientId" required>
-          <option value="">Select Client</option>
-        </select>
-        <input name="durationMinutes" type="number" min="5" max="240" value="30" required />
-        <textarea name="reason" placeholder="Provide emergency reason (minimum 12 characters)" required></textarea>
-        <button type="submit">Grant Temporary Access</button>
-      </form>
-      <pre id="breakGlassOutput"></pre>
+    <!-- ── AUTH: Break Glass ────────────────────────────────────── -->
+    <section class="page" id="breakGlassSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Emergency Break-Glass</h2>
+          <p class="page-desc">For immediate safety scenarios only — fully audited</p>
+        </div>
+      </div>
+      <div class="breakglass-card">
+        <div class="breakglass-warning">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <p>Use only for active emergencies. Reason is logged and audited.</p>
+        </div>
+        <form id="breakGlassForm">
+          <select name="clientId" id="breakGlassClientId" required>
+            <option value="">Select Client</option>
+          </select>
+          <input name="durationMinutes" type="number" min="5" max="240" value="30" required placeholder="Duration (minutes)" />
+          <textarea name="reason" placeholder="Emergency reason (minimum 12 characters)" required></textarea>
+          <button type="submit" class="btn-danger">Grant Temporary Access</button>
+        </form>
+        <pre id="breakGlassOutput" class="output-pre"></pre>
+      </div>
     </section>
 
-    <section class="card full" id="auditSection">
-      <h2>Audit Log</h2>
-      <button id="loadAuditBtn" type="button">Load Audit Log</button>
+    <!-- ── AUTH: Audit Log ──────────────────────────────────────── -->
+    <section class="page" id="auditSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Audit Log</h2>
+          <p class="page-desc">Review all tracked security and access events</p>
+        </div>
+        <button id="loadAuditBtn" type="button">Load Audit Log</button>
+      </div>
       <div id="auditFeed" class="audit-feed"></div>
     </section>
 
-    <section class="card full" id="legalRecordsSection">
-      <h2>Legal Records Export</h2>
-      <p>Generate patient records for legal/compliance requests with state-based retention windows.</p>
+    <!-- ── AUTH: Legal Export ───────────────────────────────────── -->
+    <section class="page" id="legalRecordsSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Legal Records Export</h2>
+          <p class="page-desc">Generate patient records with state-based retention windows</p>
+        </div>
+      </div>
       <form id="legalRecordsForm">
-        <select name="clientId" id="legalRecordsClientId" required>
-          <option value="">Select Client</option>
-        </select>
-        <input name="stateCode" placeholder="State code (e.g., CA). Leave blank to use org default" maxlength="2" />
-        <input name="retentionYearsOverride" type="number" min="1" max="30" placeholder="Override years (optional)" />
-        <label style="display:flex; gap:8px; align-items:center;">
+        <div class="form-row">
+          <select name="clientId" id="legalRecordsClientId" required>
+            <option value="">Select Client</option>
+          </select>
+          <input name="stateCode" placeholder="State code (e.g., CA)" maxlength="2" />
+          <input name="retentionYearsOverride" type="number" min="1" max="30" placeholder="Override years (optional)" />
+        </div>
+        <label class="checkbox-row">
           <input name="includeAudit" type="checkbox" checked />
           Include audit events
         </label>
         <button type="submit">Generate Legal Export</button>
       </form>
-      <div class="helper-row" style="margin-top:8px;">
-        <button id="downloadLegalExportBtn" type="button" disabled>Download Export JSON</button>
+      <div class="helper-row" style="margin-top:10px;">
+        <button id="downloadLegalExportBtn" type="button" class="btn-secondary" disabled>Download Export JSON</button>
       </div>
       <div id="legalRecordsSummary" class="data-list"></div>
     </section>
-  </main>
+
+    </main>
+  </div>
+</div>
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="app.js"></script>

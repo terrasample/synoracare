@@ -25,6 +25,19 @@ let selectedTrainingContext = 'pre_shift';
 let legalExportPayload = null;
 let selectedPatientTab = 'care';
 let currentPatientWorkspace = { clientId: '', entries: [] };
+let currentPage = '';
+
+function navigateTo(pageId) {
+  document.querySelectorAll('.page').forEach((page) => {
+    page.style.display = page.id === pageId ? '' : 'none';
+  });
+  currentPage = pageId;
+  document.querySelectorAll('.nav-item[data-nav-target]').forEach((item) => {
+    item.classList.toggle('is-active', item.dataset.navTarget === pageId);
+  });
+  const main = document.querySelector('.main-content');
+  if (main) main.scrollTop = 0;
+}
 
 const ROLE_TRAINING = {
   guest: {
@@ -217,55 +230,29 @@ function updateSession() {
 }
 
 function applyRoleMode(role) {
-  document.body.classList.remove('guest-mode', 'auth-mode');
-
-  const allSections = [
-    'homeSection',
-    'landingHero',
-    'complianceSection',
-    'trainingSection',
-    'bootstrapSection',
-    'loginSection',
-    'createUserSection',
-    'createClientSection',
-    'assignmentSection',
-    'uploadSection',
-    'askSection',
-    'trackerSection',
-    'breakGlassSection',
-    'auditSection',
-    'legalRecordsSection'
-  ];
-
-  allSections.forEach((sectionId) => {
-    const section = document.getElementById(sectionId);
-    if (!section) return;
-    section.style.display = '';
-  });
+  // Remove all previous mode/role classes
+  document.body.classList.remove(
+    'guest-mode', 'auth-mode',
+    'role-dsp', 'role-supervisor', 'role-org_admin', 'role-super_admin', 'role-guest'
+  );
 
   if (!currentUser) {
-    document.body.classList.add('guest-mode');
-    allSections.forEach((sectionId) => {
-      if (sectionId !== 'landingHero' && sectionId !== 'loginSection' && sectionId !== 'bootstrapSection') {
-        const section = document.getElementById(sectionId);
-        if (section) section.style.display = 'none';
+    document.body.classList.add('guest-mode', 'role-guest');
+    // Hide all auth pages; guest layout handled by CSS
+    document.querySelectorAll('.page').forEach((page) => {
+      const guestPages = ['landingHero', 'loginSection', 'bootstrapSection'];
+      if (!guestPages.includes(page.id)) {
+        page.style.display = 'none';
+      } else {
+        page.style.display = '';
       }
     });
+    currentPage = 'guest';
     return;
   }
 
-  document.body.classList.add('auth-mode');
-
-  ['loginSection', 'bootstrapSection', 'landingHero'].forEach((sectionId) => {
-    const section = document.getElementById(sectionId);
-    if (section) section.style.display = 'none';
-  });
-
-  const hidden = ROLE_HIDDEN_SECTIONS[role] || [];
-  hidden.forEach((sectionId) => {
-    const section = document.getElementById(sectionId);
-    if (section) section.style.display = 'none';
-  });
+  document.body.classList.add('auth-mode', `role-${role}`);
+  navigateTo('homeSection');
 }
 
 function renderTraining(role, context) {
@@ -528,7 +515,7 @@ async function renderHomeSection() {
   if (homeActions) {
     const actions = actionsByRole[role] || actionsByRole.dsp;
     homeActions.innerHTML = actions
-      .map((a) => `<button type="button" class="quick-action-btn" data-scroll-target="${safeText(a.target)}">${safeText(a.label)}</button>`)
+      .map((a) => `<button type="button" class="quick-action-btn" data-nav-target="${safeText(a.target)}">${safeText(a.label)}</button>`)
       .join('');
   }
 
@@ -575,23 +562,25 @@ async function renderHomeSection() {
 }
 
 function renderAskAnswer(data) {
-  const card = document.getElementById('answerCard');
-  if (!card) return;
+  const messages = document.getElementById('chatMessages');
+  if (!messages) return;
 
-  if (!data || !data.answer) {
-    card.innerHTML = `<p class="answer-label">Answer</p><p class="answer-body">${safeText(typeof data === 'string' ? data : 'No answer returned.')}</p>`;
-    return;
-  }
+  // Remove typing indicator
+  const typing = messages.querySelector('.chat-typing');
+  if (typing) typing.remove();
 
-  const sourcesHtml = Array.isArray(data.sources) && data.sources.length
-    ? `<div class="answer-sources"><p class="sources-label">Sources</p>${data.sources.map((s) => `<span class="source-tag">${safeText(s.title || s.docType || 'document')}</span>`).join('')}</div>`
+  const answer = typeof data === 'string' ? data : (data?.answer || 'No answer returned.');
+  const sources = Array.isArray(data?.sources) ? data.sources : [];
+
+  const sourcesHtml = sources.length
+    ? `<div class="chat-sources">${sources.map((s) => `<span class="source-tag">${safeText(s.title || s.docType || 'document')}</span>`).join('')}</div>`
     : '';
 
-  card.innerHTML = `
-    <p class="answer-label">Answer</p>
-    <div class="answer-body">${safeText(data.answer)}</div>
-    ${sourcesHtml}
-  `;
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-message chat-message-ai';
+  bubble.innerHTML = `<div class="chat-bubble"><div class="chat-bubble-text">${safeText(answer).replace(/\n/g, '<br>')}</div>${sourcesHtml}</div>`;
+  messages.appendChild(bubble);
+  messages.scrollTop = messages.scrollHeight;
 }
 
 function renderAuditFeed(data) {
@@ -963,16 +952,67 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
 
 document.getElementById('askForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const payload = Object.fromEntries(new FormData(e.target).entries());
+  const clientId = document.getElementById('askClientId')?.value || '';
+  const questionEl = e.target.querySelector('textarea[name="question"]');
+  const question = questionEl ? questionEl.value.trim() : '';
+
+  if (!clientId) {
+    alert('Please select a client first.');
+    return;
+  }
+
+  const messages = document.getElementById('chatMessages');
+
+  // Remove welcome state on first message
+  const welcome = messages?.querySelector('.chat-welcome-state');
+  if (welcome) welcome.remove();
+
+  // Append user bubble
+  if (messages) {
+    const userBubble = document.createElement('div');
+    userBubble.className = 'chat-message chat-message-user';
+    userBubble.innerHTML = `<div class="chat-bubble"><div class="chat-bubble-text">${safeText(question)}</div></div>`;
+    messages.appendChild(userBubble);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  // Append typing indicator
+  if (messages) {
+    const typing = document.createElement('div');
+    typing.className = 'chat-message chat-message-ai chat-typing';
+    typing.innerHTML = '<div class="chat-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+    messages.appendChild(typing);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  // Clear input
+  if (questionEl) questionEl.value = '';
+
   try {
     const data = await api('/api/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ clientId, question })
     });
     renderAskAnswer(data);
   } catch (err) {
     renderAskAnswer(err.message);
+  }
+});
+
+// Sync askClientId into the form
+document.getElementById('askClientId')?.addEventListener('change', () => {
+  // No-op: clientId read directly from select on submit
+});
+
+// Chat starter buttons
+document.getElementById('chatMessages')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.chat-starter-btn');
+  if (!btn) return;
+  const textarea = document.querySelector('#askForm textarea');
+  if (textarea) {
+    textarea.value = btn.dataset.question;
+    textarea.focus();
   }
 });
 
@@ -1155,7 +1195,7 @@ document.getElementById('logoutBtn')?.addEventListener('click', () => {
   selectedPatientTab = 'care';
   const downloadBtn = document.getElementById('downloadLegalExportBtn');
   if (downloadBtn) downloadBtn.disabled = true;
-  ['usersList', 'clientsList', 'auditFeed', 'answerCard', 'trackerSummaryCards', 'trackerFeed', 'homeStats', 'homeActions', 'homeAlerts', 'legalRecordsSummary', 'patientTabContent'].forEach((id) => {
+  ['usersList', 'clientsList', 'auditFeed', 'trackerSummaryCards', 'trackerFeed', 'homeStats', 'homeActions', 'homeAlerts', 'legalRecordsSummary', 'patientTabContent'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = '';
   });
@@ -1180,10 +1220,26 @@ document.getElementById('resetPasswordForm')?.addEventListener('submit', async (
 });
 
 document.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-scroll-target]');
-  if (!btn) return;
-  const targetSection = document.getElementById(btn.dataset.scrollTarget);
-  if (targetSection) targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const navBtn = e.target.closest('[data-nav-target]');
+  if (navBtn) {
+    navigateTo(navBtn.dataset.navTarget);
+    return;
+  }
+  const scrollBtn = e.target.closest('[data-scroll-target]');
+  if (scrollBtn) {
+    const targetSection = document.getElementById(scrollBtn.dataset.scrollTarget);
+    if (targetSection) targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+});
+
+document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+  document.body.classList.toggle('sidebar-collapsed');
+});
+
+// Auto-grow chat textarea
+document.querySelector('#askForm textarea')?.addEventListener('input', function () {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
 });
 
 updateSession();
