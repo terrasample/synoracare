@@ -88,4 +88,73 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.post('/recover-account', async (req, res) => {
+  try {
+    const configuredRecoveryKey = String(env.accountRecoveryKey || '').trim();
+    if (!configuredRecoveryKey) {
+      return res.status(503).json({ error: 'Account recovery is disabled' });
+    }
+
+    const { recoveryKey, email, newPassword, fullName } = req.body || {};
+    if (!recoveryKey || String(recoveryKey) !== configuredRecoveryKey) {
+      return res.status(403).json({ error: 'Invalid recovery key' });
+    }
+
+    if (!email || !newPassword || String(newPassword).length < 8) {
+      return res.status(400).json({ error: 'email and newPassword (min 8 chars) required' });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const passwordHash = await bcrypt.hash(String(newPassword), 10);
+
+    let user = await User.findOne({ email: normalizedEmail });
+    let action = 'password_reset';
+
+    if (user) {
+      user.passwordHash = passwordHash;
+      if (fullName && String(fullName).trim()) {
+        user.fullName = String(fullName).trim();
+      }
+      await user.save();
+    } else {
+      const org = await Organization.findOne({}).sort({ createdAt: 1 });
+      if (!org) {
+        return res.status(409).json({ error: 'No organization found. Run bootstrap first.' });
+      }
+
+      user = await User.create({
+        orgId: org._id,
+        fullName: String(fullName || 'Recovered Admin').trim(),
+        email: normalizedEmail,
+        passwordHash,
+        role: 'super_admin'
+      });
+      action = 'created_super_admin';
+    }
+
+    await AuditEvent.create({
+      orgId: user.orgId,
+      userId: user._id,
+      eventType: 'password_reset',
+      payload: { action: 'recovery', result: action }
+    });
+
+    const token = signToken(user);
+    return res.json({
+      ok: true,
+      action,
+      token,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        role: user.role,
+        orgId: user.orgId,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Account recovery failed', detail: error.message });
+  }
+});
+
 module.exports = router;
