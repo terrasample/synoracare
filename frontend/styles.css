@@ -506,20 +506,24 @@ button:hover { background: var(--accent-dark); border-color: var(--accent-dark);
 /* Hide topbar + sidebar in guest mode — login is full screen */
 body.guest-mode .topbar  { display: none; }
 body.guest-mode .sidebar { display: none; }
-body.guest-mode .app-body { height: 100vh; }
+body.guest-mode .app-body {
+  min-height: 100dvh;
+  height: auto;
+  overflow-y: auto;
+}
 
 /* Override the earlier guest-mode grid */
 body.guest-mode .main-content {
   display: flex !important;
-  align-items: stretch;
+  align-items: flex-start;
   justify-content: center;
   padding: 0 !important;
   background:
     radial-gradient(1000px 620px at -4% 10%, rgba(137, 206, 128, 0.40) 0%, rgba(137, 206, 128, 0.16) 40%, transparent 72%),
     radial-gradient(880px 560px at 104% 86%, rgba(180, 226, 171, 0.34) 0%, rgba(180, 226, 171, 0.12) 44%, transparent 74%),
-    linear-gradient(180deg, #edf6ed 0%, #e6f1e7 100%) !important;
+    linear-gradient(145deg, #f0f8f0 0%, #e8f3ea 55%, #e3f0e6 100%) !important;
   grid-template-columns: none !important;
-  min-height: 100vh;
+  min-height: 100dvh;
   overflow-y: auto;
 }
 
@@ -541,14 +545,16 @@ body.guest-mode #loginSection {
 .login-page {
   position: relative;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   gap: 18px;
-  padding: 72px 20px 24px;
-  overflow: hidden;
+  padding: 56px 20px 42px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-padding-bottom: 34px;
 }
 
 .login-page::before,
@@ -566,6 +572,8 @@ body.guest-mode #loginSection {
   left: -180px;
   top: -140px;
   background: radial-gradient(circle at 62% 52%, rgba(122, 193, 112, 0.34) 0%, rgba(122, 193, 112, 0.06) 62%, transparent 76%);
+  filter: blur(0.3px);
+  animation: loginFloatA 8s ease-in-out infinite;
 }
 
 .login-page::after {
@@ -574,6 +582,17 @@ body.guest-mode #loginSection {
   right: -220px;
   bottom: -120px;
   background: radial-gradient(circle at 40% 45%, rgba(162, 220, 154, 0.32) 0%, rgba(162, 220, 154, 0.07) 60%, transparent 78%);
+  animation: loginFloatB 10s ease-in-out infinite;
+}
+
+@keyframes loginFloatA {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(10px); }
+}
+
+@keyframes loginFloatB {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
 
@@ -620,12 +639,14 @@ body.guest-mode #loginSection {
 .login-card {
   position: relative;
   z-index: 2;
-  background: #ffffff;
-  border: 1px solid rgba(217, 228, 217, 0.9);
+  background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,253,248,0.98) 100%);
+  border: 1px solid rgba(197, 223, 197, 0.95);
   border-radius: 34px;
   box-shadow:
-    0 24px 58px rgba(43, 68, 43, 0.10),
-    0 8px 22px rgba(43, 68, 43, 0.05);
+    0 26px 66px rgba(21, 53, 31, 0.18),
+    0 10px 26px rgba(56, 142, 60, 0.10),
+    inset 0 1px 0 rgba(255,255,255,0.85);
+  backdrop-filter: blur(6px);
   padding: 36px 48px 26px;
   width: 100%;
   max-width: min(100%, 1040px);
@@ -635,6 +656,18 @@ body.guest-mode #loginSection {
   align-items: center;
   justify-content: flex-start;
   gap: 16px;
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 24px;
+  right: 24px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2e7d32 0%, #8bc34a 52%, #2e7d32 100%);
+  opacity: 0.9;
 }
 
 /* Logo */
@@ -732,7 +765,7 @@ body.guest-mode #loginSection {
   border-radius: 14px;
   font-size: 14px;
   font-family: inherit;
-  background: #f8fef8;
+  background: linear-gradient(180deg, #fcfffc 0%, #f5fbf5 100%);
   color: #1a2b1a;
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
@@ -779,9 +812,10 @@ body.guest-mode #loginSection {
 .account-recovery-panel {
   width: min(100%, 460px);
   margin-top: 6px;
-  border: 1px solid #d9e8d9;
+  border: 1px solid #cfe3cf;
   border-radius: 12px;
-  background: #f8fcf8;
+  background: linear-gradient(180deg, #f7fcf7 0%, #f0f8f1 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
   padding: 10px;
 }
 .account-recovery-title {
@@ -817,7 +851,7 @@ body.guest-mode #loginSection {
 /* Login button */
 .login-submit-btn {
   width: 100%;
-  background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+  background: linear-gradient(135deg, #1f7f35 0%, #3c9a45 45%, #68b247 100%);
   color: #fff;
   border: none;
   border-radius: 14px;
@@ -831,12 +865,12 @@ body.guest-mode #loginSection {
   gap: 10px;
   letter-spacing: 0.03em;
   transition: filter 0.15s, transform 0.1s, box-shadow 0.15s;
-  box-shadow: 0 4px 18px rgba(46,125,50,0.42);
+  box-shadow: 0 8px 24px rgba(31,127,53,0.44);
   margin-top: 2px;
 }
 .login-submit-btn:hover {
-  filter: brightness(1.07);
-  box-shadow: 0 7px 22px rgba(46,125,50,0.52);
+  filter: brightness(1.05);
+  box-shadow: 0 12px 28px rgba(31,127,53,0.52);
 }
 .login-submit-btn:active { transform: scale(0.975); }
 
@@ -857,22 +891,19 @@ body.guest-mode #loginSection {
 .login-signup-link { text-align: center; margin-top: 12px; font-size: 13px; }
 .login-signup-link a { color: var(--accent); font-weight: 600; text-decoration: none; }
 .login-signup-link a:hover { text-decoration: underline; }
-.login-signup-link { text-align: center; margin-top: 12px; font-size: 13px; }
-.login-signup-link a { color: var(--accent); font-weight: 600; text-decoration: none; }
-.login-signup-link a:hover { text-decoration: underline; }
 
 /* Responsive */
 @media (max-width: 700px) {
   .login-deco, .login-dots, .login-deco-icons { display: none; }
-  .login-page { padding: 24px 12px 20px; justify-content: flex-start; }
+  .login-page { padding: 22px 12px 28px; justify-content: flex-start; }
   .login-card { padding: 26px 20px 20px; max-width: 540px; min-height: auto; border-radius: 26px; }
   .login-logo-img { width: min(360px, 84vw); max-width: 100%; }
 }
 @media (max-width: 420px) {
-  .login-page { padding: 14px 10px; min-height: 100vh; justify-content: center; }
+  .login-page { padding: 14px 10px 24px; min-height: 100dvh; justify-content: flex-start; }
   .login-card {
     border-radius: 16px;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 14px 32px rgba(0,0,0,0.12);
     padding: 22px 14px 18px;
     max-width: 100%;
     gap: 16px;
