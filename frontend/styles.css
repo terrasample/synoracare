@@ -186,6 +186,9 @@ body.guest-mode #bootstrapSection {
 .home-role-tag { display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-bg); border: 1px solid var(--accent-border); border-radius: 999px; padding: 3px 10px; text-transform: uppercase; letter-spacing: 0.06em; }
 .home-stats-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .stat-chip { display: flex; flex-direction: column; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; min-width: 76px; box-shadow: var(--shadow); }
+.stat-chip.stat-clickable { appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease; }
+.stat-chip.stat-clickable:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10); }
+.stat-chip.stat-clickable:focus-visible { outline: 3px solid rgba(15, 118, 110, 0.22); outline-offset: 2px; }
 .stat-chip.stat-warn { border-color: #fde68a; background: var(--warn-bg); }
 .stat-chip.stat-danger { border-color: #fca5a5; background: var(--danger-bg); }
 .stat-chip.stat-ok { border-color: #86efac; background: var(--ok-bg); }

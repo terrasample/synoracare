@@ -444,16 +444,21 @@ function syncClientPickers() {
 
 async function loadTrackerFeed() {
   try {
-    const data = await api('/api/tracker?limit=50');
+    const query = trackerStatusFilter ? `?limit=50&status=${encodeURIComponent(trackerStatusFilter)}` : '?limit=50';
+    const data = await api(`/api/tracker${query}`);
     const entries = data.entries || [];
     if (DEMO_MODE && entries.length === 0) {
-      renderTrackerFeed(DEMO_TRACKER_ENTRIES);
+      renderTrackerFeed(
+        trackerStatusFilter ? DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === trackerStatusFilter) : DEMO_TRACKER_ENTRIES
+      );
       return;
     }
     renderTrackerFeed(entries);
   } catch (error) {
     if (DEMO_MODE) {
-      renderTrackerFeed(DEMO_TRACKER_ENTRIES);
+      renderTrackerFeed(
+        trackerStatusFilter ? DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === trackerStatusFilter) : DEMO_TRACKER_ENTRIES
+      );
       return;
     }
     throw error;
@@ -492,7 +497,8 @@ function renderTrackerFeed(entries) {
   if (!feed) return;
 
   if (!entries.length) {
-    feed.innerHTML = '<p class="tracker-empty">No tracker events yet for your accessible clients.</p>';
+    const filterLabel = trackerStatusFilter ? ` ${trackerStatusFilter}` : '';
+    feed.innerHTML = `<p class="tracker-empty">No${filterLabel} tracker events yet for your accessible clients.</p>`;
     return;
   }
 
@@ -525,6 +531,11 @@ function renderTrackerFeed(entries) {
       `;
     })
     .join('');
+}
+
+function setTrackerStatusFilter(status) {
+  trackerStatusFilter = status || '';
+  return Promise.all([loadTrackerSummary(), loadTrackerFeed()]);
 }
 
 async function openTrackerPhoto(entryId) {
@@ -687,10 +698,10 @@ async function renderHomeSection() {
     const homeStats = document.getElementById('homeStats');
     if (homeStats) {
       homeStats.innerHTML = `
-        <div class="stat-chip"><span class="stat-value">${clientsCache.length}</span><span class="stat-label">Clients</span></div>
-        <div class="stat-chip stat-warn"><span class="stat-value">${summaryData.pending || 0}</span><span class="stat-label">Pending</span></div>
-        <div class="stat-chip stat-danger"><span class="stat-value">${summaryData.escalated || 0}</span><span class="stat-label">Escalated</span></div>
-        <div class="stat-chip stat-ok"><span class="stat-value">${summaryData.completed || 0}</span><span class="stat-label">Completed</span></div>
+        <button type="button" class="stat-chip stat-clickable" data-nav-target="createClientSection" aria-label="View clients"><span class="stat-value">${clientsCache.length}</span><span class="stat-label">Clients</span></button>
+        <button type="button" class="stat-chip stat-warn stat-clickable" data-nav-target="trackerSection" data-tracker-status="pending" aria-label="View pending tracker entries"><span class="stat-value">${summaryData.pending || 0}</span><span class="stat-label">Pending</span></button>
+        <button type="button" class="stat-chip stat-danger stat-clickable" data-nav-target="trackerSection" data-tracker-status="escalated" aria-label="View escalated tracker entries"><span class="stat-value">${summaryData.escalated || 0}</span><span class="stat-label">Escalated</span></button>
+        <button type="button" class="stat-chip stat-ok stat-clickable" data-nav-target="trackerSection" data-tracker-status="completed" aria-label="View completed tracker entries"><span class="stat-value">${summaryData.completed || 0}</span><span class="stat-label">Completed</span></button>
       `;
     }
 
@@ -1641,6 +1652,10 @@ document.getElementById('resetPasswordForm')?.addEventListener('submit', async (
 document.addEventListener('click', (e) => {
   const navBtn = e.target.closest('[data-nav-target]');
   if (navBtn) {
+    const trackerStatus = navBtn.dataset.trackerStatus || '';
+    if (trackerStatus) {
+      setTrackerStatusFilter(trackerStatus);
+    }
     navigateTo(navBtn.dataset.navTarget);
     if (window.innerWidth <= 900) document.body.classList.remove('sidebar-open');
     return;
