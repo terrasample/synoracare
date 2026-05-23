@@ -1,4 +1,4 @@
-# SynoraCare (Standalone)
+# SynoraCare AI (Standalone)
 
 This project is completely separate from RoleRocket AI.
 
@@ -41,7 +41,7 @@ Example production value:
 
 - `CORS_ORIGIN=http://localhost:8080,https://synoracare.com,https://www.synoracare.com`
 
-For production, point the frontend at `https://api.<your-domain>` or set `window.CAREGUIDE_CONFIG.API_BASE` before `app.js` loads.
+For production, point the frontend at `https://api.<your-domain>` or set `window.SYNORACARE_CONFIG.API_BASE` before `app.js` loads.
 
 ## 2) Start backend
 

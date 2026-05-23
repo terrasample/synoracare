@@ -65,7 +65,7 @@ app.use((err, _req, res, _next) => {
 async function start() {
   await connectDb();
   app.listen(env.port, () => {
-    console.log(`CareGuide backend listening on ${env.port}`);
+    console.log(`SynoraCare backend listening on ${env.port}`);
   });
 }
 
