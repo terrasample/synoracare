@@ -301,6 +301,34 @@ function setOutput(id, data) {
   el.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
 }
 
+let toastTimer = null;
+function showToast(message, type = 'error') {
+  const text = String(message || '').trim();
+  if (!text) return;
+
+  let container = document.getElementById('appToastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'appToastContainer';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+
+  container.innerHTML = '';
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = text;
+  container.appendChild(toast);
+
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+  }
+  toastTimer = setTimeout(() => {
+    if (container) container.innerHTML = '';
+    toastTimer = null;
+  }, 3600);
+}
+
 function updateSession() {
   const info = document.getElementById('sessionInfo');
   const logoutBtn = document.getElementById('logoutBtn');
@@ -586,6 +614,12 @@ async function api(path, options = {}) {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
+    if (response.status === 401 && token) {
+      token = '';
+      currentUser = null;
+      updateSession();
+      throw new Error('Session expired. Please sign in again.');
+    }
     throw new Error(data.error || 'Request failed');
   }
   return data;
@@ -921,7 +955,7 @@ document.getElementById('bootstrapForm').addEventListener('submit', async (e) =>
     updateSession();
     await refreshAllPickers();
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'error');
   }
 });
 
@@ -943,7 +977,7 @@ if (pwEyeBtn && loginPwInput) {
 const forgotPwBtn = document.getElementById('forgotPwBtn');
 if (forgotPwBtn) {
   forgotPwBtn.addEventListener('click', () => {
-    alert('Please contact your organization administrator to reset your password.');
+    showToast('Please contact your organization administrator to reset your password.', 'info');
   });
 }
 
@@ -961,23 +995,32 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     updateSession();
     await refreshAllPickers();
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'error');
   }
 });
 
 document.getElementById('demoRequestForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const formData = Object.fromEntries(new FormData(e.target).entries());
+  const raw = Object.fromEntries(new FormData(e.target).entries());
+  const formData = {
+    organizationName: raw.orgName,
+    contactName: raw.contactName,
+    email: raw.contactEmail,
+    phone: raw.contactPhone,
+    requestType: raw.requestType,
+    message: raw.message,
+    source: 'landing_page'
+  };
   try {
     await api('/api/contact/demo-request', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)
     });
-    alert('Demo request submitted successfully. We will contact you soon!');
+    showToast('Demo request submitted successfully. We will contact you soon!', 'success');
     e.target.reset();
   } catch (err) {
-    alert('Error submitting demo request: ' + err.message);
+    showToast(`Error submitting demo request: ${err.message}`, 'error');
   }
 });
 
@@ -1120,7 +1163,7 @@ document.getElementById('askForm').addEventListener('submit', async (e) => {
   const question = questionEl ? questionEl.value.trim() : '';
 
   if (!clientId) {
-    alert('Please select a client first.');
+    showToast('Please select a client first.', 'info');
     return;
   }
 

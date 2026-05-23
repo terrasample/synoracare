@@ -35,6 +35,19 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
+app.use((req, res, next) => {
+  const originalJson = res.json.bind(res);
+  res.json = (payload) => {
+    if (!env.exposeErrorDetails && res.statusCode >= 500 && payload && typeof payload === 'object' && 'detail' in payload) {
+      const sanitized = { ...payload };
+      delete sanitized.detail;
+      return originalJson(sanitized);
+    }
+    return originalJson(payload);
+  };
+  next();
+});
+
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'synoracare-backend' });
 });

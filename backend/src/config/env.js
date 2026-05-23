@@ -21,6 +21,8 @@ function parseOrigins(value, fallback) {
 const corsOrigins = parseOrigins(process.env.CORS_ORIGIN, 'http://localhost:8080');
 
 module.exports = {
+  nodeEnv: process.env.NODE_ENV || 'development',
+  exposeErrorDetails: String(process.env.EXPOSE_ERROR_DETAILS || (process.env.NODE_ENV === 'production' ? 'false' : 'true')).toLowerCase() === 'true',
   port: Number(process.env.PORT || 8081),
   mongoUri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/careguide_assistant',
   allowInMemoryMongo: String(process.env.ALLOW_INMEMORY_MONGO || 'true').toLowerCase() === 'true',

@@ -79,6 +79,10 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email: String(email).toLowerCase() });
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
+    if (user.status !== 'active') {
+      return res.status(403).json({ error: 'Account is inactive. Contact your organization administrator.' });
+    }
+
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
 
