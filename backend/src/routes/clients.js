@@ -24,7 +24,7 @@ router.get('/', requireAuth, async (req, res) => {
     const clients = await Client.find({ orgId: req.user.orgId, _id: { $in: clientIds } }).sort({ displayName: 1 }).lean();
     return res.json({ clients });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to list clients', detail: error.message });
+    return res.status(500).json({ error: 'Failed to list clients' });
   }
 });
 
@@ -42,7 +42,7 @@ router.post('/', requireAuth, requireRoles('super_admin', 'org_admin', 'supervis
 
     return res.status(201).json({ client });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to create client', detail: error.message });
+    return res.status(500).json({ error: 'Failed to create client' });
   }
 });
 

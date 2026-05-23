@@ -139,7 +139,7 @@ router.post('/export', requireAuth, requireRoles('super_admin', 'org_admin', 'su
 
     return res.json(payload);
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to export legal records', detail: error.message });
+    return res.status(500).json({ error: 'Failed to export legal records' });
   }
 });
 

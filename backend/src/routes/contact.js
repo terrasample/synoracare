@@ -4,22 +4,14 @@ const DemoRequest = require('../models/DemoRequest');
 const router = express.Router();
 const REQUEST_WINDOW_MS = 15 * 60 * 1000;
 const REQUEST_LIMIT_PER_WINDOW = 5;
-const recentRequestsByIp = new Map();
 
-function isRateLimited(ipAddress) {
-  const now = Date.now();
-  const windowStart = now - REQUEST_WINDOW_MS;
-  const previous = recentRequestsByIp.get(ipAddress) || [];
-  const valid = previous.filter((ts) => ts > windowStart);
-
-  if (valid.length >= REQUEST_LIMIT_PER_WINDOW) {
-    recentRequestsByIp.set(ipAddress, valid);
-    return true;
-  }
-
-  valid.push(now);
-  recentRequestsByIp.set(ipAddress, valid);
-  return false;
+async function isRateLimited(ipAddress) {
+  const windowStart = new Date(Date.now() - REQUEST_WINDOW_MS);
+  const recentCount = await DemoRequest.countDocuments({
+    'metadata.ip': ipAddress,
+    createdAt: { $gte: windowStart }
+  });
+  return recentCount >= REQUEST_LIMIT_PER_WINDOW;
 }
 
 function isValidEmail(email) {
@@ -38,7 +30,7 @@ router.post('/demo-request', async (req, res) => {
     const source = String(req.body.source || 'web').trim().toLowerCase();
     const ipAddress = String(req.ip || req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
 
-    if (isRateLimited(ipAddress)) {
+    if (await isRateLimited(ipAddress)) {
       return res.status(429).json({ error: 'Too many requests. Please try again shortly.' });
     }
 

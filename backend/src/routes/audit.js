@@ -15,7 +15,7 @@ router.get('/', requireAuth, requireRoles('super_admin', 'org_admin', 'superviso
 
     return res.json({ events });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to load audit events', detail: error.message });
+    return res.status(500).json({ error: 'Failed to load audit events' });
   }
 });
 

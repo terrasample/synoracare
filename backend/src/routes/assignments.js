@@ -12,7 +12,7 @@ router.get('/', requireAuth, requireRoles('super_admin', 'org_admin', 'superviso
     const assignments = await Assignment.find({ orgId: req.user.orgId }).lean();
     return res.json({ assignments });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to list assignments', detail: error.message });
+    return res.status(500).json({ error: 'Failed to list assignments' });
   }
 });
 
@@ -24,7 +24,7 @@ router.get('/users', requireAuth, requireRoles('super_admin', 'org_admin', 'supe
       .lean();
     return res.json({ users });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to list users', detail: error.message });
+    return res.status(500).json({ error: 'Failed to list users' });
   }
 });
 
@@ -59,7 +59,7 @@ router.post('/', requireAuth, requireRoles('super_admin', 'org_admin', 'supervis
 
     return res.status(201).json({ assignment });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to create assignment', detail: error.message });
+    return res.status(500).json({ error: 'Failed to create assignment' });
   }
 });
 
@@ -113,7 +113,7 @@ router.post('/break-glass', requireAuth, async (req, res) => {
 
     return res.status(201).json({ assignment });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to create break-glass access', detail: error.message });
+    return res.status(500).json({ error: 'Failed to create break-glass access' });
   }
 });
 
@@ -140,7 +140,7 @@ router.post('/users', requireAuth, requireRoles('super_admin', 'org_admin'), asy
 
     return res.status(201).json({ user: { id: user._id, fullName: user.fullName, email: user.email, role: user.role } });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to create user', detail: error.message });
+    return res.status(500).json({ error: 'Failed to create user' });
   }
 });
 
@@ -167,7 +167,7 @@ router.patch('/users/:id/reset-password', requireAuth, requireRoles('super_admin
 
     return res.json({ user: { id: user._id, fullName: user.fullName, email: user.email } });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to reset password', detail: error.message });
+    return res.status(500).json({ error: 'Failed to reset password' });
   }
 });
 

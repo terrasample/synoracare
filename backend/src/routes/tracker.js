@@ -70,7 +70,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     return res.json({ entries });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to load tracker entries', detail: error.message });
+    return res.status(500).json({ error: 'Failed to load tracker entries' });
   }
 });
 
@@ -108,7 +108,7 @@ router.get('/summary', requireAuth, async (req, res) => {
       counts: { pending, completed, escalated, overdue, total }
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to load tracker summary', detail: error.message });
+    return res.status(500).json({ error: 'Failed to load tracker summary' });
   }
 });
 
@@ -171,7 +171,7 @@ router.post('/', requireAuth, upload.single('photo'), async (req, res) => {
 
     return res.status(201).json({ entry: payload });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to create tracker entry', detail: error.message });
+    return res.status(500).json({ error: 'Failed to create tracker entry' });
   }
 });
 
@@ -194,7 +194,7 @@ router.get('/:id/photo', requireAuth, async (req, res) => {
     res.setHeader('Cache-Control', 'private, max-age=300');
     return res.send(entry.photo.data);
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to load tracker photo', detail: error.message });
+    return res.status(500).json({ error: 'Failed to load tracker photo' });
   }
 });
 
@@ -237,7 +237,7 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
 
     return res.json({ entry });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to update tracker status', detail: error.message });
+    return res.status(500).json({ error: 'Failed to update tracker status' });
   }
 });
 

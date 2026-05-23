@@ -117,7 +117,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     return res.json(response);
   } catch (error) {
-    return res.status(500).json({ error: 'Question failed', detail: error.message });
+    return res.status(500).json({ error: 'Question failed' });
   }
 });
 
@@ -136,7 +136,7 @@ router.post('/escalate', requireAuth, async (req, res) => {
 
     return res.status(201).json({ ok: true });
   } catch (error) {
-    return res.status(500).json({ error: 'Escalation failed', detail: error.message });
+    return res.status(500).json({ error: 'Escalation failed' });
   }
 });
 

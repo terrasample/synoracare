@@ -67,7 +67,7 @@ router.post('/bootstrap', async (req, res) => {
 
     return res.json({ token, user: { id: user._id, fullName: user.fullName, role: user.role, orgId: user.orgId } });
   } catch (error) {
-    return res.status(500).json({ error: 'Bootstrap failed', detail: error.message });
+    return res.status(500).json({ error: 'Bootstrap failed' });
   }
 });
 
@@ -99,7 +99,7 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Login failed', detail: error.message });
+    return res.status(500).json({ error: 'Login failed' });
   }
 });
 
@@ -181,7 +181,7 @@ router.post('/recover-account', async (req, res) => {
       }
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Account recovery failed', detail: error.message });
+    return res.status(500).json({ error: 'Account recovery failed' });
   }
 });
 

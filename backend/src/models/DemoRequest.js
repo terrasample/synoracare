@@ -19,5 +19,6 @@ const DemoRequestSchema = new mongoose.Schema(
 
 DemoRequestSchema.index({ createdAt: -1 });
 DemoRequestSchema.index({ email: 1, createdAt: -1 });
+DemoRequestSchema.index({ 'metadata.ip': 1, createdAt: -1 });
 
 module.exports = mongoose.model('DemoRequest', DemoRequestSchema);

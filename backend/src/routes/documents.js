@@ -86,7 +86,7 @@ router.post('/upload', requireAuth, requireRoles('super_admin', 'org_admin', 'su
       chunkCount: chunkDocs.length
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Upload failed', detail: error.message });
+    return res.status(500).json({ error: 'Upload failed' });
   }
 });
 
