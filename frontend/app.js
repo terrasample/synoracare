@@ -9,6 +9,10 @@ const DEFAULT_API_BASE = (() => {
     return 'https://synoracare-backend.onrender.com';
   }
 
+  if (hostname === 'synoracare.com' || hostname === 'www.synoracare.com') {
+    return 'https://synoracare-backend.onrender.com';
+  }
+
   if (hostname.startsWith('api.')) {
     return `${protocol}//${hostname}`;
   }
