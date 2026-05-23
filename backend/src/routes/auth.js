@@ -101,6 +101,10 @@ router.post('/login', async (req, res) => {
 
 router.post('/recover-account', async (req, res) => {
   try {
+    if (!env.accountRecoveryEnabled) {
+      return res.status(503).json({ error: 'Account recovery is disabled' });
+    }
+
     const configuredRecoveryKey = String(env.accountRecoveryKey || '').trim();
     if (!configuredRecoveryKey) {
       return res.status(503).json({ error: 'Account recovery is disabled' });
