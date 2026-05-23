@@ -62,6 +62,15 @@ app.get('/api/status', (_req, res) => {
   });
 });
 
+app.get('/api/status/header-check', (req, res) => {
+  const authHeader = String(req.headers.authorization || '');
+  res.json({
+    ok: true,
+    hasAuthorizationHeader: Boolean(authHeader),
+    authorizationPrefix: authHeader ? authHeader.slice(0, 16) : ''
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/assignments', assignmentRoutes);
