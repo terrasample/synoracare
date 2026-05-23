@@ -23,20 +23,36 @@ function verifyWithKnownSecrets(token) {
 }
 
 async function requireAuth(req, res, next) {
+  const requestPath = String(req.originalUrl || req.url || 'unknown');
   try {
     const authHeader = String(req.headers.authorization || '');
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+    if (!token) {
+      console.warn(`[auth] missing_token path=${requestPath}`);
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     const decoded = verifyWithKnownSecrets(token);
+    if (!decoded || !decoded.userId) {
+      console.warn(`[auth] invalid_payload path=${requestPath}`);
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const user = await User.findById(decoded.userId).lean();
-    if (!user || user.status !== 'active') {
+    if (!user) {
+      console.warn(`[auth] user_not_found path=${requestPath} userId=${decoded.userId}`);
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (user.status !== 'active') {
+      console.warn(`[auth] user_inactive path=${requestPath} userId=${decoded.userId}`);
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     req.user = user;
     return next();
-  } catch (_err) {
+  } catch (err) {
+    console.warn(`[auth] verify_failed path=${requestPath} reason=${err?.name || 'unknown'}`);
     return res.status(401).json({ error: 'Unauthorized' });
   }
 }
