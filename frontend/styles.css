@@ -473,9 +473,9 @@ body.guest-mode #loginSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 18px;
-  padding: 30px 20px 24px;
+  padding: 72px 20px 24px;
   overflow: hidden;
 }
 
@@ -548,7 +548,7 @@ body.guest-mode #loginSection {
   gap: 0;
 }
 .login-logo-img {
-  width: min(300px, 72vw);
+  width: min(400px, 86vw);
   max-width: 100%;
   height: auto;
 }
@@ -715,9 +715,9 @@ body.guest-mode #loginSection {
 /* Responsive */
 @media (max-width: 700px) {
   .login-deco, .login-dots, .login-deco-icons { display: none; }
-  .login-page { padding: 18px 12px 20px; justify-content: center; }
+  .login-page { padding: 24px 12px 20px; justify-content: flex-start; }
   .login-card { padding: 26px 20px 20px; max-width: 540px; min-height: auto; border-radius: 26px; }
-  .login-logo-img { width: 240px; }
+  .login-logo-img { width: min(360px, 84vw); }
 }
 @media (max-width: 420px) {
   .login-page { padding: 14px 10px; min-height: 100vh; justify-content: center; }
@@ -728,7 +728,7 @@ body.guest-mode #loginSection {
     max-width: 100%;
     gap: 16px;
   }
-  .login-logo-img { width: 220px; }
+  .login-logo-img { width: min(320px, 90vw); }
   .login-tagline-wrap p { font-size: 12px; }
   .login-trust { padding-top: 12px; }
 }
