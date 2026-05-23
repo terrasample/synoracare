@@ -18,6 +18,11 @@
     </div>
     <div class="topbar-right">
       <span id="sessionInfo" class="session-info">Not logged in</span>
+      <label id="demoModeToggleWrap" class="demo-mode-toggle" style="display:none;">
+        <input id="demoModeToggle" type="checkbox" />
+        <span class="demo-mode-track" aria-hidden="true"></span>
+        <span class="demo-mode-label">Demo</span>
+      </label>
       <button id="logoutBtn" type="button" class="logout-btn" style="display:none;">Sign Out</button>
     </div>
   </header>
@@ -378,7 +383,7 @@
 
           <!-- Logo + brand -->
           <div class="login-logo-wrap">
-            <img src="assets/logo.png" alt="SynoraCare AI logo" class="login-logo-img" onerror="this.style.display='none'"/>
+            <img src="assets/logo-concepts/synoracare-logo-01-heart-duo.svg" alt="SynoraCare AI logo" class="login-logo-img" onerror="this.style.display='none'"/>
           </div>
 
           <!-- Tagline -->
