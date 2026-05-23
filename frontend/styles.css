@@ -572,8 +572,7 @@ body.guest-mode #loginSection {
   overflow-x: hidden;
   overflow-y: auto;
   scroll-padding-bottom: 34px;
-  background:
-    linear-gradient(180deg, #eaf4e8 0 68px, #ffffff 68px 100%);
+  background: #f6faf8;
 }
 
 /* Keep foreground content above decorative background layers. */
@@ -630,7 +629,7 @@ body.guest-mode #loginSection {
   backdrop-filter: none;
   padding: 0;
   width: 100%;
-  max-width: min(100%, 560px);
+  max-width: min(100%, 880px);
   min-height: auto;
   display: flex;
   flex-direction: column;
@@ -649,12 +648,17 @@ body.guest-mode #loginSection {
   flex-direction: column;
   align-items: center;
   gap: 0;
-  margin-top: 10px;
+  margin-top: 0;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(2, 23, 35, 0.26);
 }
 .login-logo-img {
-  width: clamp(250px, 46vw, 500px);
+  width: 100%;
   max-width: 100%;
   height: auto;
+  display: block;
 }
 
 @media (max-width: 1080px) {
@@ -683,7 +687,7 @@ body.guest-mode #loginSection {
 /* Form */
 .login-form {
   width: 100%;
-  max-width: 460px;
+  max-width: 500px;
   display: flex;
   flex-direction: column;
   gap: 11px;
@@ -776,7 +780,7 @@ body.guest-mode #loginSection {
 
 /* Account recovery panel */
 .account-recovery-panel {
-  width: min(100%, 460px);
+  width: min(100%, 500px);
   margin-top: 6px;
   border: 1px solid #cfe3cf;
   border-radius: 12px;
@@ -858,7 +862,7 @@ body.guest-mode #loginSection {
   gap: 10px;
   padding-top: 10px;
   width: 100%;
-  max-width: 460px;
+  max-width: 500px;
   margin-top: 2px;
   position: relative;
   z-index: 2;
@@ -872,9 +876,10 @@ body.guest-mode #loginSection {
 
 /* Responsive */
 @media (max-width: 700px) {
-  .login-page { padding: 22px 12px 28px; justify-content: flex-start; background: linear-gradient(180deg, #eaf4e8 0 56px, #ffffff 56px 100%); }
-  .login-card { max-width: 540px; min-height: auto; }
-  .login-logo-img { width: min(340px, 88vw); max-width: 100%; }
+  .login-page { padding: 14px 12px 28px; justify-content: flex-start; }
+  .login-card { max-width: 100%; min-height: auto; }
+  .login-logo-wrap { border-radius: 12px; }
+  .login-logo-img { width: 100%; max-width: 100%; }
   .login-form,
   .login-trust,
   .account-recovery-panel { max-width: 100%; }
@@ -883,9 +888,10 @@ body.guest-mode #loginSection {
   .forgot-pw-link { font-size: 12px; }
 }
 @media (max-width: 420px) {
-  .login-page { padding: 14px 10px 24px; min-height: 100dvh; justify-content: flex-start; background: linear-gradient(180deg, #eaf4e8 0 50px, #ffffff 50px 100%); }
+  .login-page { padding: 10px 10px 24px; min-height: 100dvh; justify-content: flex-start; }
   .login-card { max-width: 100%; gap: 14px; }
-  .login-logo-img { width: min(296px, 92vw); max-width: 100%; }
+  .login-logo-wrap { border-radius: 10px; }
+  .login-logo-img { width: 100%; max-width: 100%; }
   .login-field-header,
   .login-field-actions { width: 100%; }
   .login-field-actions { justify-content: space-between; }
