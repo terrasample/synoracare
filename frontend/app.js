@@ -95,16 +95,8 @@ const DEMO_TRACKER_ENTRIES = [
 ];
 
 function getDemoClients() {
-  const fallback = DEMO_CLIENTS.map((client) => ({ ...client }));
-  try {
-    const raw = localStorage.getItem(DEMO_CLIENTS_STORAGE_KEY);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return fallback;
-    return parsed.filter((client) => client && client._id && client.displayName);
-  } catch {
-    return fallback;
-  }
+  // Always use the defined DEMO_CLIENTS for consistency
+  return DEMO_CLIENTS.map((client) => ({ ...client }));
 }
 
 function saveDemoClients(clients) {
@@ -374,17 +366,32 @@ function showToast(message, type = 'error') {
 function updateSession() {
   const info = document.getElementById('sessionInfo');
   const logoutBtn = document.getElementById('logoutBtn');
+  const roleSwitcher = document.getElementById('demoRoleSwitcher');
+  
   if (!currentUser) {
     info.textContent = 'Not logged in';
     if (logoutBtn) logoutBtn.style.display = 'none';
+    if (roleSwitcher) roleSwitcher.style.display = 'none';
     syncDemoToggle();
     applyRoleMode('guest');
     renderTraining('guest', selectedTrainingContext);
     saveCurrentShift(null);
     return;
   }
+  
   info.textContent = `${currentUser.fullName} | ${currentUser.role}`;
   if (logoutBtn) logoutBtn.style.display = '';
+  
+  // Show role switcher only in demo mode
+  if (roleSwitcher) {
+    if (demoMode && currentUser.email?.includes('preview')) {
+      roleSwitcher.style.display = '';
+      roleSwitcher.value = currentUser.role;
+    } else {
+      roleSwitcher.style.display = 'none';
+    }
+  }
+  
   applyRoleMode(currentUser.role);
   syncDemoToggle();
   renderTraining(currentUser.role, selectedTrainingContext);
@@ -671,10 +678,10 @@ async function refreshClients() {
     renderClientList(clientsCache);
   } catch (error) {
     console.error('Error loading clients:', error);
-    clientsCache = [];
+    // Fall back to demo clients if API fails
+    clientsCache = getDemoClients();
     syncClientPickers();
-    const list = document.getElementById('clientsList');
-    if (list) list.innerHTML = `<p class="empty-state">Could not load clients: ${safeText(error.message)}</p>`;
+    renderClientList(clientsCache);
   }
 }
 
@@ -2370,6 +2377,24 @@ window.navigateTo = function(pageId) {
     loadShiftMonitor();
   }
 };
+
+// Demo mode role switcher
+document.getElementById('demoRoleSwitcher')?.addEventListener('change', async (e) => {
+  const newRole = e.target.value;
+  const previewUser = ROLE_PREVIEW_USERS[newRole];
+  if (!previewUser) return;
+  
+  // Clear demo clients cache so they reload for the new role
+  try {
+    localStorage.removeItem(DEMO_CLIENTS_STORAGE_KEY);
+  } catch (e) {}
+  
+  // Update current user to new role
+  currentUser = { ...previewUser };
+  updateSession();
+  await refreshAllPickers();
+  showToast(`Switched to ${previewUser.role.replace('_', ' ')} role`, 'success');
+});
 
 updateSession();
 initializeInviteAndResetFromUrl();
