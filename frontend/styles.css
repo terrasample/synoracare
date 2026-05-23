@@ -557,6 +557,12 @@ body.guest-mode #loginSection {
   scroll-padding-bottom: 34px;
 }
 
+/* Keep foreground content above decorative background layers. */
+.login-page > *:not(.login-deco):not(.login-dots):not(.login-deco-icons) {
+  position: relative;
+  z-index: 2;
+}
+
 .login-page::before,
 .login-page::after {
   content: '';
@@ -608,6 +614,7 @@ body.guest-mode #loginSection {
   height: 600px;
   background: url('assets/login-deco-right-ref.png') no-repeat top right / 100% 100%;
   opacity: 0.96;
+  z-index: 0;
 }
 
 .login-deco-bl { display: none; }
@@ -622,6 +629,7 @@ body.guest-mode #loginSection {
   background: url('assets/login-deco-left-dots-ref.png') no-repeat left top / 100% 100%;
   opacity: 0.9;
   pointer-events: none;
+  z-index: 0;
 }
 
 /* Faint right-side medical icons */
@@ -633,6 +641,7 @@ body.guest-mode #loginSection {
   height: 354px;
   background: url('assets/login-deco-right-icons-ref.png') no-repeat top right / 100% 100%;
   pointer-events: none;
+  z-index: 0;
 }
 
 /* ── Login card ── */
@@ -678,14 +687,14 @@ body.guest-mode #loginSection {
   gap: 0;
 }
 .login-logo-img {
-  width: 978px;
-  max-width: none;
+  width: min(700px, 78vw);
+  max-width: 100%;
   height: auto;
 }
 
 @media (max-width: 1080px) {
   .login-logo-img {
-    width: min(978px, 92vw);
+    width: min(560px, 88vw);
     max-width: 100%;
   }
 }
@@ -738,13 +747,17 @@ body.guest-mode #loginSection {
 }
 .login-field-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .login-field-actions {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .login-label {
   font-size: 14px;
@@ -899,11 +912,13 @@ body.guest-mode #loginSection {
   width: auto;
   max-width: none;
   margin-top: 2px;
+  position: relative;
+  z-index: 2;
 }
 .login-trust svg { color: #4caf50; flex-shrink: 0; margin-top: 2px; }
 .login-trust strong { font-size: 12.5px; color: #2e7d32; display: block; margin-bottom: 2px; }
 .login-trust span { font-size: 11.5px; color: #5a6a7f; }
-.login-signup-link { text-align: center; margin-top: 12px; font-size: 13px; }
+.login-signup-link { text-align: center; margin-top: 12px; font-size: 13px; position: relative; z-index: 2; }
 .login-signup-link a { color: var(--accent); font-weight: 600; text-decoration: none; }
 .login-signup-link a:hover { text-decoration: underline; }
 
@@ -913,6 +928,8 @@ body.guest-mode #loginSection {
   .login-page { padding: 22px 12px 28px; justify-content: flex-start; }
   .login-card { padding: 26px 20px 20px; max-width: 540px; min-height: auto; border-radius: 26px; }
   .login-logo-img { width: min(360px, 84vw); max-width: 100%; }
+  .login-field-actions { gap: 8px; }
+  .forgot-pw-link { font-size: 12px; }
 }
 @media (max-width: 420px) {
   .login-page { padding: 14px 10px 24px; min-height: 100dvh; justify-content: flex-start; }
