@@ -49,6 +49,13 @@ html, body {
 .topbar-right { display: flex; align-items: center; gap: 10px; }
 .topbar-logo { font-weight: 800; font-size: 17px; letter-spacing: -0.02em; color: var(--accent-dark); }
 .session-info { font-size: 13px; color: var(--muted); }
+.demo-mode-toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; position: relative; }
+.demo-mode-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.demo-mode-track { width: 42px; height: 24px; border-radius: 999px; background: #e5e7eb; border: 1px solid #cbd5e1; position: relative; transition: background 0.18s ease, border-color 0.18s ease; }
+.demo-mode-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18); transition: transform 0.18s ease; }
+.demo-mode-toggle input:checked + .demo-mode-track { background: var(--accent); border-color: var(--accent); }
+.demo-mode-toggle input:checked + .demo-mode-track::after { transform: translateX(18px); }
+.demo-mode-label { font-size: 12px; font-weight: 700; color: var(--accent-dark); }
 .logout-btn {
   font: inherit; font-size: 12px; font-weight: 600;
   background: none; border: 1px solid var(--line); color: var(--muted);
@@ -430,6 +437,7 @@ button:hover { background: var(--accent-dark); border-color: var(--accent-dark);
     z-index: 180;
   }
   .topbar-right { gap: 6px; }
+  .demo-mode-label { display: none; }
   .session-info {
     max-width: 210px;
     white-space: nowrap;
