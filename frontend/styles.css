@@ -656,20 +656,42 @@ body.guest-mode #loginSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
+  justify-content: center;
+  gap: 6px;
   margin-top: 0;
   width: 100%;
   max-width: 620px;
   border-radius: 12px;
-  overflow: hidden;
+  padding: 20px 12px 14px;
   border: 1px solid #1a4257;
-  box-shadow: 0 4px 14px rgba(1, 14, 22, 0.45);
+  box-shadow: 0 4px 14px rgba(1, 14, 22, 0.35);
+  text-align: center;
 }
 .login-logo-img {
   width: 100%;
   max-width: 100%;
   height: auto;
   display: block;
+}
+
+.login-brand-title {
+  margin: 0;
+  font-size: clamp(2rem, 5.4vw, 3.35rem);
+  line-height: 1.04;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #f2f8fc;
+  text-align: center;
+}
+
+.login-brand-subtitle {
+  margin: 0;
+  font-size: clamp(0.88rem, 1.9vw, 1.08rem);
+  font-weight: 600;
+  line-height: 1.35;
+  color: #9fb4c1;
+  text-align: center;
+  max-width: 540px;
 }
 
 @media (max-width: 1080px) {
@@ -890,7 +912,7 @@ body.guest-mode #loginSection {
 @media (max-width: 700px) {
   .login-page { padding: 14px 12px 28px; justify-content: flex-start; background: linear-gradient(180deg, #edf6ec 0 56px, #f7fbf9 56px 100%); }
   .login-card { max-width: 100%; min-height: auto; padding: 12px 10px 14px; border-radius: 14px; }
-  .login-logo-wrap { max-width: 100%; border-radius: 12px; box-shadow: 0 7px 18px rgba(2, 23, 35, 0.16); }
+  .login-logo-wrap { max-width: 100%; border-radius: 12px; box-shadow: 0 7px 18px rgba(2, 23, 35, 0.16); padding: 16px 10px 12px; }
   .login-logo-img { width: 100%; max-width: 100%; }
   .login-form,
   .login-trust,
@@ -902,7 +924,7 @@ body.guest-mode #loginSection {
 @media (max-width: 420px) {
   .login-page { padding: 10px 10px 24px; min-height: 100dvh; justify-content: flex-start; background: linear-gradient(180deg, #edf6ec 0 50px, #f7fbf9 50px 100%); }
   .login-card { max-width: 100%; gap: 12px; padding: 10px 8px 12px; border-radius: 12px; }
-  .login-logo-wrap { border-radius: 10px; box-shadow: 0 6px 14px rgba(2, 23, 35, 0.14); }
+  .login-logo-wrap { border-radius: 10px; box-shadow: 0 6px 14px rgba(2, 23, 35, 0.14); padding: 14px 8px 10px; }
   .login-logo-img { width: 100%; max-width: 100%; }
   .login-field-header,
   .login-field-actions { width: 100%; }
