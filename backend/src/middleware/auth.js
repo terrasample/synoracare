@@ -29,23 +29,27 @@ async function requireAuth(req, res, next) {
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     if (!token) {
       console.warn(`[auth] missing_token path=${requestPath}`);
+      res.set('x-auth-reason', 'missing_token');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const decoded = verifyWithKnownSecrets(token);
     if (!decoded || !decoded.userId) {
       console.warn(`[auth] invalid_payload path=${requestPath}`);
+      res.set('x-auth-reason', 'invalid_payload');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const user = await User.findById(decoded.userId).lean();
     if (!user) {
       console.warn(`[auth] user_not_found path=${requestPath} userId=${decoded.userId}`);
+      res.set('x-auth-reason', 'user_not_found');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     if (user.status !== 'active') {
       console.warn(`[auth] user_inactive path=${requestPath} userId=${decoded.userId}`);
+      res.set('x-auth-reason', 'user_inactive');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
@@ -53,6 +57,7 @@ async function requireAuth(req, res, next) {
     return next();
   } catch (err) {
     console.warn(`[auth] verify_failed path=${requestPath} reason=${err?.name || 'unknown'}`);
+    res.set('x-auth-reason', `verify_failed:${err?.name || 'unknown'}`);
     return res.status(401).json({ error: 'Unauthorized' });
   }
 }
