@@ -190,6 +190,7 @@ body.guest-mode #bootstrapSection {
 .demo-form .form-row > .form-group { flex: 1; }
 .demo-form button { align-self: flex-start; }
 .demo-form button + button { margin-left: 8px; }
+.login-hint-text { margin-top: 6px; font-size: 11.5px; color: var(--muted); line-height: 1.4; }
 .tile-one { background-image: linear-gradient(155deg, rgba(17,24,39,0.25), rgba(13,122,111,0.3)), url('assets/care-team-1.webp'); }
 .tile-two { background-image: linear-gradient(155deg, rgba(15,23,42,0.22), rgba(59,130,246,0.25)), url('assets/care-team-2.webp'); }
 .tile-three { background-image: linear-gradient(155deg, rgba(15,23,42,0.28), rgba(30,41,59,0.2)), url('assets/care-team-3.webp'); }

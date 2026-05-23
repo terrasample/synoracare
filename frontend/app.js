@@ -49,6 +49,12 @@ const DEMO_USERS = [
   { _id: 'demo-user-3', fullName: 'Camila James', role: 'supervisor' }
 ];
 
+const ROLE_PREVIEW_USERS = {
+  dsp: { _id: 'demo-login-dsp', fullName: 'Nia Carter', email: 'preview.dsp@synoracare.demo', role: 'dsp' },
+  supervisor: { _id: 'demo-login-supervisor', fullName: 'Camila James', email: 'preview.supervisor@synoracare.demo', role: 'supervisor' },
+  org_admin: { _id: 'demo-login-org-admin', fullName: 'Alex Rivera', email: 'preview.orgadmin@synoracare.demo', role: 'org_admin' }
+};
+
 const DEMO_TRACKER_SUMMARY = {
   pending: 6,
   escalated: 1,
@@ -1049,6 +1055,8 @@ document.getElementById('bootstrapForm').addEventListener('submit', async (e) =>
 // Password eye toggle
 const pwEyeBtn = document.getElementById('pwEyeBtn');
 const loginPwInput = document.getElementById('loginPasswordInput');
+const loginEmailInput = document.getElementById('loginEmail');
+const loginRolePreviewSelect = document.getElementById('loginRolePreview');
 const eyeOpenIcon = document.getElementById('eyeOpenIcon');
 const eyeClosedIcon = document.getElementById('eyeClosedIcon');
 if (pwEyeBtn && loginPwInput) {
@@ -1059,6 +1067,28 @@ if (pwEyeBtn && loginPwInput) {
     if (eyeClosedIcon) eyeClosedIcon.style.display = isPassword ? '' : 'none';
   });
 }
+
+function syncRolePreviewLoginState() {
+  if (!loginRolePreviewSelect || !loginEmailInput || !loginPwInput) return;
+  const usingPreview = Boolean(loginRolePreviewSelect.value);
+
+  loginEmailInput.disabled = usingPreview;
+  loginPwInput.disabled = usingPreview;
+  loginEmailInput.required = !usingPreview;
+  loginPwInput.required = !usingPreview;
+
+  if (pwEyeBtn) pwEyeBtn.disabled = usingPreview;
+  if (usingPreview && loginPwInput.type !== 'password') {
+    loginPwInput.type = 'password';
+    if (eyeOpenIcon) eyeOpenIcon.style.display = '';
+    if (eyeClosedIcon) eyeClosedIcon.style.display = 'none';
+  }
+}
+
+loginRolePreviewSelect?.addEventListener('change', () => {
+  syncRolePreviewLoginState();
+});
+syncRolePreviewLoginState();
 
 // Forgot password
 const forgotPwBtn = document.getElementById('forgotPwBtn');
@@ -1210,6 +1240,25 @@ accountRecoveryForm?.addEventListener('submit', async (e) => {
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const payload = Object.fromEntries(new FormData(e.target).entries());
+  const previewRole = String(document.getElementById('loginRolePreview')?.value || '').trim();
+
+  if (previewRole) {
+    const previewUser = ROLE_PREVIEW_USERS[previewRole];
+    if (!previewUser) {
+      showToast('Selected preview role is not available.', 'error');
+      return;
+    }
+
+    // Role preview is always demo-mode and intentionally excludes super admin.
+    setDemoMode(true);
+    token = `demo-preview-${previewRole}`;
+    currentUser = { ...previewUser };
+    updateSession();
+    await refreshAllPickers();
+    showToast(`Signed in as preview ${previewUser.role.replace('_', ' ')}`, 'success');
+    return;
+  }
+
   try {
     const data = await api('/api/auth/login', {
       method: 'POST',
