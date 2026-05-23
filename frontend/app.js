@@ -794,6 +794,7 @@ function renderUserList(users) {
     <div class="data-item">
       <span class="data-item-label">${safeText(u.fullName)}</span>
       <span class="data-item-meta data-item-role role-${safeText(u.role)}">${safeText(u.role)}</span>
+      <span class="data-item-meta">${safeText(u.status || 'active')}</span>
       <span class="data-item-email">${safeText(u.email)}</span>
     </div>
   `).join('');
@@ -975,29 +976,98 @@ if (pwEyeBtn && loginPwInput) {
 
 // Forgot password
 const forgotPwBtn = document.getElementById('forgotPwBtn');
+const forgotPasswordPanel = document.getElementById('forgotPasswordPanel');
+const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+const forgotPasswordOutput = document.getElementById('forgotPasswordOutput');
+const adminRecoveryToggle = document.getElementById('adminRecoveryToggle');
 const accountRecoveryPanel = document.getElementById('accountRecoveryPanel');
 const accountRecoveryForm = document.getElementById('accountRecoveryForm');
 const accountRecoveryOutput = document.getElementById('accountRecoveryOutput');
+const inviteAcceptPanel = document.getElementById('inviteAcceptPanel');
+const inviteAcceptForm = document.getElementById('inviteAcceptForm');
+const inviteAcceptOutput = document.getElementById('inviteAcceptOutput');
+
+if (adminRecoveryToggle) {
+  adminRecoveryToggle.addEventListener('click', () => {
+    if (!accountRecoveryPanel) return;
+    const isHidden = accountRecoveryPanel.style.display === 'none' || !accountRecoveryPanel.style.display;
+    accountRecoveryPanel.style.display = isHidden ? '' : 'none';
+    if (isHidden && forgotPasswordPanel) forgotPasswordPanel.style.display = 'none';
+  });
+}
+
 if (forgotPwBtn) {
   forgotPwBtn.addEventListener('click', () => {
-    if (!accountRecoveryPanel) {
-      showToast('Please contact your organization administrator to reset your password.', 'info');
+    if (!forgotPasswordPanel) {
+      showToast('Please contact your organization administrator for account support.', 'info');
       return;
     }
 
-    const isHidden = accountRecoveryPanel.style.display === 'none' || !accountRecoveryPanel.style.display;
-    accountRecoveryPanel.style.display = isHidden ? '' : 'none';
+    const isHidden = forgotPasswordPanel.style.display === 'none' || !forgotPasswordPanel.style.display;
+    forgotPasswordPanel.style.display = isHidden ? '' : 'none';
+    if (isHidden && accountRecoveryPanel) accountRecoveryPanel.style.display = 'none';
 
-    if (isHidden && accountRecoveryForm) {
+    if (isHidden && forgotPasswordForm) {
       const loginEmail = document.getElementById('loginEmail');
-      const recoveryEmailInput = accountRecoveryForm.querySelector('input[name="email"]');
-      if (loginEmail && recoveryEmailInput && !recoveryEmailInput.value) {
-        recoveryEmailInput.value = loginEmail.value;
+      const forgotEmailInput = forgotPasswordForm.querySelector('input[name="email"]');
+      if (loginEmail && forgotEmailInput && !forgotEmailInput.value) {
+        forgotEmailInput.value = loginEmail.value;
       }
-      recoveryEmailInput?.focus();
+      forgotEmailInput?.focus();
     }
   });
 }
+
+forgotPasswordForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = Object.fromEntries(new FormData(e.target).entries());
+  const params = new URLSearchParams(window.location.search);
+  const suppliedToken = String(payload.resetToken || params.get('resetToken') || '').trim();
+  try {
+    let resetToken = suppliedToken;
+
+    if (!resetToken) {
+      if (forgotPasswordOutput) forgotPasswordOutput.textContent = 'Issuing one-time reset token...';
+
+      const request = await api('/api/auth/forgot-password/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: payload.email })
+      });
+
+      if (!request.resetToken) {
+        if (forgotPasswordOutput) {
+          forgotPasswordOutput.textContent = 'If the account exists, a reset link/token has been issued.';
+        }
+        showToast('If the account exists, reset instructions were sent.', 'info');
+        return;
+      }
+
+      resetToken = request.resetToken;
+    }
+
+    if (forgotPasswordOutput) forgotPasswordOutput.textContent = 'Completing password reset...';
+
+    await api('/api/auth/forgot-password/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: payload.email,
+        resetToken,
+        newPassword: payload.newPassword
+      })
+    });
+
+    if (forgotPasswordOutput) {
+      forgotPasswordOutput.textContent = 'Password updated. You can now sign in with your new password.';
+    }
+    showToast('Password reset successful. Please sign in.', 'success');
+    e.target.reset();
+  } catch (err) {
+    if (forgotPasswordOutput) forgotPasswordOutput.textContent = `Reset failed: ${err.message}`;
+    showToast(err.message, 'error');
+  }
+});
 
 accountRecoveryForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1097,18 +1167,89 @@ document.getElementById('demoRequestForm')?.addEventListener('submit', async (e)
 document.getElementById('userForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const payload = Object.fromEntries(new FormData(e.target).entries());
+  const output = document.getElementById('userInviteOutput');
   try {
     const data = await api('/api/assignments/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+    if (output) {
+      output.innerHTML = `Invite created for ${safeText(data.user?.fullName || payload.fullName)}. Share this link: <a href="${safeText(data.inviteLink)}" target="_blank" rel="noopener noreferrer">${safeText(data.inviteLink)}</a>`;
+    }
+    e.target.reset();
     await refreshUsers();
   } catch (err) {
-    const list = document.getElementById('usersList');
-    if (list) list.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
+    if (output) output.textContent = `Error: ${err.message}`;
   }
 });
+
+inviteAcceptForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = Object.fromEntries(new FormData(e.target).entries());
+  const params = new URLSearchParams(window.location.search);
+  const inviteToken = params.get('inviteToken');
+  if (!inviteToken) {
+    showToast('Invite token missing from URL.', 'error');
+    return;
+  }
+
+  try {
+    if (inviteAcceptOutput) inviteAcceptOutput.textContent = 'Activating account...';
+    const data = await api('/api/auth/accept-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        inviteToken,
+        fullName: payload.fullName,
+        password: payload.password,
+        acceptTerms: payload.acceptTerms === 'on'
+      })
+    });
+
+    token = data.token;
+    currentUser = data.user;
+    updateSession();
+    await refreshAllPickers();
+    if (inviteAcceptOutput) inviteAcceptOutput.textContent = 'Account activated. Signing in...';
+    showToast('Welcome to SynoraCare. Your account is now active.', 'success');
+    params.delete('inviteToken');
+    params.delete('email');
+    window.history.replaceState({}, document.title, `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`);
+  } catch (err) {
+    if (inviteAcceptOutput) inviteAcceptOutput.textContent = `Activation failed: ${err.message}`;
+    showToast(err.message, 'error');
+  }
+});
+
+function initializeInviteAndResetFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const inviteToken = params.get('inviteToken');
+  const email = params.get('email');
+  const resetToken = params.get('resetToken');
+
+  if (inviteToken && inviteAcceptPanel && inviteAcceptForm) {
+    inviteAcceptPanel.style.display = '';
+    if (forgotPasswordPanel) forgotPasswordPanel.style.display = 'none';
+    if (accountRecoveryPanel) accountRecoveryPanel.style.display = 'none';
+    const emailInput = inviteAcceptForm.querySelector('input[name="email"]');
+    if (emailInput && email) emailInput.value = email;
+    const nameInput = inviteAcceptForm.querySelector('input[name="fullName"]');
+    nameInput?.focus();
+    return;
+  }
+
+  if (resetToken && forgotPasswordPanel && forgotPasswordForm) {
+    forgotPasswordPanel.style.display = '';
+    if (accountRecoveryPanel) accountRecoveryPanel.style.display = 'none';
+    const emailInput = forgotPasswordForm.querySelector('input[name="email"]');
+    const tokenInput = forgotPasswordForm.querySelector('input[name="resetToken"]');
+    if (emailInput && email) emailInput.value = email;
+    if (tokenInput) tokenInput.value = resetToken;
+    const passwordInput = forgotPasswordForm.querySelector('input[name="newPassword"]');
+    passwordInput?.focus();
+  }
+}
 
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1541,4 +1682,5 @@ document.querySelector('#askForm textarea')?.addEventListener('input', function 
 });
 
 updateSession();
+initializeInviteAndResetFromUrl();
 fetchAndShowVersion();

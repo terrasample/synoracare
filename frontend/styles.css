@@ -741,6 +741,11 @@ body.guest-mode #loginSection {
   align-items: center;
   justify-content: space-between;
 }
+.login-field-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .login-label {
   font-size: 14px;
   font-weight: 700;
@@ -843,6 +848,16 @@ body.guest-mode #loginSection {
   border: 1px solid #c8e6c9;
   background: #fff;
   font-size: 13px;
+}
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: #365238;
+}
+.checkbox-label input[type="checkbox"] {
+  margin-top: 2px;
 }
 .account-recovery-form button {
   width: 100%;

@@ -1,11 +1,25 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const Assignment = require('../models/Assignment');
 const User = require('../models/User');
+const InviteToken = require('../models/InviteToken');
 const AuditEvent = require('../models/AuditEvent');
 const { requireAuth } = require('../middleware/auth');
 const { requireRoles } = require('../middleware/rbac');
 
 const router = express.Router();
+
+function hashToken(token) {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
+}
+
+function buildInviteUrl(token, email) {
+  const base = String(process.env.FRONTEND_BASE_URL || '').replace(/\/$/, '');
+  const query = `inviteToken=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+  if (!base) return `/index.html?${query}`;
+  return `${base}/index.html?${query}`;
+}
 
 router.get('/', requireAuth, requireRoles('super_admin', 'org_admin', 'supervisor'), async (req, res) => {
   try {
@@ -18,8 +32,8 @@ router.get('/', requireAuth, requireRoles('super_admin', 'org_admin', 'superviso
 
 router.get('/users', requireAuth, requireRoles('super_admin', 'org_admin', 'supervisor'), async (req, res) => {
   try {
-    const users = await User.find({ orgId: req.user.orgId, status: 'active' })
-      .select('_id fullName email role')
+    const users = await User.find({ orgId: req.user.orgId })
+      .select('_id fullName email role status inviteAcceptedAt')
       .sort({ fullName: 1 })
       .lean();
     return res.json({ users });
@@ -119,26 +133,78 @@ router.post('/break-glass', requireAuth, async (req, res) => {
 
 router.post('/users', requireAuth, requireRoles('super_admin', 'org_admin'), async (req, res) => {
   try {
-    const { fullName, email, password, role } = req.body || {};
-    if (!fullName || !email || !password || !role) {
-      return res.status(400).json({ error: 'fullName, email, password, role required' });
+    const { fullName, email, role } = req.body || {};
+    if (!fullName || !email || !role) {
+      return res.status(400).json({ error: 'fullName, email, and role are required' });
     }
 
     if (!['org_admin', 'supervisor', 'dsp'].includes(role)) {
       return res.status(400).json({ error: 'invalid role' });
     }
 
-    const bcrypt = require('bcryptjs');
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = await User.create({
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    let user = await User.findOne({ orgId: req.user.orgId, email: normalizedEmail });
+    if (user && user.status === 'active') {
+      return res.status(409).json({ error: 'User already has an active account' });
+    }
+
+    const placeholderPassword = crypto.randomBytes(24).toString('hex');
+    const passwordHash = await bcrypt.hash(placeholderPassword, 10);
+
+    if (user) {
+      user.fullName = String(fullName).trim();
+      user.role = role;
+      user.status = 'inactive';
+      user.passwordHash = passwordHash;
+      user.inviteAcceptedAt = null;
+      user.termsAcceptedAt = null;
+      await user.save();
+    } else {
+      user = await User.create({
+        orgId: req.user.orgId,
+        fullName: String(fullName).trim(),
+        email: normalizedEmail,
+        passwordHash,
+        role,
+        status: 'inactive'
+      });
+    }
+
+    const rawInviteToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashToken(rawInviteToken);
+    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+
+    await InviteToken.deleteMany({ userId: user._id });
+    await InviteToken.create({
       orgId: req.user.orgId,
-      fullName,
-      email: String(email).toLowerCase(),
-      passwordHash,
-      role
+      userId: user._id,
+      invitedBy: req.user._id,
+      email: normalizedEmail,
+      role,
+      tokenHash,
+      expiresAt
     });
 
-    return res.status(201).json({ user: { id: user._id, fullName: user.fullName, email: user.email, role: user.role } });
+    await AuditEvent.create({
+      orgId: req.user.orgId,
+      userId: req.user._id,
+      eventType: 'security_alert',
+      payload: { action: 'team_invite_created', targetUserId: String(user._id), targetEmail: normalizedEmail }
+    });
+
+    return res.status(201).json({
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        status: user.status
+      },
+      inviteToken: rawInviteToken,
+      inviteLink: buildInviteUrl(rawInviteToken, normalizedEmail),
+      expiresInHours: 72
+    });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to create user' });
   }

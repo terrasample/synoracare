@@ -15,7 +15,10 @@ const UserSchema = new mongoose.Schema(
       type: String,
       enum: ['active', 'inactive'],
       default: 'active'
-    }
+    },
+    inviteAcceptedAt: { type: Date, default: null },
+    termsAcceptedAt: { type: Date, default: null },
+    mfaEnabled: { type: Boolean, default: false }
   },
   { timestamps: true }
 );

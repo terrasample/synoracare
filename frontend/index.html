@@ -405,7 +405,10 @@
             <div class="login-field-group">
               <div class="login-field-header">
                 <label class="login-label" for="loginPasswordInput">Password</label>
-                <button type="button" id="forgotPwBtn" class="forgot-pw-link">Forgot Password?</button>
+                <div class="login-field-actions">
+                  <button type="button" id="forgotPwBtn" class="forgot-pw-link">Forgot Password?</button>
+                  <button type="button" id="adminRecoveryToggle" class="forgot-pw-link">Admin Recovery</button>
+                </div>
               </div>
               <div class="login-input-wrap">
                 <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="17" height="17" aria-hidden="true">
@@ -429,6 +432,34 @@
               </svg>
             </button>
           </form>
+
+          <div id="forgotPasswordPanel" class="account-recovery-panel" style="display:none;">
+            <p class="account-recovery-title">Reset Password</p>
+            <p class="account-recovery-help">Use your email to issue a short-lived reset token, then set a new password.</p>
+            <form id="forgotPasswordForm" class="account-recovery-form" autocomplete="off">
+              <input name="email" type="email" placeholder="Work email" required />
+              <input name="resetToken" type="text" placeholder="Reset token (auto-filled from link if present)" />
+              <input name="newPassword" type="password" placeholder="New password (min. 10 chars + complexity)" minlength="10" required />
+              <button type="submit" class="btn-secondary">Reset Password</button>
+            </form>
+            <p id="forgotPasswordOutput" class="empty-state"></p>
+          </div>
+
+          <div id="inviteAcceptPanel" class="account-recovery-panel" style="display:none;">
+            <p class="account-recovery-title">Complete Your Invitation</p>
+            <p class="account-recovery-help">Set your password to activate your account and continue to your dashboard.</p>
+            <form id="inviteAcceptForm" class="account-recovery-form" autocomplete="off">
+              <input name="fullName" type="text" placeholder="Full name" required />
+              <input name="email" type="email" placeholder="Email" readonly />
+              <input name="password" type="password" placeholder="Password (min. 10 chars + complexity)" minlength="10" required />
+              <label class="checkbox-label">
+                <input type="checkbox" name="acceptTerms" required />
+                I accept my organization's security and compliance terms.
+              </label>
+              <button type="submit" class="btn-secondary">Activate Account</button>
+            </form>
+            <p id="inviteAcceptOutput" class="empty-state"></p>
+          </div>
 
           <div id="accountRecoveryPanel" class="account-recovery-panel" style="display:none;">
             <p class="account-recovery-title">Admin Account Recovery</p>
@@ -466,33 +497,23 @@
       <div class="page-header">
         <div>
           <h2>Team Members</h2>
-          <p class="page-desc">Add staff and manage account passwords</p>
+          <p class="page-desc">Invite staff members to activate their own accounts securely</p>
         </div>
       </div>
       <div class="two-col-layout">
         <div class="two-col-left">
-          <h3 class="col-heading">Add Member</h3>
+          <h3 class="col-heading">Invite Member</h3>
           <form id="userForm">
             <input name="fullName" placeholder="Full Name" required />
             <input name="email" type="email" placeholder="Email" required />
-            <input name="password" type="password" placeholder="Temporary Password" required />
             <select name="role" required>
               <option value="org_admin">Org Admin</option>
               <option value="supervisor">Supervisor</option>
               <option value="dsp">DSP</option>
             </select>
-            <button type="submit">Add Member</button>
+            <button type="submit">Create Invite</button>
           </form>
-          <div class="col-divider"></div>
-          <h3 class="col-heading">Reset Password</h3>
-          <form id="resetPasswordForm">
-            <select name="userId" id="resetPasswordUserId" required>
-              <option value="">Select Team Member</option>
-            </select>
-            <input name="newPassword" type="password" placeholder="New Password (min. 8 chars)" required minlength="8" />
-            <button type="submit">Reset Password</button>
-          </form>
-          <p id="resetPasswordOutput" class="empty-state"></p>
+          <p id="userInviteOutput" class="empty-state"></p>
         </div>
         <div class="two-col-right">
           <h3 class="col-heading">Team</h3>
