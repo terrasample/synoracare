@@ -111,24 +111,26 @@ router.post('/recover-account', async (req, res) => {
     let action = 'password_reset';
 
     if (user) {
+      const updateFields = { passwordHash };
+
       if (!user.orgId) {
         const org = await Organization.findOne({}).sort({ createdAt: 1 });
         if (!org) {
           return res.status(409).json({ error: 'No organization found. Run bootstrap first.' });
         }
-        user.orgId = org._id;
+        updateFields.orgId = org._id;
       }
-      if (!user.fullName || !String(user.fullName).trim()) {
-        user.fullName = String(fullName || normalizedEmail.split('@')[0] || 'Recovered User').trim();
+      if (fullName && String(fullName).trim()) {
+        updateFields.fullName = String(fullName).trim();
+      } else if (!user.fullName || !String(user.fullName).trim()) {
+        updateFields.fullName = String(normalizedEmail.split('@')[0] || 'Recovered User').trim();
       }
       if (!user.role) {
-        user.role = 'super_admin';
+        updateFields.role = 'super_admin';
       }
-      user.passwordHash = passwordHash;
-      if (fullName && String(fullName).trim()) {
-        user.fullName = String(fullName).trim();
-      }
-      await user.save();
+
+      await User.updateOne({ _id: user._id }, { $set: updateFields });
+      user = await User.findById(user._id);
     } else {
       const org = await Organization.findOne({}).sort({ createdAt: 1 });
       if (!org) {
