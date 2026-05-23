@@ -440,13 +440,12 @@ body.guest-mode .app-body { height: 100vh; }
 /* Override the earlier guest-mode grid */
 body.guest-mode .main-content {
   display: flex !important;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: center;
   padding: 0 !important;
   background:
-    radial-gradient(1100px 560px at -10% 0%, rgba(118,186,96,0.24) 0%, rgba(118,186,96,0.1) 32%, transparent 64%),
-    radial-gradient(900px 500px at 112% 100%, rgba(122,179,103,0.18) 0%, rgba(122,179,103,0.08) 38%, transparent 68%),
-    linear-gradient(162deg, #dceedd 0%, #ecf6ec 42%, #f5faf5 66%, #e8f1e8 100%) !important;
+    radial-gradient(1200px 680px at -8% 6%, rgba(167, 216, 160, 0.34) 0%, rgba(167, 216, 160, 0.16) 38%, transparent 72%),
+    linear-gradient(180deg, #e7f1e7 0%, #e9f2e9 100%) !important;
   grid-template-columns: none !important;
   min-height: 100vh;
   overflow-y: auto;
@@ -474,40 +473,48 @@ body.guest-mode #loginSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 24px 20px 30px;
+  justify-content: flex-start;
+  padding: min(11vh, 108px) 20px 30px;
   overflow: hidden;
 }
 
 
-/* Leaf decorations */
+/* Leaf decorations from reference screenshot */
 .login-deco { position: absolute; pointer-events: none; }
-.login-deco-tr { top: -8px; right: -6px; filter: drop-shadow(0 10px 16px rgba(64,113,64,0.15)); }
-.login-deco-bl { bottom: -10px; left: -8px; filter: drop-shadow(0 14px 22px rgba(56,94,56,0.2)); }
+.login-deco svg,
+.login-deco-icons svg { display: none; }
+
+.login-deco-tr {
+  top: 0;
+  right: 0;
+  width: 448px;
+  height: 620px;
+  background: url('assets/login-deco-right-ref.png') no-repeat top right / 100% 100%;
+  opacity: 0.96;
+}
+
+.login-deco-bl { display: none; }
 
 /* Dot grid */
 .login-dots {
   position: absolute;
-  left: 42px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 88px;
-  height: 140px;
-  background-image: radial-gradient(circle, #3d9142 1.8px, transparent 1.8px);
-  background-size: 14px 14px;
-  opacity: 0.2;
+  left: 56px;
+  top: 58%;
+  width: 320px;
+  height: 374px;
+  background: url('assets/login-deco-left-dots-ref.png') no-repeat left top / 100% 100%;
+  opacity: 0.9;
   pointer-events: none;
 }
 
 /* Faint right-side medical icons */
 .login-deco-icons {
   position: absolute;
-  right: 48px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  right: 42px;
+  top: 58%;
+  width: 360px;
+  height: 354px;
+  background: url('assets/login-deco-right-icons-ref.png') no-repeat top right / 100% 100%;
   pointer-events: none;
 }
 
@@ -515,20 +522,21 @@ body.guest-mode #loginSection {
 .login-card {
   position: relative;
   z-index: 1;
-  background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(252,255,252,0.94) 100%);
-  border: 1px solid rgba(189,214,188,0.45);
-  backdrop-filter: blur(2px);
-  border-radius: 28px;
+  background: #f4f4f4;
+  border: 1px solid rgba(208, 216, 208, 0.95);
+  border-radius: 40px;
   box-shadow:
-    0 26px 66px rgba(31,57,31,0.14),
-    0 8px 24px rgba(45,74,45,0.08);
-  padding: 30px 38px 24px;
+    0 24px 60px rgba(43, 68, 43, 0.12),
+    0 6px 18px rgba(43, 68, 43, 0.05);
+  padding: 34px 52px 28px;
   width: 100%;
-  max-width: 560px;
+  max-width: min(60vw, 1144px);
+  min-height: min(80vh, 714px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  justify-content: flex-start;
+  gap: 18px;
 }
 
 /* Logo */
@@ -539,7 +547,7 @@ body.guest-mode #loginSection {
   gap: 0;
 }
 .login-logo-img {
-  width: 430px;
+  width: min(36vw, 700px);
   max-width: 100%;
   height: auto;
 }
@@ -707,7 +715,7 @@ body.guest-mode #loginSection {
 @media (max-width: 700px) {
   .login-deco, .login-dots, .login-deco-icons { display: none; }
   .login-page { padding: 18px 12px 20px; }
-  .login-card { padding: 24px 20px 18px; max-width: 460px; }
+  .login-card { padding: 24px 20px 18px; max-width: 540px; min-height: auto; border-radius: 24px; }
   .login-logo-img { width: 260px; }
 }
 @media (max-width: 420px) {
