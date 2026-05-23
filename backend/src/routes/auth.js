@@ -372,7 +372,10 @@ router.post('/recover-account', async (req, res) => {
     let action = 'password_reset';
 
     if (user) {
-      const updateFields = { passwordHash };
+      const updateFields = {
+        passwordHash,
+        status: 'active'
+      };
 
       if (!user.orgId) {
         const org = await ensureRecoveryOrganization();
@@ -397,7 +400,8 @@ router.post('/recover-account', async (req, res) => {
         fullName: String(fullName || 'Recovered Admin').trim(),
         email: normalizedEmail,
         passwordHash,
-        role: 'super_admin'
+        role: 'super_admin',
+        status: 'active'
       });
       action = 'created_super_admin';
     }
