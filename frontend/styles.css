@@ -444,8 +444,8 @@ body.guest-mode .main-content {
   justify-content: center;
   padding: 0 !important;
   background:
-    radial-gradient(1200px 680px at -8% 6%, rgba(167, 216, 160, 0.34) 0%, rgba(167, 216, 160, 0.16) 38%, transparent 72%),
-    linear-gradient(180deg, #e7f1e7 0%, #e9f2e9 100%) !important;
+    radial-gradient(1200px 680px at -8% 6%, rgba(167, 216, 160, 0.32) 0%, rgba(167, 216, 160, 0.14) 38%, transparent 72%),
+    linear-gradient(180deg, #eef6ee 0%, #edf5ee 100%) !important;
   grid-template-columns: none !important;
   min-height: 100vh;
   overflow-y: auto;
@@ -473,8 +473,9 @@ body.guest-mode #loginSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: min(11vh, 108px) 20px 30px;
+  justify-content: center;
+  gap: 18px;
+  padding: 30px 20px 24px;
   overflow: hidden;
 }
 
@@ -487,8 +488,8 @@ body.guest-mode #loginSection {
 .login-deco-tr {
   top: 0;
   right: 0;
-  width: 448px;
-  height: 620px;
+  width: 430px;
+  height: 600px;
   background: url('assets/login-deco-right-ref.png') no-repeat top right / 100% 100%;
   opacity: 0.96;
 }
@@ -499,7 +500,7 @@ body.guest-mode #loginSection {
 .login-dots {
   position: absolute;
   left: 56px;
-  top: 58%;
+  top: 57%;
   width: 320px;
   height: 374px;
   background: url('assets/login-deco-left-dots-ref.png') no-repeat left top / 100% 100%;
@@ -511,7 +512,7 @@ body.guest-mode #loginSection {
 .login-deco-icons {
   position: absolute;
   right: 42px;
-  top: 58%;
+  top: 57%;
   width: 360px;
   height: 354px;
   background: url('assets/login-deco-right-icons-ref.png') no-repeat top right / 100% 100%;
@@ -522,21 +523,21 @@ body.guest-mode #loginSection {
 .login-card {
   position: relative;
   z-index: 1;
-  background: #f4f4f4;
-  border: 1px solid rgba(208, 216, 208, 0.95);
-  border-radius: 40px;
+  background: #ffffff;
+  border: 1px solid rgba(217, 228, 217, 0.9);
+  border-radius: 34px;
   box-shadow:
-    0 24px 60px rgba(43, 68, 43, 0.12),
-    0 6px 18px rgba(43, 68, 43, 0.05);
-  padding: 34px 52px 28px;
+    0 24px 58px rgba(43, 68, 43, 0.10),
+    0 8px 22px rgba(43, 68, 43, 0.05);
+  padding: 36px 48px 26px;
   width: 100%;
-  max-width: min(60vw, 1144px);
-  min-height: min(80vh, 714px);
+  max-width: min(100%, 540px);
+  min-height: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 18px;
+  gap: 16px;
 }
 
 /* Logo */
@@ -547,7 +548,7 @@ body.guest-mode #loginSection {
   gap: 0;
 }
 .login-logo-img {
-  width: min(36vw, 700px);
+  width: min(300px, 72vw);
   max-width: 100%;
   height: auto;
 }
@@ -559,7 +560,7 @@ body.guest-mode #loginSection {
   align-items: center;
   gap: 4px;
   text-align: center;
-  margin-top: 0;
+  margin-top: -2px;
 }
 .login-heart-div {
   display: flex;
@@ -580,8 +581,8 @@ body.guest-mode #loginSection {
 }
 .login-tagline-wrap p {
   color: #5a6a7f;
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: 13.5px;
+  line-height: 1.42;
   margin: 0;
 }
 
@@ -590,7 +591,7 @@ body.guest-mode #loginSection {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 11px;
   max-width: none;
 }
 .login-field-group {
@@ -622,9 +623,9 @@ body.guest-mode #loginSection {
 }
 .login-input-wrap input {
   width: 100%;
-  padding: 12px 44px;
+  padding: 14px 44px;
   border: 1.5px solid #c8e6c9;
-  border-radius: 13px;
+  border-radius: 14px;
   font-size: 14px;
   font-family: inherit;
   background: #f8fef8;
@@ -676,10 +677,10 @@ body.guest-mode #loginSection {
   background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
   color: #fff;
   border: none;
-  border-radius: 13px;
-  font-size: 15px;
+  border-radius: 14px;
+  font-size: 15.5px;
   font-weight: 800;
-  padding: 12px 20px;
+  padding: 13px 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -702,10 +703,10 @@ body.guest-mode #loginSection {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding-top: 14px;
+  padding-top: 10px;
   width: auto;
   max-width: none;
-  margin-top: 18px;
+  margin-top: 2px;
 }
 .login-trust svg { color: #4caf50; flex-shrink: 0; margin-top: 2px; }
 .login-trust strong { font-size: 12.5px; color: #2e7d32; display: block; margin-bottom: 2px; }
@@ -714,12 +715,12 @@ body.guest-mode #loginSection {
 /* Responsive */
 @media (max-width: 700px) {
   .login-deco, .login-dots, .login-deco-icons { display: none; }
-  .login-page { padding: 18px 12px 20px; }
-  .login-card { padding: 24px 20px 18px; max-width: 540px; min-height: auto; border-radius: 24px; }
-  .login-logo-img { width: 260px; }
+  .login-page { padding: 18px 12px 20px; justify-content: center; }
+  .login-card { padding: 26px 20px 20px; max-width: 540px; min-height: auto; border-radius: 26px; }
+  .login-logo-img { width: 240px; }
 }
 @media (max-width: 420px) {
-  .login-page { padding: 14px 10px; min-height: 100vh; }
+  .login-page { padding: 14px 10px; min-height: 100vh; justify-content: center; }
   .login-card {
     border-radius: 16px;
     box-shadow: 0 12px 30px rgba(0,0,0,0.1);
