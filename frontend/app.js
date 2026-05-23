@@ -21,6 +21,7 @@ const DEFAULT_API_BASE = (() => {
 })();
 
 const API_BASE = window.SYNORACARE_CONFIG?.API_BASE || window.CAREGUIDE_CONFIG?.API_BASE || DEFAULT_API_BASE;
+const DEMO_TOGGLE_ALLOWED_EMAILS = new Set(['terrasample@yahoo.com']);
 let token = '';
 let currentUser = null;
 let clientsCache = [];
@@ -30,7 +31,9 @@ let legalExportPayload = null;
 let selectedPatientTab = 'care';
 let currentPatientWorkspace = { clientId: '', entries: [] };
 let currentPage = '';
-const DEMO_MODE = new URLSearchParams(window.location.search).get('demo') === '1';
+let currentTrackerFeed = [];
+let demoMode = localStorage.getItem('synoracare_demo_mode') === '1' || new URLSearchParams(window.location.search).get('demo') === '1';
+if (demoMode) localStorage.setItem('synoracare_demo_mode', '1');
 
 const DEMO_CLIENTS = [
   { _id: 'demo-client-1', displayName: 'Jordan Miles', externalId: 'SC-1001' },
@@ -346,8 +349,43 @@ function updateSession() {
   info.textContent = `${currentUser.fullName} | ${currentUser.role}`;
   if (logoutBtn) logoutBtn.style.display = '';
   applyRoleMode(currentUser.role);
+  syncDemoToggle();
   renderTraining(currentUser.role, selectedTrainingContext);
   renderHomeSection();
+}
+
+function canToggleDemoMode() {
+  return Boolean(currentUser && DEMO_TOGGLE_ALLOWED_EMAILS.has(String(currentUser.email || '').toLowerCase()));
+}
+
+function syncDemoToggle() {
+  const wrap = document.getElementById('demoModeToggleWrap');
+  const toggle = document.getElementById('demoModeToggle');
+  const allowed = canToggleDemoMode();
+
+  if (wrap) wrap.style.display = allowed ? '' : 'none';
+  if (toggle) toggle.checked = demoMode;
+}
+
+function setDemoMode(nextMode) {
+  demoMode = Boolean(nextMode);
+  localStorage.setItem('synoracare_demo_mode', demoMode ? '1' : '0');
+  syncDemoToggle();
+  
+  // Refresh data without reloading, so the user stays on the current page
+  const page = currentPage;
+  Promise.all([
+    refreshClients(),
+    refreshUsers(),
+    loadTrackerSummary(),
+    loadTrackerFeed()
+  ]).then(() => {
+    // Re-render current section if it needs fresh data
+    if (page === 'homeSection') renderHomeSection();
+    else if (page === 'trackerSection') renderTrackerFeed(currentTrackerFeed || []);
+  }).catch((err) => {
+    console.error('Error refreshing data after demo mode toggle:', err);
+  });
 }
 
 function applyRoleMode(role) {
@@ -447,7 +485,7 @@ async function loadTrackerFeed() {
     const query = trackerStatusFilter ? `?limit=50&status=${encodeURIComponent(trackerStatusFilter)}` : '?limit=50';
     const data = await api(`/api/tracker${query}`);
     const entries = data.entries || [];
-    if (DEMO_MODE && entries.length === 0) {
+    if (demoMode && entries.length === 0) {
       renderTrackerFeed(
         trackerStatusFilter ? DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === trackerStatusFilter) : DEMO_TRACKER_ENTRIES
       );
@@ -455,7 +493,7 @@ async function loadTrackerFeed() {
     }
     renderTrackerFeed(entries);
   } catch (error) {
-    if (DEMO_MODE) {
+    if (demoMode) {
       renderTrackerFeed(
         trackerStatusFilter ? DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === trackerStatusFilter) : DEMO_TRACKER_ENTRIES
       );
@@ -470,7 +508,7 @@ async function loadTrackerSummary() {
     const data = await api('/api/tracker/summary');
     renderTrackerSummary(data);
   } catch (error) {
-    if (DEMO_MODE) {
+    if (demoMode) {
       renderTrackerSummary(DEMO_TRACKER_SUMMARY);
       return;
     }
@@ -493,6 +531,7 @@ function formatDate(value) {
 }
 
 function renderTrackerFeed(entries) {
+  currentTrackerFeed = entries;
   const feed = document.getElementById('trackerFeed');
   if (!feed) return;
 
@@ -577,18 +616,18 @@ async function refreshClients() {
   try {
     const data = await api('/api/clients');
     clientsCache = data.clients || [];
-    if (DEMO_MODE && clientsCache.length === 0) {
+    if (demoMode && clientsCache.length === 0) {
       clientsCache = DEMO_CLIENTS;
     }
     syncClientPickers();
     renderClientList(clientsCache);
   } catch (error) {
     console.error('Error loading clients:', error);
-    clientsCache = DEMO_MODE ? DEMO_CLIENTS : [];
+    clientsCache = demoMode ? DEMO_CLIENTS : [];
     syncClientPickers();
     const list = document.getElementById('clientsList');
-    if (list && !DEMO_MODE) list.innerHTML = `<p class="empty-state">Could not load clients: ${safeText(error.message)}</p>`;
-    if (list && DEMO_MODE) renderClientList(clientsCache);
+    if (list && !demoMode) list.innerHTML = `<p class="empty-state">Could not load clients: ${safeText(error.message)}</p>`;
+    if (list && demoMode) renderClientList(clientsCache);
   }
 }
 
@@ -596,17 +635,17 @@ async function refreshUsers() {
   try {
     const data = await api('/api/assignments/users');
     usersCache = data.users || [];
-    if (DEMO_MODE && usersCache.length === 0) {
+    if (demoMode && usersCache.length === 0) {
       usersCache = DEMO_USERS;
     }
     syncUserPicker();
     renderUserList(usersCache);
   } catch (error) {
-    usersCache = DEMO_MODE ? DEMO_USERS : [];
+    usersCache = demoMode ? DEMO_USERS : [];
     syncUserPicker();
     const list = document.getElementById('usersList');
-    if (list && !DEMO_MODE) list.innerHTML = `<p class="empty-state">Could not load team: ${safeText(error.message)}</p>`;
-    if (list && DEMO_MODE) renderUserList(usersCache);
+    if (list && !demoMode) list.innerHTML = `<p class="empty-state">Could not load team: ${safeText(error.message)}</p>`;
+    if (list && demoMode) renderUserList(usersCache);
   }
 }
 
@@ -1630,6 +1669,14 @@ document.getElementById('logoutBtn')?.addEventListener('click', () => {
     if (el) el.innerHTML = '';
   });
   updateSession();
+});
+
+document.getElementById('demoModeToggle')?.addEventListener('change', (e) => {
+  if (!canToggleDemoMode()) {
+    syncDemoToggle();
+    return;
+  }
+  setDemoMode(e.target.checked);
 });
 
 document.getElementById('resetPasswordForm')?.addEventListener('submit', async (e) => {
