@@ -144,6 +144,11 @@ body.guest-mode #bootstrapSection {
 .hero-copy p { color: var(--muted); max-width: 56ch; line-height: 1.6; }
 .hero-badges { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .hero-badges span { border: 1px solid var(--accent-border); color: var(--accent); border-radius: 999px; padding: 4px 11px; font-size: 11px; font-weight: 700; background: var(--accent-bg); }
+.hero-ctas { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); padding: 11px 24px; font-size: 14px; font-weight: 700; }
+.btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+.btn-tertiary { background: transparent; color: var(--accent); border-color: var(--accent); }
+.btn-tertiary:hover { background: var(--accent-bg); color: var(--accent-dark); border-color: var(--accent-dark); }
 .hero-visuals { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 .visual-card { border: 1px solid #d3dde8; border-radius: 10px; padding: 14px; min-height: 96px; }
 .visual-card h3 { margin-bottom: 5px; font-size: 0.9rem; }
@@ -234,6 +239,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 textarea { min-height: 80px; resize: vertical; }
 button { font: inherit; font-size: 13.5px; font-weight: 700; border-radius: var(--radius-sm); border: 1px solid var(--accent); background: var(--accent); color: #fff; padding: 9px 16px; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
 button:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+.btn, a.btn, a.btn-primary, a.btn-secondary, a.btn-tertiary { display: inline-block; font: inherit; font-size: 13.5px; font-weight: 700; border-radius: var(--radius-sm); border: 1px solid var(--accent); background: var(--accent); color: #fff; padding: 9px 16px; cursor: pointer; transition: background 0.15s, border-color 0.15s; white-space: nowrap; text-decoration: none; }
+.btn:hover, a.btn:hover, a.btn-primary:hover, a.btn-secondary:hover, a.btn-tertiary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
 .btn-secondary { background: var(--surface); color: var(--accent-dark); border-color: var(--line); font-weight: 600; }
 .btn-secondary:hover { background: var(--bg); border-color: var(--accent-border); }
 .btn-danger { background: var(--danger); border-color: var(--danger); }
