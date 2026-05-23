@@ -32,6 +32,7 @@ html, body {
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 .app-shell { display: flex; flex-direction: column; height: 100%; }
@@ -109,7 +110,7 @@ body.role-dsp .nav-role-admin { display: none; }
 body.role-supervisor .nav-role-admin { display: none; }
 
 /* Main content */
-.main-content { flex: 1; overflow-y: auto; background: var(--bg); }
+.main-content { flex: 1; overflow-y: auto; overflow-x: hidden; background: var(--bg); }
 
 /* Pages */
 .page { padding: 24px 28px; max-width: 1100px; margin: 0 auto; animation: fadeUp 200ms ease both; }
@@ -214,8 +215,8 @@ body.guest-mode #bootstrapSection {
 .home-stats-row .stat-chip.stat-ok { border-color: #86efac; background: linear-gradient(180deg, #f6fff8, #f0fdf4); color: #166534; }
 .home-stats-row .stat-value { font-size: 2.2rem; font-weight: 800; line-height: 1; color: inherit !important; text-shadow: none; }
 .home-stats-row .stat-label { font-size: 12px; color: inherit !important; margin-top: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.92; }
-.home-quick-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-.home-quick-actions .quick-action-btn { appearance: none; -webkit-appearance: none; background: linear-gradient(180deg, #ffffff, #f7fafc); border: 1px solid var(--line); color: var(--accent-dark) !important; font: inherit; font-weight: 800; font-size: 14px; border-radius: 12px; padding: 12px 18px; min-height: 46px; cursor: pointer; transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease; box-shadow: var(--shadow); }
+.home-quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 20px; width: 100%; }
+.home-quick-actions .quick-action-btn { appearance: none; -webkit-appearance: none; background: linear-gradient(180deg, #ffffff, #f7fafc); border: 1px solid var(--line); color: var(--accent-dark) !important; font: inherit; font-weight: 800; font-size: 14px; border-radius: 12px; padding: 12px 16px; min-height: 46px; width: 100%; text-align: center; white-space: normal; line-height: 1.25; cursor: pointer; transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease; box-shadow: var(--shadow); }
 .home-quick-actions .quick-action-btn:hover { background: var(--accent-bg); border-color: var(--accent-border); transform: translateY(-1px); box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10); }
 .home-quick-actions .quick-action-btn:focus-visible { outline: 3px solid rgba(15, 118, 110, 0.22); outline-offset: 2px; }
 .home-alerts-panel { display: flex; flex-direction: column; gap: 8px; }
@@ -474,17 +475,40 @@ button:hover { background: var(--accent-dark); border-color: var(--accent-dark);
 }
 
 @media (max-width: 600px) {
-  .topbar { padding: 0 12px; }
+  .topbar {
+    height: auto;
+    min-height: var(--topbar-h);
+    padding: 8px 10px;
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .topbar-left {
+    min-width: 0;
+    width: 100%;
+  }
+  .topbar-right {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
   .topbar-logo { font-size: 15px; }
   .topbar-brand-mark { width: 20px; height: 20px; }
   .version-badge { display: none !important; }
   .session-info {
-    max-width: 112px;
+    max-width: calc(100% - 120px);
     font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
   }
   .logout-btn {
     font-size: 11px;
     padding: 4px 8px;
+    margin-left: auto;
+    flex-shrink: 0;
   }
   .sidebar {
     width: min(84vw, 280px);
@@ -516,7 +540,9 @@ button:hover { background: var(--accent-dark); border-color: var(--accent-dark);
   .chat-message { max-width: 95%; }
   .home-header { flex-direction: column; }
   .home-stats-row { width: 100%; }
-  .stat-chip { flex: 1 1 calc(50% - 8px); min-width: 120px; }
+  .stat-chip { flex: 1 1 calc(50% - 8px); min-width: 0; }
+  .home-quick-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-quick-actions .quick-action-btn { font-size: 13px; padding: 11px 12px; }
   .hero-visuals { grid-template-columns: 1fr; }
   .hero-gallery { grid-template-columns: 1fr; }
   .form-row { flex-direction: column; }
