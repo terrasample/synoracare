@@ -19,11 +19,6 @@
     }
   },
   "submit": {
-    "production": {
-      "ios": {
-        "ascAppId": "",
-        "appleTeamId": ""
-      }
-    }
+    "production": {}
   }
 }
