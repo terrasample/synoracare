@@ -576,7 +576,7 @@ body.guest-mode #loginSection {
 }
 
 /* Keep foreground content above decorative background layers. */
-.login-page > *:not(.login-deco):not(.login-dots):not(.login-deco-icons) {
+.login-page > *:not(.login-deco):not(.login-dots):not(.login-deco-icons):not(.login-dna) {
   position: relative;
   z-index: 2;
 }
@@ -655,6 +655,34 @@ body.guest-mode #loginSection {
   right: clamp(8px, 3.8vw, 44px);
   top: clamp(84px, 20vh, 190px);
   opacity: 0.72;
+}
+
+.login-dna {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.5;
+  filter: saturate(92%);
+}
+
+.login-dna svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.login-dna-left {
+  left: clamp(4px, 1.8vw, 22px);
+  top: clamp(64px, 15vh, 156px);
+  width: clamp(84px, 10vw, 140px);
+  height: clamp(180px, 35vh, 310px);
+}
+
+.login-dna-right {
+  right: clamp(4px, 1.8vw, 22px);
+  bottom: clamp(54px, 10vh, 122px);
+  width: clamp(84px, 10vw, 140px);
+  height: clamp(180px, 35vh, 310px);
 }
 
 /* Dot grid */
@@ -1015,6 +1043,9 @@ body.guest-mode #loginSection {
     gap: 6px;
   }
   .login-demo-toggle .demo-mode-label { display: inline-block !important; }
+  .login-dna {
+    opacity: 0.32;
+  }
 }
 @media (max-width: 420px) {
   .login-page { padding: 10px 10px 16px; min-height: 100dvh; justify-content: flex-start; background: #ffffff; }
@@ -1028,5 +1059,6 @@ body.guest-mode #loginSection {
   .login-trust { padding-top: 12px; }
   .login-deco-tr,
   .login-deco-bl,
-  .login-dots { display: none; }
+  .login-dots,
+  .login-dna { display: none; }
 }
