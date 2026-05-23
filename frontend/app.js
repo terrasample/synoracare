@@ -1247,9 +1247,7 @@ function initializeInviteAndResetFromUrl() {
     forgotPasswordPanel.style.display = '';
     if (accountRecoveryPanel) accountRecoveryPanel.style.display = 'none';
     const emailInput = forgotPasswordForm.querySelector('input[name="email"]');
-    const tokenInput = forgotPasswordForm.querySelector('input[name="resetToken"]');
     if (emailInput && email) emailInput.value = email;
-    if (tokenInput) tokenInput.value = resetToken;
     const passwordInput = forgotPasswordForm.querySelector('input[name="newPassword"]');
     passwordInput?.focus();
   }
