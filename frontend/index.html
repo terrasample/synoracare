@@ -429,6 +429,18 @@
               </svg>
             </button>
           </form>
+
+          <div id="accountRecoveryPanel" class="account-recovery-panel" style="display:none;">
+            <p class="account-recovery-title">Admin Account Recovery</p>
+            <p class="account-recovery-help">Use your recovery key to set a new password and sign in immediately.</p>
+            <form id="accountRecoveryForm" class="account-recovery-form" autocomplete="off">
+              <input name="email" type="email" placeholder="Admin email" required />
+              <input name="newPassword" type="password" placeholder="New password (min. 8 chars)" minlength="8" required />
+              <input name="recoveryKey" type="password" placeholder="Recovery key" required />
+              <button type="submit" class="btn-secondary">Reset And Sign In</button>
+            </form>
+            <p id="accountRecoveryOutput" class="empty-state"></p>
+          </div>
         </div><!-- /.login-card -->
 
         <!-- Trust badge -->

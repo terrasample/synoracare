@@ -975,11 +975,58 @@ if (pwEyeBtn && loginPwInput) {
 
 // Forgot password
 const forgotPwBtn = document.getElementById('forgotPwBtn');
+const accountRecoveryPanel = document.getElementById('accountRecoveryPanel');
+const accountRecoveryForm = document.getElementById('accountRecoveryForm');
+const accountRecoveryOutput = document.getElementById('accountRecoveryOutput');
 if (forgotPwBtn) {
   forgotPwBtn.addEventListener('click', () => {
-    showToast('Please contact your organization administrator to reset your password.', 'info');
+    if (!accountRecoveryPanel) {
+      showToast('Please contact your organization administrator to reset your password.', 'info');
+      return;
+    }
+
+    const isHidden = accountRecoveryPanel.style.display === 'none' || !accountRecoveryPanel.style.display;
+    accountRecoveryPanel.style.display = isHidden ? '' : 'none';
+
+    if (isHidden && accountRecoveryForm) {
+      const loginEmail = document.getElementById('loginEmail');
+      const recoveryEmailInput = accountRecoveryForm.querySelector('input[name="email"]');
+      if (loginEmail && recoveryEmailInput && !recoveryEmailInput.value) {
+        recoveryEmailInput.value = loginEmail.value;
+      }
+      recoveryEmailInput?.focus();
+    }
   });
 }
+
+accountRecoveryForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = Object.fromEntries(new FormData(e.target).entries());
+
+  try {
+    const data = await api('/api/auth/recover-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    token = data.token;
+    currentUser = data.user;
+    if (accountRecoveryOutput) {
+      accountRecoveryOutput.textContent = 'Password reset successful. Signing you in...';
+    }
+    showToast('Password reset successful. You are now signed in.', 'success');
+    updateSession();
+    await refreshAllPickers();
+    e.target.reset();
+    if (accountRecoveryPanel) accountRecoveryPanel.style.display = 'none';
+  } catch (err) {
+    if (accountRecoveryOutput) {
+      accountRecoveryOutput.textContent = `Recovery failed: ${err.message}`;
+    }
+    showToast(err.message, 'error');
+  }
+});
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();

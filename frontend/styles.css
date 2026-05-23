@@ -775,6 +775,45 @@ body.guest-mode #loginSection {
 }
 .forgot-pw-link:hover { color: #1b5e20; text-decoration: underline; background: none; border: none; }
 
+/* Account recovery panel */
+.account-recovery-panel {
+  width: min(100%, 460px);
+  margin-top: 6px;
+  border: 1px solid #d9e8d9;
+  border-radius: 12px;
+  background: #f8fcf8;
+  padding: 10px;
+}
+.account-recovery-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #1b5e20;
+  margin-bottom: 4px;
+}
+.account-recovery-help {
+  font-size: 11.5px;
+  color: #55715a;
+  margin-bottom: 8px;
+}
+.account-recovery-form {
+  width: 100%;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.account-recovery-form input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #c8e6c9;
+  background: #fff;
+  font-size: 13px;
+}
+.account-recovery-form button {
+  width: 100%;
+}
+
 /* Login button */
 .login-submit-btn {
   width: 100%;
