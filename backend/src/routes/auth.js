@@ -20,6 +20,17 @@ function signToken(user) {
   );
 }
 
+async function ensureRecoveryOrganization() {
+  const existingOrg = await Organization.findOne({}).sort({ createdAt: 1 });
+  if (existingOrg) return existingOrg;
+
+  return Organization.create({
+    name: 'Recovered Organization',
+    slug: `recovered-org-${Date.now().toString(36)}`,
+    stateCode: ''
+  });
+}
+
 router.post('/bootstrap', async (req, res) => {
   try {
     const count = await User.countDocuments({});
@@ -114,10 +125,7 @@ router.post('/recover-account', async (req, res) => {
       const updateFields = { passwordHash };
 
       if (!user.orgId) {
-        const org = await Organization.findOne({}).sort({ createdAt: 1 });
-        if (!org) {
-          return res.status(409).json({ error: 'No organization found. Run bootstrap first.' });
-        }
+        const org = await ensureRecoveryOrganization();
         updateFields.orgId = org._id;
       }
       if (fullName && String(fullName).trim()) {
@@ -132,10 +140,7 @@ router.post('/recover-account', async (req, res) => {
       await User.updateOne({ _id: user._id }, { $set: updateFields });
       user = await User.findById(user._id);
     } else {
-      const org = await Organization.findOne({}).sort({ createdAt: 1 });
-      if (!org) {
-        return res.status(409).json({ error: 'No organization found. Run bootstrap first.' });
-      }
+      const org = await ensureRecoveryOrganization();
 
       user = await User.create({
         orgId: org._id,
