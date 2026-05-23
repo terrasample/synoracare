@@ -26,6 +26,52 @@ let legalExportPayload = null;
 let selectedPatientTab = 'care';
 let currentPatientWorkspace = { clientId: '', entries: [] };
 let currentPage = '';
+const DEMO_MODE = new URLSearchParams(window.location.search).get('demo') === '1';
+
+const DEMO_CLIENTS = [
+  { _id: 'demo-client-1', displayName: 'Jordan Miles', externalId: 'SC-1001' },
+  { _id: 'demo-client-2', displayName: 'Avery Brooks', externalId: 'SC-1002' },
+  { _id: 'demo-client-3', displayName: 'Taylor Reed', externalId: 'SC-1003' }
+];
+
+const DEMO_USERS = [
+  { _id: 'demo-user-1', fullName: 'Nia Carter', role: 'dsp' },
+  { _id: 'demo-user-2', fullName: 'Isaiah Moore', role: 'dsp' },
+  { _id: 'demo-user-3', fullName: 'Camila James', role: 'supervisor' }
+];
+
+const DEMO_TRACKER_SUMMARY = {
+  pending: 6,
+  escalated: 1,
+  completed: 18
+};
+
+const DEMO_TRACKER_ENTRIES = [
+  {
+    _id: 'demo-tracker-1',
+    summary: 'Morning medication verification pending for Jordan Miles.',
+    status: 'pending',
+    eventType: 'medication',
+    priority: 'high',
+    dueAt: new Date(Date.now() + 45 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'demo-tracker-2',
+    summary: 'Behavior escalation debrief required after afternoon event.',
+    status: 'escalated',
+    eventType: 'behavior',
+    priority: 'critical',
+    dueAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'demo-tracker-3',
+    summary: 'ADL support log completed and signed by assigned DSP.',
+    status: 'completed',
+    eventType: 'adl',
+    priority: 'medium',
+    dueAt: new Date(Date.now() - 90 * 60 * 1000).toISOString()
+  }
+];
 
 function navigateTo(pageId) {
   document.querySelectorAll('.page').forEach((page) => {
@@ -128,6 +174,49 @@ const CONTEXT_TRAINING_TIPS = {
     'Use break-glass only for active emergency scenarios and document reason clearly.',
     'Create tracker entries for incident timeline and follow-up ownership.'
   ]
+};
+
+const CONTEXT_TRAINING_VARIANTS = {
+  pre_shift: {
+    checklist: [
+      'Verify staffing coverage, shift assignments, and high-risk clients before opening tasks.',
+      'Pre-stage MAR and ISP references for the first two clients on shift.'
+    ],
+    policy: [
+      'Do not begin direct support tasks until handoff is acknowledged in tracker.',
+      'Flag any staffing or assignment mismatch before med-pass start.'
+    ]
+  },
+  documentation: {
+    checklist: [
+      'Capture objective notes in chronological order with exact time stamps.',
+      'Attach source document type (ISP, MAR, behavior) for every critical entry.'
+    ],
+    policy: [
+      'Use neutral language only; avoid inferred diagnoses or speculation.',
+      'Close each note with follow-up owner and deadline where applicable.'
+    ]
+  },
+  grounded_qa: {
+    checklist: [
+      'Ask one client-specific operational question per prompt to keep answers precise.',
+      'Confirm citation-backed answer before executing medication or behavior steps.'
+    ],
+    policy: [
+      'Any uncited or conflicting answer requires supervisor confirmation before action.',
+      'Log all high-impact Q&A outcomes in tracker for audit traceability.'
+    ]
+  },
+  escalation: {
+    checklist: [
+      'Start escalation timer immediately and document first action within two minutes.',
+      'Record who was notified, when, and what instruction was given.'
+    ],
+    policy: [
+      'Break-glass events must include emergency reason and closure note.',
+      'Escalation entries cannot be deleted; only status-updated with final disposition.'
+    ]
+  }
 };
 
 const ROLE_HIDDEN_SECTIONS = {
@@ -254,6 +343,9 @@ function applyRoleMode(role) {
 function renderTraining(role, context) {
   const training = ROLE_TRAINING[role] || ROLE_TRAINING.guest;
   const contextTips = CONTEXT_TRAINING_TIPS[context] || CONTEXT_TRAINING_TIPS.pre_shift;
+  const contextVariant = CONTEXT_TRAINING_VARIANTS[context] || CONTEXT_TRAINING_VARIANTS.pre_shift;
+  const checklistItems = [...training.checklist.slice(0, 1), ...contextVariant.checklist];
+  const policyItems = [...training.policy.slice(0, 1), ...contextVariant.policy];
 
   const roleHeader = document.getElementById('trainingRoleHeader');
   if (roleHeader) {
@@ -262,12 +354,12 @@ function renderTraining(role, context) {
 
   const checklist = document.getElementById('trainingChecklist');
   if (checklist) {
-    checklist.innerHTML = training.checklist.map((item) => `<li>${safeText(item)}</li>`).join('');
+    checklist.innerHTML = checklistItems.map((item) => `<li>${safeText(item)}</li>`).join('');
   }
 
   const policy = document.getElementById('trainingPolicyReminders');
   if (policy) {
-    policy.innerHTML = training.policy.map((item) => `<li>${safeText(item)}</li>`).join('');
+    policy.innerHTML = policyItems.map((item) => `<li>${safeText(item)}</li>`).join('');
   }
 
   const tips = document.getElementById('trainingContextTips');
@@ -319,13 +411,34 @@ function syncClientPickers() {
 }
 
 async function loadTrackerFeed() {
-  const data = await api('/api/tracker?limit=50');
-  renderTrackerFeed(data.entries || []);
+  try {
+    const data = await api('/api/tracker?limit=50');
+    const entries = data.entries || [];
+    if (DEMO_MODE && entries.length === 0) {
+      renderTrackerFeed(DEMO_TRACKER_ENTRIES);
+      return;
+    }
+    renderTrackerFeed(entries);
+  } catch (error) {
+    if (DEMO_MODE) {
+      renderTrackerFeed(DEMO_TRACKER_ENTRIES);
+      return;
+    }
+    throw error;
+  }
 }
 
 async function loadTrackerSummary() {
-  const data = await api('/api/tracker/summary');
-  renderTrackerSummary(data);
+  try {
+    const data = await api('/api/tracker/summary');
+    renderTrackerSummary(data);
+  } catch (error) {
+    if (DEMO_MODE) {
+      renderTrackerSummary(DEMO_TRACKER_SUMMARY);
+      return;
+    }
+    throw error;
+  }
 }
 
 function safeText(value) {
@@ -420,6 +533,9 @@ function syncUserPicker() {
 async function refreshClients() {
   const data = await api('/api/clients');
   clientsCache = data.clients || [];
+  if (DEMO_MODE && clientsCache.length === 0) {
+    clientsCache = DEMO_CLIENTS;
+  }
   syncClientPickers();
   renderClientList(clientsCache);
 }
@@ -428,13 +544,17 @@ async function refreshUsers() {
   try {
     const data = await api('/api/assignments/users');
     usersCache = data.users || [];
+    if (DEMO_MODE && usersCache.length === 0) {
+      usersCache = DEMO_USERS;
+    }
     syncUserPicker();
     renderUserList(usersCache);
   } catch (error) {
-    usersCache = [];
+    usersCache = DEMO_MODE ? DEMO_USERS : [];
     syncUserPicker();
     const list = document.getElementById('usersList');
-    if (list) list.innerHTML = `<p class="empty-state">Could not load team: ${safeText(error.message)}</p>`;
+    if (list && !DEMO_MODE) list.innerHTML = `<p class="empty-state">Could not load team: ${safeText(error.message)}</p>`;
+    if (list && DEMO_MODE) renderUserList(usersCache);
   }
 }
 
