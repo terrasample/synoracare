@@ -444,10 +444,9 @@ body.guest-mode .main-content {
   justify-content: center;
   padding: 0 !important;
   background:
-    radial-gradient(1200px 620px at -8% 0%, rgba(118,186,96,0.34) 0%, rgba(118,186,96,0.16) 30%, transparent 62%),
-    radial-gradient(980px 540px at 112% 100%, rgba(122,179,103,0.26) 0%, rgba(122,179,103,0.14) 35%, transparent 66%),
-    radial-gradient(760px 320px at 50% 100%, rgba(175,208,170,0.28) 0%, transparent 72%),
-    linear-gradient(162deg, #d6e9d7 0%, #eaf5ea 38%, #f5faf5 64%, #e7f1e7 100%) !important;
+    radial-gradient(1100px 560px at -10% 0%, rgba(118,186,96,0.24) 0%, rgba(118,186,96,0.1) 32%, transparent 64%),
+    radial-gradient(900px 500px at 112% 100%, rgba(122,179,103,0.18) 0%, rgba(122,179,103,0.08) 38%, transparent 68%),
+    linear-gradient(162deg, #dceedd 0%, #ecf6ec 42%, #f5faf5 66%, #e8f1e8 100%) !important;
   grid-template-columns: none !important;
   min-height: 100vh;
   overflow-y: auto;
@@ -480,31 +479,6 @@ body.guest-mode #loginSection {
   overflow: hidden;
 }
 
-.login-page::before,
-.login-page::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.login-page::before {
-  left: -180px;
-  bottom: -240px;
-  width: 760px;
-  height: 520px;
-  background: radial-gradient(ellipse at 55% 45%, rgba(168,205,156,0.45) 0%, rgba(168,205,156,0.18) 38%, transparent 72%);
-  transform: rotate(-12deg);
-}
-
-.login-page::after {
-  right: -220px;
-  top: -230px;
-  width: 760px;
-  height: 520px;
-  background: radial-gradient(ellipse at 42% 58%, rgba(166,205,154,0.35) 0%, rgba(166,205,154,0.14) 40%, transparent 74%);
-  transform: rotate(16deg);
-}
 
 /* Leaf decorations */
 .login-deco { position: absolute; pointer-events: none; }
@@ -565,7 +539,7 @@ body.guest-mode #loginSection {
   gap: 0;
 }
 .login-logo-img {
-  width: 504px;
+  width: 430px;
   max-width: 100%;
   height: auto;
 }
@@ -577,7 +551,7 @@ body.guest-mode #loginSection {
   align-items: center;
   gap: 4px;
   text-align: center;
-  margin-top: 2px;
+  margin-top: 0;
 }
 .login-heart-div {
   display: flex;
