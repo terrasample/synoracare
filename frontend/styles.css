@@ -5,10 +5,10 @@
   --line-soft: #edf0f5;
   --text: #18212b;
   --muted: #5a6a7f;
-  --accent: #0d7a6f;
-  --accent-dark: #0b5f57;
-  --accent-bg: #f0fdfa;
-  --accent-border: #b7e0db;
+  --accent: #1f8f4a;
+  --accent-dark: #166b35;
+  --accent-bg: #f5fbf6;
+  --accent-border: #cfe9d6;
   --danger: #dc2626;
   --danger-bg: #fef2f2;
   --warn: #d97706;
@@ -96,7 +96,13 @@ body.guest-mode .sidebar { display: none; }
   cursor: pointer; transition: background 0.12s, color 0.12s; text-align: left;
 }
 .nav-item:hover { background: var(--bg); color: var(--text); }
-.nav-item.is-active { background: var(--accent-bg); color: var(--accent-dark); font-weight: 700; }
+.nav-item.is-active {
+  background: var(--accent-bg);
+  color: var(--accent-dark);
+  font-weight: 700;
+  border: 1px solid var(--accent-border);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
 .nav-icon { width: 18px; height: 18px; flex-shrink: 0; }
 body.role-dsp .nav-role-supervisor,
 body.role-dsp .nav-role-admin { display: none; }
@@ -374,7 +380,12 @@ button:hover { background: var(--accent-dark); border-color: var(--accent-dark);
 .patient-tab-row { display: flex; gap: 4px; border-bottom: 2px solid var(--line); margin-bottom: 16px; overflow-x: auto; }
 .patient-tab-btn { background: none; border: none; border-radius: 0; color: var(--muted); font-weight: 600; font-size: 13.5px; padding: 10px 16px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color 0.12s, border-color 0.12s; }
 .patient-tab-btn:hover { color: var(--text); }
-.patient-tab-btn.is-active { color: var(--accent-dark); border-bottom-color: var(--accent); font-weight: 700; }
+.patient-tab-btn.is-active {
+  color: var(--accent-dark);
+  border-bottom-color: var(--accent);
+  background: var(--accent-bg);
+  font-weight: 700;
+}
 .patient-tab-content { min-height: 100px; }
 .patient-items { display: flex; flex-direction: column; gap: 8px; }
 .patient-item { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--radius-sm); padding: 12px 14px; }
