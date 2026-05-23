@@ -6,7 +6,7 @@
   <title>SynoraCare</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body class="guest-mode role-guest">
 <div class="app-shell">
   <header class="topbar">
     <div class="topbar-left">
@@ -82,7 +82,7 @@
     <main class="main-content">
 
       <!-- ── GUEST: landing hero ──────────────────────────────────── -->
-      <section class="page hero" id="landingHero">
+      <section class="page hero" id="landingHero" style="display:none;">
       <div class="hero-copy">
         <span class="hero-kicker">Secure Care Intelligence</span>
         <h2>Faster, Safer DSP Support With Real-Time Guidance</h2>
@@ -233,7 +233,7 @@
     </section>
 
     <!-- ── GUEST: Login ─────────────────────────────────────────── -->
-    <section class="page" id="loginSection" style="display:none;">
+    <section class="page" id="loginSection" style="display:block;">
       <div class="login-page">
 
         <!-- Leaf decoration – top right -->
