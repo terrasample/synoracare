@@ -1,8 +1,10 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const Organization = require('../models/Organization');
 const User = require('../models/User');
+const RecoveryToken = require('../models/RecoveryToken');
 const AuditEvent = require('../models/AuditEvent');
 const env = require('../config/env');
 
@@ -29,6 +31,10 @@ async function ensureRecoveryOrganization() {
     slug: `recovered-org-${Date.now().toString(36)}`,
     stateCode: ''
   });
+}
+
+function hashRecoveryToken(token) {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
 }
 
 router.post('/bootstrap', async (req, res) => {
@@ -103,7 +109,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.post('/recover-account', async (req, res) => {
+router.post('/recover-account/request', async (req, res) => {
   try {
     if (!env.accountRecoveryEnabled) {
       return res.status(503).json({ error: 'Account recovery is disabled' });
@@ -114,16 +120,68 @@ router.post('/recover-account', async (req, res) => {
       return res.status(503).json({ error: 'Account recovery is disabled' });
     }
 
-    const { recoveryKey, email, newPassword, fullName } = req.body || {};
+    const { recoveryKey, email, fullName } = req.body || {};
     if (!recoveryKey || String(recoveryKey) !== configuredRecoveryKey) {
       return res.status(403).json({ error: 'Invalid recovery key' });
     }
 
-    if (!email || !newPassword || String(newPassword).length < 8) {
-      return res.status(400).json({ error: 'email and newPassword (min 8 chars) required' });
+    if (!email) {
+      return res.status(400).json({ error: 'email required' });
     }
 
     const normalizedEmail = String(email).trim().toLowerCase();
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashRecoveryToken(resetToken);
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    await RecoveryToken.deleteMany({ email: normalizedEmail });
+    await RecoveryToken.create({
+      email: normalizedEmail,
+      fullName: String(fullName || '').trim(),
+      tokenHash,
+      expiresAt
+    });
+
+    return res.json({
+      ok: true,
+      email: normalizedEmail,
+      resetToken,
+      expiresInMinutes: 15
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Account recovery failed' });
+  }
+});
+
+router.post('/recover-account', async (req, res) => {
+  try {
+    if (!env.accountRecoveryEnabled) {
+      return res.status(503).json({ error: 'Account recovery is disabled' });
+    }
+
+    const { resetToken, email, newPassword, fullName } = req.body || {};
+    if (!resetToken || !email || !newPassword || String(newPassword).length < 8) {
+      return res.status(400).json({ error: 'resetToken, email, and newPassword (min 8 chars) required' });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const tokenHash = hashRecoveryToken(resetToken);
+
+    const recoveryToken = await RecoveryToken.findOneAndUpdate(
+      {
+        email: normalizedEmail,
+        tokenHash,
+        usedAt: null,
+        expiresAt: { $gt: new Date() }
+      },
+      { $set: { usedAt: new Date() } },
+      { new: true }
+    );
+
+    if (!recoveryToken) {
+      return res.status(403).json({ error: 'Invalid or expired recovery token' });
+    }
+
     const passwordHash = await bcrypt.hash(String(newPassword), 10);
 
     let user = await User.findOne({ email: normalizedEmail });
@@ -166,6 +224,8 @@ router.post('/recover-account', async (req, res) => {
       eventType: 'password_reset',
       payload: { action: 'recovery', result: action }
     });
+
+    await RecoveryToken.deleteMany({ _id: recoveryToken._id });
 
     const token = signToken(user);
     return res.json({

@@ -1004,10 +1004,33 @@ accountRecoveryForm?.addEventListener('submit', async (e) => {
   const payload = Object.fromEntries(new FormData(e.target).entries());
 
   try {
+    if (accountRecoveryOutput) {
+      accountRecoveryOutput.textContent = 'Issuing one-time reset token...';
+    }
+
+    const tokenResponse = await api('/api/auth/recover-account/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: payload.email,
+        recoveryKey: payload.recoveryKey,
+        fullName: payload.fullName
+      })
+    });
+
+    if (accountRecoveryOutput) {
+      accountRecoveryOutput.textContent = 'Reset token issued. Completing password reset...';
+    }
+
     const data = await api('/api/auth/recover-account', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        email: payload.email,
+        newPassword: payload.newPassword,
+        resetToken: tokenResponse.resetToken,
+        fullName: payload.fullName
+      })
     });
 
     token = data.token;
