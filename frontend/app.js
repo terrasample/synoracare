@@ -2089,6 +2089,288 @@ document.querySelector('#askForm textarea')?.addEventListener('input', function 
   this.style.height = Math.min(this.scrollHeight, 120) + 'px';
 });
 
+// Voice-to-Text functionality
+let voiceRecognition = null;
+function initVoiceToText() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    console.warn('Speech Recognition not supported');
+    return;
+  }
+  voiceRecognition = new SpeechRecognition();
+  voiceRecognition.continuous = false;
+  voiceRecognition.interimResults = true;
+  voiceRecognition.lang = 'en-US';
+  
+  voiceRecognition.onstart = function() {
+    document.getElementById('voiceStatus').style.display = 'flex';
+    document.getElementById('voiceStatusText').textContent = 'Listening...';
+  };
+  
+  voiceRecognition.onresult = function(e) {
+    let transcript = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      transcript += e.results[i][0].transcript;
+    }
+    const summaryInput = document.querySelector('#trackerForm input[name="summary"]');
+    if (summaryInput) {
+      summaryInput.value = transcript.charAt(0).toUpperCase() + transcript.slice(1);
+      summaryInput.dispatchEvent(new Event('change'));
+    }
+  };
+  
+  voiceRecognition.onerror = function(e) {
+    document.getElementById('voiceStatusText').textContent = `Error: ${e.error}`;
+  };
+  
+  voiceRecognition.onend = function() {
+    document.getElementById('voiceStatus').style.display = 'none';
+  };
+}
+
+document.getElementById('voiceToTextBtn')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  if (!voiceRecognition) initVoiceToText();
+  if (voiceRecognition) voiceRecognition.start();
+});
+
+// Copy from Yesterday functionality
+async function loadYesterdayEntries() {
+  const clientId = document.querySelector('#trackerForm select[name="clientId"]').value;
+  if (!clientId) {
+    alert('Please select a client first');
+    return;
+  }
+  
+  try {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(yesterday);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const data = await api(`/api/tracker/entries?clientId=${clientId}&status=completed&limit=50`);
+    const yesterdayEntries = (data.entries || []).filter(e => {
+      const entryDate = new Date(e.createdAt);
+      return entryDate >= yesterday && entryDate < tomorrow;
+    });
+    
+    if (yesterdayEntries.length === 0) {
+      document.getElementById('copyFromYesterdayContainer').style.display = 'none';
+      return;
+    }
+    
+    const list = document.getElementById('yesterdayEntriesList');
+    list.innerHTML = '';
+    yesterdayEntries.forEach(entry => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'yesterday-entry-option';
+      btn.textContent = `${entry.eventType.toUpperCase()} - ${entry.summary}`;
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelector('#trackerForm input[name="summary"]').value = entry.summary;
+        document.querySelector('#trackerForm select[name="eventType"]').value = entry.eventType;
+        document.querySelector('#trackerForm select[name="priority"]').value = entry.priority || 'normal';
+        if (entry.details) document.querySelector('#trackerForm textarea[name="details"]').value = entry.details;
+        document.getElementById('copyFromYesterdayContainer').style.display = 'none';
+      });
+      list.appendChild(btn);
+    });
+    
+    document.getElementById('copyFromYesterdayContainer').style.display = 'block';
+  } catch (error) {
+    console.error('Failed to load yesterday entries:', error);
+  }
+}
+
+document.getElementById('copyYesterdayBtn')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  loadYesterdayEntries();
+});
+
+// Who's Working cards
+async function renderWhosWorking() {
+  const container = document.getElementById('whosWorkingCards');
+  if (!container) return;
+  
+  try {
+    const data = await api('/api/shifts/summary/today');
+    if (!data.activeShifts || data.activeShifts.length === 0) {
+      container.innerHTML = '<p style="color: var(--muted); font-size: 12px; padding: 8px;">No active shifts</p>';
+      return;
+    }
+    
+    let html = '';
+    for (const shift of data.activeShifts) {
+      const dspName = shift.userId?.fullName || 'Unknown DSP';
+      const clientName = shift.clientId?.displayName || 'Unknown Client';
+      const startTime = new Date(shift.startedAt);
+      const now = new Date();
+      const durationMins = Math.round((now - startTime) / 60000);
+      
+      // Get entry count for this shift
+      const entryData = await api(`/api/tracker/entries?clientId=${shift.clientId._id || shift.clientId}&limit=1`).catch(() => ({ entries: [] }));
+      const entryCount = entryData.entries?.length || 0;
+      
+      html += `
+        <div class="whos-working-card active">
+          <div class="whos-working-dsp-name">👤 ${safeText(dspName)}</div>
+          <div class="whos-working-client">📋 ${safeText(clientName)}</div>
+          <div class="whos-working-time">⏱️ ${durationMins} min</div>
+          <div class="whos-working-entry-count">📝 ${entryCount} entries logged</div>
+        </div>
+      `;
+    }
+    container.innerHTML = html;
+  } catch (error) {
+    console.error('Failed to render Who\'s Working:', error);
+    if (demoMode) {
+      container.innerHTML = `
+        <div class="whos-working-card active">
+          <div class="whos-working-dsp-name">👤 Nia Carter</div>
+          <div class="whos-working-client">📋 Jordan Miles</div>
+          <div class="whos-working-time">⏱️ 45 min</div>
+          <div class="whos-working-entry-count">📝 8 entries logged</div>
+        </div>
+        <div class="whos-working-card active">
+          <div class="whos-working-dsp-name">👤 Isaiah Moore</div>
+          <div class="whos-working-client">📋 Avery Brooks</div>
+          <div class="whos-working-time">⏱️ 23 min</div>
+          <div class="whos-working-entry-count">📝 3 entries logged</div>
+        </div>
+      `;
+    }
+  }
+}
+
+// Shift Monitor Dashboard
+let shiftMonitorAutoRefresh = false;
+let shiftMonitorInterval = null;
+
+async function loadShiftMonitor() {
+  try {
+    const data = await api('/api/shifts/summary/today');
+    
+    document.getElementById('activeShiftCount').textContent = data.activeCount || 0;
+    document.getElementById('endedShiftCount').textContent = data.endedCount || 0;
+    document.getElementById('totalEntriesCount').textContent = data.totalEntries || 0;
+    document.getElementById('escalationCount').textContent = data.escalations || 0;
+    
+    const container = document.getElementById('activeShiftsContainer');
+    if (!container) return;
+    
+    if (!data.activeShifts || data.activeShifts.length === 0) {
+      container.innerHTML = '<p style="padding: 20px; text-align: center; color: var(--muted);">No active shifts</p>';
+      return;
+    }
+    
+    let html = '';
+    for (const shift of data.activeShifts) {
+      const dspName = shift.userId?.fullName || 'Unknown';
+      const clientName = shift.clientId?.displayName || 'Unknown';
+      const startTime = new Date(shift.startedAt);
+      const now = new Date();
+      const durationHours = ((now - startTime) / (1000 * 60 * 60)).toFixed(1);
+      
+      const hasEscalations = (data.escalations || 0) > 0;
+      html += `
+        <div class="active-shift-card ${hasEscalations ? 'has-escalations' : ''}">
+          <div class="shift-card-header">
+            <div>
+              <div class="shift-card-dsp">${safeText(dspName)}</div>
+              <div class="shift-card-client">${safeText(clientName)}</div>
+            </div>
+            <span class="shift-card-badge">ACTIVE</span>
+          </div>
+          <div class="shift-card-time">Started ${durationHours}h ago</div>
+          <div class="shift-card-metrics">
+            <span class="shift-card-metric">📝 ${data.totalEntries} entries</span>
+            ${hasEscalations ? `<span class="shift-card-metric escalated">⚠️ ${data.escalations} escalations</span>` : ''}
+          </div>
+        </div>
+      `;
+    }
+    container.innerHTML = html;
+  } catch (error) {
+    console.error('Failed to load shift monitor:', error);
+    if (demoMode) {
+      document.getElementById('activeShiftCount').textContent = '2';
+      document.getElementById('endedShiftCount').textContent = '3';
+      document.getElementById('totalEntriesCount').textContent = '24';
+      document.getElementById('escalationCount').textContent = '1';
+      
+      const container = document.getElementById('activeShiftsContainer');
+      if (container) {
+        container.innerHTML = `
+          <div class="active-shift-card">
+            <div class="shift-card-header">
+              <div>
+                <div class="shift-card-dsp">Nia Carter</div>
+                <div class="shift-card-client">Jordan Miles</div>
+              </div>
+              <span class="shift-card-badge">ACTIVE</span>
+            </div>
+            <div class="shift-card-time">Started 2.5h ago</div>
+            <div class="shift-card-metrics">
+              <span class="shift-card-metric">📝 12 entries</span>
+            </div>
+          </div>
+          <div class="active-shift-card">
+            <div class="shift-card-header">
+              <div>
+                <div class="shift-card-dsp">Isaiah Moore</div>
+                <div class="shift-card-client">Avery Brooks</div>
+              </div>
+              <span class="shift-card-badge">ACTIVE</span>
+            </div>
+            <div class="shift-card-time">Started 1.2h ago</div>
+            <div class="shift-card-metrics">
+              <span class="shift-card-metric">📝 8 entries</span>
+            </div>
+          </div>
+        `;
+      }
+    }
+  }
+}
+
+document.getElementById('refreshShiftMonitorBtn')?.addEventListener('click', () => {
+  loadShiftMonitor();
+});
+
+document.getElementById('autoRefreshToggle')?.addEventListener('click', (e) => {
+  shiftMonitorAutoRefresh = !shiftMonitorAutoRefresh;
+  e.target.textContent = shiftMonitorAutoRefresh ? 'Auto: ON' : 'Auto: OFF';
+  
+  if (shiftMonitorAutoRefresh) {
+    loadShiftMonitor();
+    shiftMonitorInterval = setInterval(loadShiftMonitor, 10000);
+  } else if (shiftMonitorInterval) {
+    clearInterval(shiftMonitorInterval);
+    shiftMonitorInterval = null;
+  }
+});
+
+// Load Who's Working when tracker section is shown
+const originalNavigateTo = window.navigateTo;
+window.navigateTo = function(pageId) {
+  originalNavigateTo.call(this, pageId);
+  if (pageId === 'trackerSection') {
+    renderWhosWorking();
+    // Show/hide copy from yesterday container based on client selection
+    const clientSelect = document.querySelector('#trackerForm select[name="clientId"]');
+    if (clientSelect) {
+      clientSelect.addEventListener('change', () => {
+        setTimeout(loadYesterdayEntries, 100);
+      });
+    }
+  } else if (pageId === 'shiftMonitorSection') {
+    loadShiftMonitor();
+  }
+};
+
 updateSession();
 initializeInviteAndResetFromUrl();
 fetchAndShowVersion();

@@ -52,6 +52,10 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><polyline points="12,18 12,12"/><polyline points="9,15 12,12 15,15"/></svg>
           <span class="nav-label">Documents</span>
         </button>
+        <button type="button" class="nav-item nav-role-supervisor" data-nav-target="shiftMonitorSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="nav-label">Shifts</span>
+        </button>
         <button type="button" class="nav-item nav-role-supervisor" data-nav-target="assignmentSection">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
           <span class="nav-label">Assign</span>
@@ -736,7 +740,18 @@
                 <option value="escalated">Escalated</option>
               </select>
             </div>
-            <input name="summary" placeholder="Summary (e.g., 8PM meds completed)" required />
+            <div class="form-row">
+              <input name="summary" placeholder="Summary (e.g., 8PM meds completed)" required />
+              <button type="button" id="voiceToTextBtn" class="btn-icon" title="Speak summary">🎤</button>
+            </div>
+            <div id="voiceStatus" class="voice-status" style="display:none;">
+              <span class="listening-dot"></span>
+              <span id="voiceStatusText">Listening...</span>
+            </div>
+            <div id="copyFromYesterdayContainer" style="margin: 8px 0; display: none;">
+              <button type="button" id="copyYesterdayBtn" class="btn-secondary" style="width: 100%; font-size: 12px;">📋 Copy from Yesterday</button>
+              <div id="yesterdayEntriesList" style="max-height: 120px; overflow-y: auto; margin-top: 6px; font-size: 12px;"></div>
+            </div>
             <textarea name="details" placeholder="Optional details"></textarea>
             <input name="photo" type="file" accept="image/*" capture="environment" />
             <input name="photoCaption" placeholder="Photo caption (optional)" />
@@ -756,10 +771,35 @@
           </form>
         </div>
         <div class="tracker-feed-col">
-          <h3 class="col-heading">Event Feed</h3>
+          <h3 class="col-heading">Who's Working</h3>
+          <div id="whosWorkingCards" class="whos-working-cards"></div>
+          <h3 class="col-heading" style="margin-top: 16px;">Event Feed</h3>
           <div id="trackerFeed" class="tracker-feed"></div>
         </div>
       </div>
+    </section>
+
+    <!-- ── AUTH: Supervisor Shift Monitor ───────────────────────── -->
+    <section class="page" id="shiftMonitorSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Shift Monitor</h2>
+          <p class="page-desc">Real-time status of active shifts and DSP performance</p>
+        </div>
+        <div class="page-header-actions">
+          <button id="refreshShiftMonitorBtn" type="button" class="btn-secondary">Refresh</button>
+          <button id="autoRefreshToggle" type="button" class="btn-secondary">Auto: OFF</button>
+        </div>
+      </div>
+      <div class="shift-monitor-grid">
+        <div class="shift-status-card summary-card">
+          <div class="card-stat"><span class="stat-label">Active Shifts</span><span id="activeShiftCount" class="stat-value">0</span></div>
+          <div class="card-stat"><span class="stat-label">Ended Today</span><span id="endedShiftCount" class="stat-value">0</span></div>
+          <div class="card-stat"><span class="stat-label">Total Entries</span><span id="totalEntriesCount" class="stat-value">0</span></div>
+          <div class="card-stat alert"><span class="stat-label">Escalations</span><span id="escalationCount" class="stat-value">0</span></div>
+        </div>
+      </div>
+      <div class="shift-monitor-grid" id="activeShiftsContainer"></div>
     </section>
 
     <!-- ── AUTH: Patient Workspace ──────────────────────────────── -->
