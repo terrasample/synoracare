@@ -1,17 +1,36 @@
 const express = require('express');
+const crypto = require('crypto');
 const DemoRequest = require('../models/DemoRequest');
 
 const router = express.Router();
 const REQUEST_WINDOW_MS = 15 * 60 * 1000;
-const REQUEST_LIMIT_PER_WINDOW = 5;
+const IP_LIMIT_PER_WINDOW = 5;
+const EMAIL_LIMIT_PER_WINDOW = 3;
+const FINGERPRINT_LIMIT_PER_WINDOW = 4;
 
-async function isRateLimited(ipAddress) {
+function normalizeUserAgent(value) {
+  return String(value || '').toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 180);
+}
+
+function buildFingerprint(ipAddress, email, userAgent) {
+  return crypto
+    .createHash('sha256')
+    .update(`${ipAddress}|${String(email || '').trim().toLowerCase()}|${normalizeUserAgent(userAgent)}`)
+    .digest('hex');
+}
+
+async function getRateLimitReason(ipAddress, email, fingerprint) {
   const windowStart = new Date(Date.now() - REQUEST_WINDOW_MS);
-  const recentCount = await DemoRequest.countDocuments({
-    'metadata.ip': ipAddress,
-    createdAt: { $gte: windowStart }
-  });
-  return recentCount >= REQUEST_LIMIT_PER_WINDOW;
+  const [ipCount, emailCount, fingerprintCount] = await Promise.all([
+    DemoRequest.countDocuments({ 'metadata.ip': ipAddress, createdAt: { $gte: windowStart } }),
+    DemoRequest.countDocuments({ email, createdAt: { $gte: windowStart } }),
+    DemoRequest.countDocuments({ 'metadata.fingerprint': fingerprint, createdAt: { $gte: windowStart } })
+  ]);
+
+  if (ipCount >= IP_LIMIT_PER_WINDOW) return 'ip';
+  if (emailCount >= EMAIL_LIMIT_PER_WINDOW) return 'email';
+  if (fingerprintCount >= FINGERPRINT_LIMIT_PER_WINDOW) return 'fingerprint';
+  return '';
 }
 
 function isValidEmail(email) {
@@ -29,10 +48,7 @@ router.post('/demo-request', async (req, res) => {
     const requestType = String(req.body.requestType || 'demo').trim().toLowerCase();
     const source = String(req.body.source || 'web').trim().toLowerCase();
     const ipAddress = String(req.ip || req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
-
-    if (await isRateLimited(ipAddress)) {
-      return res.status(429).json({ error: 'Too many requests. Please try again shortly.' });
-    }
+    const userAgent = String(req.headers['user-agent'] || '');
 
     // Validate required fields
     if (!organizationName || !contactName || !email) {
@@ -41,6 +57,12 @@ router.post('/demo-request', async (req, res) => {
 
     if (!isValidEmail(email)) {
       return res.status(400).json({ error: 'Invalid email address' });
+    }
+
+    const fingerprint = buildFingerprint(ipAddress, email, userAgent);
+    const rateLimitReason = await getRateLimitReason(ipAddress, email, fingerprint);
+    if (rateLimitReason) {
+      return res.status(429).json({ error: 'Too many requests. Please try again shortly.' });
     }
 
     const allowedTypes = new Set(['demo', 'pilot', 'walkthrough']);
@@ -56,7 +78,8 @@ router.post('/demo-request', async (req, res) => {
       source,
       metadata: {
         ip: ipAddress,
-        userAgent: String(req.headers['user-agent'] || '')
+        userAgent: normalizeUserAgent(userAgent),
+        fingerprint
       }
     });
 
