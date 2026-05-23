@@ -663,6 +663,7 @@ body.guest-mode #loginSection {
   pointer-events: none;
   opacity: 0.5;
   filter: saturate(92%);
+  animation: dnaFloat 13s ease-in-out infinite;
 }
 
 .login-dna svg {
@@ -683,6 +684,14 @@ body.guest-mode #loginSection {
   bottom: clamp(54px, 10vh, 122px);
   width: clamp(84px, 10vw, 140px);
   height: clamp(180px, 35vh, 310px);
+  animation-duration: 16s;
+  animation-direction: alternate-reverse;
+}
+
+@keyframes dnaFloat {
+  0% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-9px) rotate(0.55deg); }
+  100% { transform: translateY(0) rotate(0deg); }
 }
 
 /* Dot grid */
@@ -1061,4 +1070,10 @@ body.guest-mode #loginSection {
   .login-deco-bl,
   .login-dots,
   .login-dna { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-dna {
+    animation: none !important;
+  }
 }

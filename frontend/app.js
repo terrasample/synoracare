@@ -32,6 +32,7 @@ let selectedPatientTab = 'care';
 let currentPatientWorkspace = { clientId: '', entries: [] };
 let currentPage = '';
 let currentTrackerFeed = [];
+let trackerStatusFilter = '';
 let demoMode = localStorage.getItem('synoracare_demo_mode') === '1' || new URLSearchParams(window.location.search).get('demo') === '1';
 if (demoMode) localStorage.setItem('synoracare_demo_mode', '1');
 
@@ -40,6 +41,7 @@ const DEMO_CLIENTS = [
   { _id: 'demo-client-2', displayName: 'Avery Brooks', externalId: 'SC-1002' },
   { _id: 'demo-client-3', displayName: 'Taylor Reed', externalId: 'SC-1003' }
 ];
+const DEMO_CLIENTS_STORAGE_KEY = 'synoracare_demo_clients';
 
 const DEMO_USERS = [
   { _id: 'demo-user-1', fullName: 'Nia Carter', role: 'dsp' },
@@ -79,6 +81,27 @@ const DEMO_TRACKER_ENTRIES = [
     dueAt: new Date(Date.now() - 90 * 60 * 1000).toISOString()
   }
 ];
+
+function getDemoClients() {
+  const fallback = DEMO_CLIENTS.map((client) => ({ ...client }));
+  try {
+    const raw = localStorage.getItem(DEMO_CLIENTS_STORAGE_KEY);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return fallback;
+    return parsed.filter((client) => client && client._id && client.displayName);
+  } catch {
+    return fallback;
+  }
+}
+
+function saveDemoClients(clients) {
+  try {
+    localStorage.setItem(DEMO_CLIENTS_STORAGE_KEY, JSON.stringify(clients));
+  } catch {
+    // Ignore storage failures in private/incognito contexts.
+  }
+}
 
 function navigateTo(pageId) {
   document.querySelectorAll('.page').forEach((page) => {
@@ -619,21 +642,24 @@ function syncUserPicker() {
 }
 
 async function refreshClients() {
+  if (demoMode) {
+    clientsCache = getDemoClients();
+    syncClientPickers();
+    renderClientList(clientsCache);
+    return;
+  }
+
   try {
     const data = await api('/api/clients');
     clientsCache = data.clients || [];
-    if (demoMode && clientsCache.length === 0) {
-      clientsCache = DEMO_CLIENTS;
-    }
     syncClientPickers();
     renderClientList(clientsCache);
   } catch (error) {
     console.error('Error loading clients:', error);
-    clientsCache = demoMode ? DEMO_CLIENTS : [];
+    clientsCache = [];
     syncClientPickers();
     const list = document.getElementById('clientsList');
-    if (list && !demoMode) list.innerHTML = `<p class="empty-state">Could not load clients: ${safeText(error.message)}</p>`;
-    if (list && demoMode) renderClientList(clientsCache);
+    if (list) list.innerHTML = `<p class="empty-state">Could not load clients: ${safeText(error.message)}</p>`;
   }
 }
 
@@ -1312,8 +1338,29 @@ function initializeInviteAndResetFromUrl() {
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const payload = Object.fromEntries(new FormData(e.target).entries());
+
+  if (demoMode) {
+    const demoClients = getDemoClients();
+    const nextClient = {
+      _id: `demo-client-${Date.now()}`,
+      displayName: String(payload.displayName || '').trim() || 'Demo Client',
+      externalId: String(payload.externalId || '').trim() || `SC-DEMO-${demoClients.length + 1001}`
+    };
+    demoClients.unshift(nextClient);
+    saveDemoClients(demoClients);
+    clientsCache = demoClients;
+    syncClientPickers();
+    renderClientList(clientsCache);
+    e.target.reset();
+    showToast('Demo client added successfully.', 'success');
+    if (currentUser) {
+      renderHomeSection().catch(() => {});
+    }
+    return;
+  }
+
   try {
-    const data = await api('/api/clients', {
+    await api('/api/clients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
