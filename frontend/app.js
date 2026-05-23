@@ -531,13 +531,22 @@ function syncUserPicker() {
 }
 
 async function refreshClients() {
-  const data = await api('/api/clients');
-  clientsCache = data.clients || [];
-  if (DEMO_MODE && clientsCache.length === 0) {
-    clientsCache = DEMO_CLIENTS;
+  try {
+    const data = await api('/api/clients');
+    clientsCache = data.clients || [];
+    if (DEMO_MODE && clientsCache.length === 0) {
+      clientsCache = DEMO_CLIENTS;
+    }
+    syncClientPickers();
+    renderClientList(clientsCache);
+  } catch (error) {
+    console.error('Error loading clients:', error);
+    clientsCache = DEMO_MODE ? DEMO_CLIENTS : [];
+    syncClientPickers();
+    const list = document.getElementById('clientsList');
+    if (list && !DEMO_MODE) list.innerHTML = `<p class="empty-state">Could not load clients: ${safeText(error.message)}</p>`;
+    if (list && DEMO_MODE) renderClientList(clientsCache);
   }
-  syncClientPickers();
-  renderClientList(clientsCache);
 }
 
 async function refreshUsers() {
