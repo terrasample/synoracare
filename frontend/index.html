@@ -200,6 +200,22 @@
         </div>
         <div id="homeStats" class="home-stats-row"></div>
       </div>
+
+      <!-- Shift management widget -->
+      <div class="shift-control-panel">
+        <div id="shiftTimerWidget" class="shift-timer"></div>
+        <div class="shift-buttons">
+          <button id="startShiftBtn" type="button" class="btn btn-primary shift-btn" aria-label="Start Shift">
+            <span class="btn-icon">▶</span>
+            <span>Start Shift</span>
+          </button>
+          <button id="endShiftBtn" type="button" class="btn btn-danger shift-btn" style="display:none;" aria-label="End Shift">
+            <span class="btn-icon">⏹</span>
+            <span>End Shift</span>
+          </button>
+        </div>
+      </div>
+
       <div id="homeActions" class="home-quick-actions"></div>
       <div id="homeAlerts" class="home-alerts-panel"></div>
     </section>
@@ -524,6 +540,22 @@
             </svg>
             <div>
               <strong>Your data is safe with us.</strong>
+            <div class="login-field-group">
+              <label class="login-label" for="loginRolePreview">Role Preview (Demo)</label>
+              <div class="login-input-wrap">
+                <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="17" height="17" aria-hidden="true">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                <select id="loginRolePreview" aria-label="Sign in as role preview">
+                  <option value="">Use normal email login</option>
+                  <option value="dsp">Preview: DSP</option>
+                  <option value="supervisor">Preview: Supervisor</option>
+                  <option value="org_admin">Preview: Org Admin</option>
+                </select>
+              </div>
+              <p class="login-hint-text">Choose a preview role to sign in with sample data. Super Admin is intentionally excluded.</p>
+            </div>
               <span>We follow industry-leading security standards</span>
             </div>
           </div>
@@ -823,6 +855,30 @@
     </main>
   </div>
 </div>
+
+  <!-- Shift Report Modal -->
+  <div id="shiftReportModal" class="modal" style="display:none;">
+    <div class="modal-content shift-report-container">
+      <div class="modal-header">
+        <h3>Shift Report</h3>
+        <button type="button" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="shift-report-summary"></div>
+        <div class="shift-section">
+          <h4>Entries Logged</h4>
+          <div class="shift-report-entries"></div>
+        </div>
+        <div class="shift-section">
+          <h4>Escalations</h4>
+          <div class="shift-report-escalations"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('shiftReportModal').style.display='none'">Done</button>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="app.js?v=f8a75c7"></script>

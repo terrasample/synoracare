@@ -36,6 +36,12 @@ let trackerStatusFilter = '';
 let demoMode = localStorage.getItem('synoracare_demo_mode') === '1' || new URLSearchParams(window.location.search).get('demo') === '1';
 if (demoMode) localStorage.setItem('synoracare_demo_mode', '1');
 
+// Shift management
+let currentShift = null;
+let shiftStartTime = null;
+const OFFLINE_ENTRIES_KEY = 'synoracare_offline_entries';
+const CURRENT_SHIFT_KEY = 'synoracare_current_shift';
+
 const DEMO_CLIENTS = [
   { _id: 'demo-client-1', displayName: 'Jordan Miles', externalId: 'SC-1001' },
   { _id: 'demo-client-2', displayName: 'Avery Brooks', externalId: 'SC-1002' },
@@ -374,6 +380,7 @@ function updateSession() {
     syncDemoToggle();
     applyRoleMode('guest');
     renderTraining('guest', selectedTrainingContext);
+    saveCurrentShift(null);
     return;
   }
   info.textContent = `${currentUser.fullName} | ${currentUser.role}`;
@@ -381,6 +388,8 @@ function updateSession() {
   applyRoleMode(currentUser.role);
   syncDemoToggle();
   renderTraining(currentUser.role, selectedTrainingContext);
+  loadCurrentShift();
+  updateShiftUI();
   renderHomeSection();
 }
 
@@ -693,6 +702,182 @@ async function refreshAllPickers() {
   if (currentUser && ['super_admin', 'org_admin', 'supervisor'].includes(currentUser.role)) {
     await refreshUsers();
   }
+}
+
+// Offline storage for tracker entries
+function saveOfflineEntry(entry) {
+  try {
+    const entries = JSON.parse(localStorage.getItem(OFFLINE_ENTRIES_KEY) || '[]');
+    entries.push({ ...entry, savedAt: new Date().toISOString(), synced: false });
+    localStorage.setItem(OFFLINE_ENTRIES_KEY, JSON.stringify(entries));
+  } catch (e) {
+    console.error('Failed to save offline entry:', e);
+  }
+}
+
+function getOfflineEntries() {
+  try {
+    return JSON.parse(localStorage.getItem(OFFLINE_ENTRIES_KEY) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function clearOfflineEntries() {
+  localStorage.removeItem(OFFLINE_ENTRIES_KEY);
+}
+
+async function syncOfflineEntries() {
+  const entries = getOfflineEntries();
+  if (entries.length === 0 || !navigator.onLine) return;
+
+  for (const entry of entries.filter(e => !e.synced)) {
+    try {
+      await api('/tracker', { method: 'POST', body: JSON.stringify(entry) });
+      entry.synced = true;
+    } catch (error) {
+      console.error('Failed to sync entry:', error);
+      break;
+    }
+  }
+  localStorage.setItem(OFFLINE_ENTRIES_KEY, JSON.stringify(entries));
+}
+
+// Shift management
+function saveCurrentShift(shift) {
+  try {
+    if (shift) {
+      localStorage.setItem(CURRENT_SHIFT_KEY, JSON.stringify(shift));
+      currentShift = shift;
+      shiftStartTime = new Date(shift.startedAt);
+    } else {
+      localStorage.removeItem(CURRENT_SHIFT_KEY);
+      currentShift = null;
+      shiftStartTime = null;
+    }
+  } catch (e) {
+    console.error('Failed to save shift:', e);
+  }
+}
+
+function loadCurrentShift() {
+  try {
+    const saved = localStorage.getItem(CURRENT_SHIFT_KEY);
+    if (saved) {
+      currentShift = JSON.parse(saved);
+      shiftStartTime = new Date(currentShift.startedAt);
+      return currentShift;
+    }
+  } catch (e) {
+    console.error('Failed to load shift:', e);
+  }
+  return null;
+}
+
+async function startShift(clientId, scheduledEndTime = null) {
+  if (!token) throw new Error('Not authenticated');
+  try {
+    const result = await api('/api/shifts', {
+      method: 'POST',
+      body: JSON.stringify({ clientId, scheduledEndTime })
+    });
+    saveCurrentShift(result.shift);
+    updateShiftUI();
+    return result.shift;
+  } catch (error) {
+    console.error('Failed to start shift:', error);
+    throw error;
+  }
+}
+
+async function endShift() {
+  if (!currentShift) throw new Error('No active shift');
+  try {
+    const result = await api(`/api/shifts/${currentShift._id}/end`, {
+      method: 'POST'
+    });
+    saveCurrentShift(null);
+    updateShiftUI();
+    showShiftReport(result.report);
+    return result;
+  } catch (error) {
+    console.error('Failed to end shift:', error);
+    throw error;
+  }
+}
+
+function updateShiftUI() {
+  const widget = document.getElementById('shiftTimerWidget');
+  const startBtn = document.getElementById('startShiftBtn');
+  const endBtn = document.getElementById('endShiftBtn');
+
+  if (!widget) return;
+
+  if (currentShift && currentShift.status === 'active') {
+    startBtn.style.display = 'none';
+    endBtn.style.display = '';
+    updateShiftTimer();
+    setInterval(updateShiftTimer, 1000);
+  } else {
+    startBtn.style.display = '';
+    endBtn.style.display = 'none';
+    if (widget) widget.textContent = '';
+  }
+}
+
+function updateShiftTimer() {
+  if (!currentShift || !shiftStartTime) return;
+  const widget = document.getElementById('shiftTimerWidget');
+  if (!widget) return;
+
+  const elapsed = Date.now() - shiftStartTime.getTime();
+  const hours = Math.floor(elapsed / 3600000);
+  const minutes = Math.floor((elapsed % 3600000) / 60000);
+  const seconds = Math.floor((elapsed % 60000) / 1000);
+  
+  widget.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function showShiftReport(report) {
+  const modal = document.getElementById('shiftReportModal');
+  if (!modal) return;
+
+  const summary = modal.querySelector('.shift-report-summary');
+  const entries = modal.querySelector('.shift-report-entries');
+  const escalations = modal.querySelector('.shift-report-escalations');
+
+  if (summary) {
+    summary.innerHTML = `
+      <p>${safeText(report.summary)}</p>
+      <div class="metrics">
+        <span>Entries: ${report.entriesSnapshot.length}</span>
+        <span>Escalations: ${report.escalations.length}</span>
+        <span>Completion: ${report.performanceMetrics.completionRate}%</span>
+        <span>Duration: ${Math.round(report.totalDuration / 60000)} min</span>
+      </div>
+    `;
+  }
+
+  if (entries && report.entriesSnapshot.length > 0) {
+    entries.innerHTML = report.entriesSnapshot.map(e => `
+      <div class="entry-item" data-priority="${e.priority}" data-status="${e.status}">
+        <span class="entry-type">${e.eventType}</span>
+        <span class="entry-summary">${safeText(e.summary)}</span>
+        <span class="entry-status">${e.status}</span>
+      </div>
+    `).join('');
+  }
+
+  if (escalations && report.escalations.length > 0) {
+    escalations.innerHTML = report.escalations.map(e => `
+      <div class="escalation-item">
+        <span class="escalation-icon">⚠️</span>
+        <span>${safeText(e.summary)}</span>
+      </div>
+    `).join('');
+  }
+
+  modal.style.display = 'flex';
 }
 
 async function api(path, options = {}) {
@@ -1626,12 +1811,32 @@ document.getElementById('trackerForm').addEventListener('submit', async (e) => {
     });
 
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Failed to create tracker entry');
+    if (!response.ok) {
+      // Try to save offline if network error
+      if (!navigator.onLine || response.status >= 500) {
+        const entry = Object.fromEntries(formData.entries());
+        saveOfflineEntry(entry);
+        const feed = document.getElementById('trackerFeed');
+        if (feed) feed.innerHTML = `<p class="tracker-empty">Entry saved offline. Will sync when connection restored.</p>`;
+        e.target.reset();
+        return;
+      }
+      throw new Error(data.error || 'Failed to create tracker entry');
+    }
 
     e.target.reset();
     await loadTrackerFeed();
     await loadTrackerSummary();
   } catch (err) {
+    // On network error, save offline
+    if (!navigator.onLine) {
+      const entry = Object.fromEntries(formData.entries());
+      saveOfflineEntry(entry);
+      const feed = document.getElementById('trackerFeed');
+      if (feed) feed.innerHTML = `<p class="tracker-empty">Entry saved offline. Will sync when connection restored.</p>`;
+      e.target.reset();
+      return;
+    }
     const feed = document.getElementById('trackerFeed');
     if (feed) feed.innerHTML = `<p class="tracker-empty">${safeText(err.message)}</p>`;
   }
@@ -1771,6 +1976,35 @@ document.getElementById('logoutBtn')?.addEventListener('click', () => {
     if (el) el.innerHTML = '';
   });
   updateSession();
+});
+
+// Shift management listeners
+document.getElementById('startShiftBtn')?.addEventListener('click', async () => {
+  const clientId = clientsCache[0]?._id;
+  if (!clientId) {
+    alert('No clients available. Please refresh your assignments.');
+    return;
+  }
+  try {
+    await startShift(clientId);
+    alert('Shift started!');
+  } catch (error) {
+    alert(`Failed to start shift: ${error.message}`);
+  }
+});
+
+document.getElementById('endShiftBtn')?.addEventListener('click', async () => {
+  try {
+    const result = await endShift();
+    alert('Shift ended! Report generated.');
+  } catch (error) {
+    alert(`Failed to end shift: ${error.message}`);
+  }
+});
+
+// Shift report modal close button
+document.querySelector('#shiftReportModal .modal-close')?.addEventListener('click', () => {
+  document.getElementById('shiftReportModal').style.display = 'none';
 });
 
 document.getElementById('demoModeToggle')?.addEventListener('change', (e) => {
