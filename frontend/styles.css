@@ -694,6 +694,23 @@ body.guest-mode #loginSection {
   max-width: 540px;
 }
 
+.login-demo-toggle {
+  margin-top: 6px;
+}
+
+.login-demo-toggle .demo-mode-label {
+  color: #d9e7ef;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.login-demo-toggle .demo-mode-track {
+  background: rgba(15, 44, 61, 0.8);
+  border-color: #2e5a71;
+}
+
 @media (max-width: 1080px) {
   .login-logo-img {
     width: 100%;

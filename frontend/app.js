@@ -342,6 +342,7 @@ function updateSession() {
   if (!currentUser) {
     info.textContent = 'Not logged in';
     if (logoutBtn) logoutBtn.style.display = 'none';
+    syncDemoToggle();
     applyRoleMode('guest');
     renderTraining('guest', selectedTrainingContext);
     return;
@@ -355,16 +356,21 @@ function updateSession() {
 }
 
 function canToggleDemoMode() {
-  return Boolean(currentUser && DEMO_TOGGLE_ALLOWED_EMAILS.has(String(currentUser.email || '').toLowerCase()));
+  if (!currentUser) return true;
+  return DEMO_TOGGLE_ALLOWED_EMAILS.has(String(currentUser.email || '').toLowerCase());
 }
 
 function syncDemoToggle() {
   const wrap = document.getElementById('demoModeToggleWrap');
   const toggle = document.getElementById('demoModeToggle');
+  const loginWrap = document.getElementById('loginDemoModeToggleWrap');
+  const loginToggle = document.getElementById('loginDemoModeToggle');
   const allowed = canToggleDemoMode();
 
   if (wrap) wrap.style.display = allowed ? '' : 'none';
+  if (loginWrap) loginWrap.style.display = allowed ? '' : 'none';
   if (toggle) toggle.checked = demoMode;
+  if (loginToggle) loginToggle.checked = demoMode;
 }
 
 function setDemoMode(nextMode) {
@@ -1672,6 +1678,14 @@ document.getElementById('logoutBtn')?.addEventListener('click', () => {
 });
 
 document.getElementById('demoModeToggle')?.addEventListener('change', (e) => {
+  if (!canToggleDemoMode()) {
+    syncDemoToggle();
+    return;
+  }
+  setDemoMode(e.target.checked);
+});
+
+document.getElementById('loginDemoModeToggle')?.addEventListener('change', (e) => {
   if (!canToggleDemoMode()) {
     syncDemoToggle();
     return;
