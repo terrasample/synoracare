@@ -11,6 +11,7 @@ const askRoutes = require('./routes/ask');
 const auditRoutes = require('./routes/audit');
 const trackerRoutes = require('./routes/tracker');
 const legalRecordsRoutes = require('./routes/legalRecords');
+const contactRoutes = require('./routes/contact');
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use('/api/ask', askRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/tracker', trackerRoutes);
 app.use('/api/legal-records', legalRecordsRoutes);
+app.use('/api/contact', contactRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

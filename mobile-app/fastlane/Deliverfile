@@ -1,0 +1,36 @@
+username "Prince@rolerocketai.com"
+app_identifier "com.synoracare.ai"
+app_version "1.0"
+team_id "29MR56YQ6M"
+
+# Don't upload a binary — EAS already submitted it
+skip_binary_upload true
+
+# Upload metadata + screenshots
+metadata_path "./fastlane/metadata"
+screenshots_path "./fastlane/screenshots"
+overwrite_screenshots true
+
+# Submission details
+submission_information({
+  add_id_info_uses_idfa: false,
+  content_rights_has_rights: true,
+  content_rights_contains_third_party_content: false,
+  export_compliance_uses_encryption: false,
+  export_compliance_is_exempt: true
+})
+
+# App review info
+app_review_information(
+  first_name: "Prince",
+  last_name: "Samuels",
+  phone_number: "+1 (000) 000-0000",
+  email_address: "prince@rolerocketai.com",
+  demo_user: "demo@synoracare.com",
+  demo_password: "Prince123!",
+  notes: "This app is intended for role-based care operations workflows. Use the provided demo credentials to access sample content. No external hardware or paid login is required for review."
+)
+
+# Don't submit for review yet — just push metadata/screenshots
+automatic_release false
+force true

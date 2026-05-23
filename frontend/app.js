@@ -956,6 +956,22 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   }
 });
 
+document.getElementById('demoRequestForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = Object.fromEntries(new FormData(e.target).entries());
+  try {
+    await api('/api/contact/demo-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+    alert('Demo request submitted successfully. We will contact you soon!');
+    e.target.reset();
+  } catch (err) {
+    alert('Error submitting demo request: ' + err.message);
+  }
+});
+
 document.getElementById('userForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const payload = Object.fromEntries(new FormData(e.target).entries());

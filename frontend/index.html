@@ -93,9 +93,9 @@
           <span>More Confidence</span>
         </div>
         <div class="hero-ctas">
-          <a href="#" class="btn btn-primary" onclick="alert('Demo booking coming soon'); return false;">Book Demo</a>
-          <a href="#" class="btn btn-secondary" onclick="alert('Pilot signup coming soon'); return false;">Request Pilot</a>
-          <a href="#" class="btn btn-tertiary" onclick="alert('How it works coming soon'); return false;">See How It Works</a>
+          <a href="#" class="btn btn-primary" onclick="document.getElementById('demoRequestSection').style.display='block'; window.scrollTo(0, document.getElementById('demoRequestSection').offsetTop - 60); return false;">Book Demo</a>
+          <a href="#" class="btn btn-secondary" onclick="document.getElementById('demoRequestSection').style.display='block'; window.scrollTo(0, document.getElementById('demoRequestSection').offsetTop - 60); return false;">Request Pilot</a>
+          <a href="#" class="btn btn-tertiary" onclick="document.getElementById('demoRequestSection').style.display='block'; window.scrollTo(0, document.getElementById('demoRequestSection').offsetTop - 60); return false;">See How It Works</a>
         </div>
       </div>
       <div class="hero-visuals">
@@ -117,6 +117,53 @@
           <div class="gallery-tile tile-three"></div>
         </div>
       </div>
+    </section>
+
+    <!-- ── GUEST: Demo Request Form ─────────────────────────────── -->
+    <section class="page demo-request-card" id="demoRequestSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Request a Demo or Pilot</h2>
+          <p class="page-desc">Tell us about your organization and we'll set up a time to show you SynoraCare in action.</p>
+        </div>
+      </div>
+      <form id="demoRequestForm" class="demo-form">
+        <div class="form-group">
+          <label for="demoOrgName">Organization Name *</label>
+          <input type="text" id="demoOrgName" name="orgName" required placeholder="E.g., Sunrise Care Services"/>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="demoContactName">Your Name *</label>
+            <input type="text" id="demoContactName" name="contactName" required placeholder="First and last name"/>
+          </div>
+          <div class="form-group">
+            <label for="demoContactEmail">Email *</label>
+            <input type="email" id="demoContactEmail" name="contactEmail" required placeholder="your@organization.com"/>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="demoContactPhone">Phone</label>
+            <input type="tel" id="demoContactPhone" name="contactPhone" placeholder="(555) 123-4567"/>
+          </div>
+          <div class="form-group">
+            <label for="demoRequestType">What are you interested in? *</label>
+            <select id="demoRequestType" name="requestType" required>
+              <option value="">Select one</option>
+              <option value="demo">Book a Demo</option>
+              <option value="pilot">Request a Pilot Program</option>
+              <option value="walkthrough">See How It Works</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="demoMessage">Tell us a bit about your team (optional)</label>
+          <textarea id="demoMessage" name="message" placeholder="Number of DSPs, care focus, main challenges..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Send Request</button>
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('demoRequestSection').style.display='none';">Close</button>
+      </form>
     </section>
 
     <section class="card" id="complianceSection" style="display:none;">
@@ -393,6 +440,11 @@
             <strong>Your data is safe with us.</strong>
             <span>We follow industry-leading security standards</span>
           </div>
+        </div>
+
+        <!-- New prospect link -->
+        <div class="login-signup-link">
+          <p>New to SynoraCare? <a href="#" onclick="document.getElementById('landingHero').style.display='block'; document.getElementById('loginPageSection').style.display='none'; window.scrollTo(0, 0); return false;">Request a demo</a></p>
         </div>
       </div><!-- /.login-page -->
     </section>
