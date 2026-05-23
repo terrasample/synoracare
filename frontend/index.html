@@ -386,11 +386,6 @@
           <div class="login-logo-wrap">
             <h1 class="login-brand-title">SynoraCare AI</h1>
             <p class="login-brand-subtitle">AI operational support for healthcare and disability care teams</p>
-            <label id="loginDemoModeToggleWrap" class="demo-mode-toggle login-demo-toggle" style="display:none;">
-              <input id="loginDemoModeToggle" type="checkbox" />
-              <span class="demo-mode-track" aria-hidden="true"></span>
-              <span class="demo-mode-label">Demo View</span>
-            </label>
           </div>
 
           <!-- Form -->
@@ -487,6 +482,15 @@
           <!-- New prospect link -->
           <div class="login-signup-link">
             <p>New to SynoraCare? <a href="#" onclick="(function(){ const landing = document.getElementById('landingHero'); const login = document.getElementById('loginSection'); const demo = document.getElementById('demoRequestSection'); if (landing) landing.style.display='block'; if (login) login.style.display='none'; if (demo) { demo.style.display='block'; const top = Math.max(0, demo.offsetTop - 60); window.scrollTo(0, top); } else { window.scrollTo(0, 0); } return false; })(); return false;">Request a demo</a></p>
+          </div>
+
+          <div id="loginDemoModeToggleWrap" class="login-demo-footer" style="display:none;">
+            <p class="login-demo-caption">Preview the product with realistic sample data.</p>
+            <label class="demo-mode-toggle login-demo-toggle">
+              <input id="loginDemoModeToggle" type="checkbox" />
+              <span class="demo-mode-track" aria-hidden="true"></span>
+              <span class="demo-mode-label">Demo View (Sample Data)</span>
+            </label>
           </div>
         </div><!-- /.login-card -->
       </div><!-- /.login-page -->
