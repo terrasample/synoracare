@@ -450,6 +450,7 @@ function updateSession() {
 
 function canToggleDemoMode() {
   if (!currentUser) return true;
+  if (currentUser.role === 'super_admin') return true;
   return DEMO_TOGGLE_ALLOWED_EMAILS.has(String(currentUser.email || '').toLowerCase());
 }
 
