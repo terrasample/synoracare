@@ -144,41 +144,50 @@
         </div>
       </div>
       <form id="demoRequestForm" class="demo-form">
-        <div class="form-group">
-          <label for="demoOrgName">Organization Name *</label>
-          <input type="text" id="demoOrgName" name="orgName" required placeholder="E.g., Sunrise Care Services"/>
-        </div>
-        <div class="form-row">
+        <div id="demoFormContent">
           <div class="form-group">
-            <label for="demoContactName">Your Name *</label>
-            <input type="text" id="demoContactName" name="contactName" required placeholder="First and last name"/>
+            <label for="demoOrgName">Organization Name *</label>
+            <input type="text" id="demoOrgName" name="orgName" required placeholder="E.g., Sunrise Care Services"/>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="demoContactName">Your Name *</label>
+              <input type="text" id="demoContactName" name="contactName" required placeholder="First and last name"/>
+            </div>
+            <div class="form-group">
+              <label for="demoContactEmail">Email *</label>
+              <input type="email" id="demoContactEmail" name="contactEmail" required placeholder="your@organization.com"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="demoContactPhone">Phone</label>
+              <input type="tel" id="demoContactPhone" name="contactPhone" placeholder="(555) 123-4567"/>
+            </div>
+            <div class="form-group">
+              <label for="demoRequestType">What are you interested in? *</label>
+              <select id="demoRequestType" name="requestType" required>
+                <option value="">Select one</option>
+                <option value="demo">Book a Demo</option>
+                <option value="pilot">Request a Pilot Program</option>
+                <option value="walkthrough">See How It Works</option>
+              </select>
+            </div>
           </div>
           <div class="form-group">
-            <label for="demoContactEmail">Email *</label>
-            <input type="email" id="demoContactEmail" name="contactEmail" required placeholder="your@organization.com"/>
+            <label for="demoMessage">Tell us a bit about your team (optional)</label>
+            <textarea id="demoMessage" name="message" placeholder="Number of DSPs, care focus, main challenges..."></textarea>
           </div>
+          <button type="submit" class="btn btn-primary">Send Request</button>
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('demoRequestSection').style.display='none';">Close</button>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="demoContactPhone">Phone</label>
-            <input type="tel" id="demoContactPhone" name="contactPhone" placeholder="(555) 123-4567"/>
-          </div>
-          <div class="form-group">
-            <label for="demoRequestType">What are you interested in? *</label>
-            <select id="demoRequestType" name="requestType" required>
-              <option value="">Select one</option>
-              <option value="demo">Book a Demo</option>
-              <option value="pilot">Request a Pilot Program</option>
-              <option value="walkthrough">See How It Works</option>
-            </select>
-          </div>
+        <div id="demoSuccessState" style="display:none; text-align:center; padding:40px 20px;">
+          <div style="font-size:48px; margin-bottom:16px;">✓</div>
+          <h3 style="margin:0 0 8px 0; font-size:20px;">Request Received!</h3>
+          <p style="margin:0 0 24px 0; color:#666; font-size:15px;">We'll be in touch shortly to schedule your demo and answer any questions.</p>
+          <button type="button" class="btn btn-primary" onclick="(function(){ document.getElementById('demoFormContent').style.display='block'; document.getElementById('demoSuccessState').style.display='none'; document.getElementById('demoRequestForm').reset(); })(); return false;">Submit Another Request</button>
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('demoRequestSection').style.display='none';">Close</button>
         </div>
-        <div class="form-group">
-          <label for="demoMessage">Tell us a bit about your team (optional)</label>
-          <textarea id="demoMessage" name="message" placeholder="Number of DSPs, care focus, main challenges..."></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary">Send Request</button>
-        <button type="button" class="btn btn-secondary" onclick="document.getElementById('demoRequestSection').style.display='none';">Close</button>
       </form>
     </section>
 

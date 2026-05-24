@@ -2111,8 +2111,11 @@ document.getElementById('demoRequestForm')?.addEventListener('submit', async (e)
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)
     });
-    showToast('Demo request submitted successfully. We will contact you soon!', 'success');
-    e.target.reset();
+    // Show success state
+    const formContent = document.getElementById('demoFormContent');
+    const successState = document.getElementById('demoSuccessState');
+    if (formContent) formContent.style.display = 'none';
+    if (successState) successState.style.display = 'block';
   } catch (err) {
     showToast(`Error submitting demo request: ${err.message}`, 'error');
   }
