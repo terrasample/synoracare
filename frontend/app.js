@@ -123,7 +123,7 @@ const DEMO_PATIENT_WORKSPACE_ENTRIES = [
     priority: 'normal',
     status: 'completed',
     summary: 'Nutrition intake recorded: full breakfast and hydration target met.',
-    details: 'No food allergy triggers observed. Hydration chart updated.',
+    details: 'Meal support completed without issues. No food allergy triggers observed. Hydration chart updated.',
     updatedAt: new Date(Date.now() - 90 * 60 * 1000).toISOString()
   },
   {
@@ -581,6 +581,7 @@ function syncClientPickers() {
   const patientSelect = document.getElementById('patientWorkspaceClientId');
   if (demoMode && patientSelect && !patientSelect.value && options.length) {
     patientSelect.value = options[0].value;
+    loadPatientWorkspace().catch(() => {});
   }
 }
 
@@ -1374,6 +1375,22 @@ function renderPatientTabContent() {
   }
 
   if (selectedPatientTab === 'legal') {
+    if (demoMode) {
+      const selectedClient = clientsCache.find((c) => String(c._id) === String(currentPatientWorkspace.clientId));
+      const label = selectedClient ? `${selectedClient.displayName} (${selectedClient.externalId || 'n/a'})` : 'Selected client';
+      container.innerHTML = `
+        <div class="patient-items">
+          <div class="patient-item">
+            <p class="patient-item-title">Legal & Compliance Snapshot (Demo)</p>
+            <p class="patient-item-meta">Client: ${safeText(label)}</p>
+            <p class="patient-item-meta">Retention policy: FL, 7 years | Documents: 6 | Tracker entries: 18 | Audit events: 24</p>
+            <p class="patient-item-meta">Status: Export-ready for legal review.</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     container.innerHTML = `
       <div class="patient-items">
         <div class="patient-item">
@@ -1425,6 +1442,13 @@ async function loadPatientWorkspace() {
     entries: data.entries || []
   };
   renderPatientTabContent();
+}
+
+function ensureDemoPatientWorkspaceLoaded() {
+  if (!demoMode) return;
+  const select = document.getElementById('patientWorkspaceClientId');
+  if (!select || !select.value) return;
+  loadPatientWorkspace().catch(() => {});
 }
 
 function renderLegalRecordsSummary(data) {
@@ -2269,6 +2293,7 @@ document.getElementById('demoModeToggle')?.addEventListener('change', (e) => {
     return;
   }
   setDemoMode(e.target.checked);
+  ensureDemoPatientWorkspaceLoaded();
 });
 
 document.getElementById('loginDemoModeToggle')?.addEventListener('change', (e) => {
@@ -2277,6 +2302,7 @@ document.getElementById('loginDemoModeToggle')?.addEventListener('change', (e) =
     return;
   }
   setDemoMode(e.target.checked);
+  ensureDemoPatientWorkspaceLoaded();
 });
 
 document.getElementById('resetPasswordForm')?.addEventListener('submit', async (e) => {
@@ -2646,3 +2672,4 @@ document.getElementById('demoRoleSwitcher')?.addEventListener('change', async (e
 updateSession();
 initializeInviteAndResetFromUrl();
 fetchAndShowVersion();
+ensureDemoPatientWorkspaceLoaded();
