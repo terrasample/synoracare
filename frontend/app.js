@@ -1128,6 +1128,50 @@ function getSelectedAskClient() {
   return { clientId, clientName };
 }
 
+function getDemoAskSources(clientName) {
+  return [
+    { sourceFileName: `${clientName} ISP (Demo)` },
+    { sourceFileName: `${clientName} MAR (Demo)` },
+    { sourceFileName: `${clientName} Behavior Plan (Demo)` }
+  ];
+}
+
+function buildDemoAskResponse({ clientId, question, mode = 'general' }) {
+  const selectedClient = clientsCache.find((client) => String(client._id) === String(clientId));
+  const clientName = selectedClient?.displayName || 'the selected client';
+  const prompt = String(question || '').toLowerCase();
+
+  if (mode === 'meal') {
+    return {
+      answer: `${clientName} meal support demo summary: confirm texture-safe meal setup, verify allergy flags before serving, and use calm one-step prompts with pacing support. Escalate to supervisor if intake drops or swallow concerns appear.`,
+      grounded: true,
+      sources: getDemoAskSources(clientName),
+      structured: {
+        diet: 'Texture-modified diet with hydration prompts every 30 to 45 minutes during active shift windows.',
+        allergies: 'Avoid peanut ingredients and citrus concentrates per demo allergy profile.',
+        behavior: 'Use calm redirection if routine changes trigger distress. Keep transitions short and predictable.',
+        protocols: 'Offer hand-over-hand cueing only when verbal prompts fail. Pause and re-approach after 2 minutes if refusal persists.'
+      },
+      missingSections: [],
+      escalationRequired: false
+    };
+  }
+
+  if (/morning.*medication|medication schedule|med pass|mar/.test(prompt)) {
+    return {
+      answer: `Demo medication guidance for ${clientName}: complete morning med-pass window between 8:00 AM and 9:00 AM, verify identity and MAR before administration, and document completion or variance immediately in tracker notes.`,
+      grounded: true,
+      sources: getDemoAskSources(clientName)
+    };
+  }
+
+  return {
+    answer: `Demo answer for ${clientName}: use current care plan instructions, confirm assignment and safety flags first, perform the task using documented supports, and log outcomes in the tracker before handoff.`,
+    grounded: true,
+    sources: getDemoAskSources(clientName)
+  };
+}
+
 async function requestMealAssistSnapshot() {
   const { clientId, clientName } = getSelectedAskClient();
   if (!clientId) {
@@ -1152,6 +1196,11 @@ async function requestMealAssistSnapshot() {
     typing.innerHTML = '<div class="chat-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
     messages.appendChild(typing);
     messages.scrollTop = messages.scrollHeight;
+  }
+
+  if (demoMode) {
+    renderAskAnswer(buildDemoAskResponse({ clientId, question: userQuestion, mode: 'meal' }));
+    return;
   }
 
   try {
@@ -2007,6 +2056,11 @@ document.getElementById('askForm').addEventListener('submit', async (e) => {
 
   // Clear input
   if (questionEl) questionEl.value = '';
+
+  if (demoMode) {
+    renderAskAnswer(buildDemoAskResponse({ clientId, question }));
+    return;
+  }
 
   try {
     const data = await api('/api/ask', {
