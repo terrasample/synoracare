@@ -1,6 +1,6 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
-const { requireRoles } = require('../middleware/rbac');
+const { requirePermissions } = require('../middleware/permissions');
 const Assignment = require('../models/Assignment');
 const Client = require('../models/Client');
 const CareDocument = require('../models/CareDocument');
@@ -8,11 +8,12 @@ const TrackerEntry = require('../models/TrackerEntry');
 const AuditEvent = require('../models/AuditEvent');
 const Organization = require('../models/Organization');
 const { inferRetentionYears, normalizeStateCode } = require('../utils/retentionPolicy');
+const { canRole } = require('../config/accessControl');
 
 const router = express.Router();
 
 async function getAccessibleClientIds(user) {
-  if (['super_admin', 'org_admin', 'supervisor'].includes(user.role)) {
+  if (canRole(user.role, 'clients:all:read')) {
     const clients = await Client.find({ orgId: user.orgId }).select('_id').lean();
     return clients.map((c) => String(c._id));
   }
@@ -30,7 +31,7 @@ async function getAccessibleClientIds(user) {
   return assignments.map((a) => String(a.clientId));
 }
 
-router.post('/export', requireAuth, requireRoles('super_admin', 'org_admin', 'supervisor'), async (req, res) => {
+router.post('/export', requireAuth, requirePermissions('legal_records:export'), async (req, res) => {
   try {
     const { clientId, stateCode, retentionYearsOverride, includeAudit = true } = req.body || {};
     if (!clientId) return res.status(400).json({ error: 'clientId is required' });

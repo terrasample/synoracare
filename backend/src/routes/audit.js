@@ -1,11 +1,11 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
-const { requireRoles } = require('../middleware/rbac');
+const { requirePermissions } = require('../middleware/permissions');
 const AuditEvent = require('../models/AuditEvent');
 
 const router = express.Router();
 
-router.get('/', requireAuth, requireRoles('super_admin', 'org_admin', 'supervisor'), async (req, res) => {
+router.get('/', requireAuth, requirePermissions('audit:org:read'), async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit || 200), 500);
     const events = await AuditEvent.find({ orgId: req.user.orgId })

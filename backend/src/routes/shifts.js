@@ -3,7 +3,8 @@ const Shift = require('../models/Shift');
 const TrackerEntry = require('../models/TrackerEntry');
 const Assignment = require('../models/Assignment');
 const { requireAuth } = require('../middleware/auth');
-const { requireRoles } = require('../middleware/rbac');
+const { requirePermissions } = require('../middleware/permissions');
+const { canRole } = require('../config/accessControl');
 
 const router = express.Router();
 
@@ -79,7 +80,7 @@ router.get('/:shiftId', requireAuth, async (req, res) => {
 
     // Verify user can access this shift (owner or supervisor/admin)
     if (shift.userId.toString() !== req.user._id.toString() &&
-        !['super_admin', 'org_admin', 'supervisor'].includes(req.user.role)) {
+        !canRole(req.user.role, 'shifts:all:read')) {
       return res.status(403).json({ error: 'No access to this shift' });
     }
 
@@ -162,7 +163,7 @@ router.post('/:shiftId/end', requireAuth, async (req, res) => {
 });
 
 // List shifts (supervisor/admin view)
-router.get('/', requireAuth, requireRoles('super_admin', 'org_admin', 'supervisor'), async (req, res) => {
+router.get('/', requireAuth, requirePermissions('shifts:all:read'), async (req, res) => {
   try {
     const { userId, status, limit, skip } = req.query;
     const safeLimit = Math.min(Math.max(Number(limit || 50), 1), 200);
@@ -189,7 +190,7 @@ router.get('/', requireAuth, requireRoles('super_admin', 'org_admin', 'superviso
 });
 
 // Get shift summary for dashboard (real-time status)
-router.get('/summary/today', requireAuth, requireRoles('super_admin', 'org_admin', 'supervisor'), async (req, res) => {
+router.get('/summary/today', requireAuth, requirePermissions('shifts:all:read'), async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);

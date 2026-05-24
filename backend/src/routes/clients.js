@@ -5,13 +5,14 @@ const TrackerEntry = require('../models/TrackerEntry');
 const CareDocument = require('../models/CareDocument');
 const AuditEvent = require('../models/AuditEvent');
 const { requireAuth } = require('../middleware/auth');
-const { requireRoles } = require('../middleware/rbac');
+const { requirePermissions } = require('../middleware/permissions');
+const { canRole } = require('../config/accessControl');
 
 const router = express.Router();
 
 router.get('/', requireAuth, async (req, res) => {
   try {
-    if (['super_admin', 'org_admin', 'supervisor'].includes(req.user.role)) {
+    if (canRole(req.user.role, 'clients:all:read')) {
       const clients = await Client.find({ orgId: req.user.orgId })
         .sort({ status: 1, displayName: 1 })
         .lean();
@@ -35,7 +36,7 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/', requireAuth, requireRoles('super_admin', 'org_admin', 'supervisor'), async (req, res) => {
+router.post('/', requireAuth, requirePermissions('clients:create'), async (req, res) => {
   try {
     const { displayName, externalId, notes } = req.body || {};
     if (!displayName) return res.status(400).json({ error: 'displayName required' });
@@ -53,7 +54,7 @@ router.post('/', requireAuth, requireRoles('super_admin', 'org_admin', 'supervis
   }
 });
 
-router.put('/:id', requireAuth, requireRoles('super_admin', 'org_admin'), async (req, res) => {
+router.put('/:id', requireAuth, requirePermissions('clients:update'), async (req, res) => {
   try {
     const { displayName, externalId, notes } = req.body || {};
     if (!displayName || !String(displayName).trim()) {
@@ -86,7 +87,7 @@ router.put('/:id', requireAuth, requireRoles('super_admin', 'org_admin'), async 
   }
 });
 
-router.patch('/:id/archive', requireAuth, requireRoles('super_admin'), async (req, res) => {
+router.patch('/:id/archive', requireAuth, requirePermissions('clients:archive'), async (req, res) => {
   try {
     const client = await Client.findOne({ _id: req.params.id, orgId: req.user.orgId });
     if (!client) return res.status(404).json({ error: 'Client not found' });
@@ -123,7 +124,7 @@ router.patch('/:id/archive', requireAuth, requireRoles('super_admin'), async (re
   }
 });
 
-router.delete('/:id', requireAuth, requireRoles('super_admin'), async (req, res) => {
+router.delete('/:id', requireAuth, requirePermissions('clients:delete'), async (req, res) => {
   try {
     const client = await Client.findOne({ _id: req.params.id, orgId: req.user.orgId });
     if (!client) return res.status(404).json({ error: 'Client not found' });

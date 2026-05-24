@@ -7,9 +7,8 @@ const InviteToken = require('../models/InviteToken');
 const AuditEvent = require('../models/AuditEvent');
 const Organization = require('../models/Organization');
 const { requireAuth } = require('../middleware/auth');
-const { requireRoles } = require('../middleware/rbac');
 const { requirePermissions } = require('../middleware/permissions');
-const { getRoleDisplayLabel, mergeRoleDisplayLabels } = require('../config/accessControl');
+const { getRoleDisplayLabel, mergeRoleDisplayLabels, canRole } = require('../config/accessControl');
 
 const router = express.Router();
 
@@ -29,7 +28,7 @@ async function getOrgRoleDisplayLabels(orgId) {
   return mergeRoleDisplayLabels(org?.roleDisplayLabels || {});
 }
 
-router.get('/', requireAuth, requireRoles('super_admin', 'org_admin', 'supervisor'), async (req, res) => {
+router.get('/', requireAuth, requirePermissions('assignments:read'), async (req, res) => {
   try {
     const assignments = await Assignment.find({ orgId: req.user.orgId }).lean();
     return res.json({ assignments });
@@ -38,7 +37,7 @@ router.get('/', requireAuth, requireRoles('super_admin', 'org_admin', 'superviso
   }
 });
 
-router.get('/users', requireAuth, requireRoles('super_admin', 'org_admin', 'supervisor'), async (req, res) => {
+router.get('/users', requireAuth, requirePermissions('users:read'), async (req, res) => {
   try {
     const roleDisplayLabels = await getOrgRoleDisplayLabels(req.user.orgId);
     const users = await User.find({ orgId: req.user.orgId })
@@ -56,7 +55,7 @@ router.get('/users', requireAuth, requireRoles('super_admin', 'org_admin', 'supe
   }
 });
 
-router.post('/', requireAuth, requireRoles('super_admin', 'org_admin', 'supervisor'), async (req, res) => {
+router.post('/', requireAuth, requirePermissions('assignments:create'), async (req, res) => {
   try {
     const { userId, clientId, expiresAt } = req.body || {};
     if (!userId || !clientId) return res.status(400).json({ error: 'userId and clientId are required' });
@@ -103,7 +102,7 @@ router.post('/break-glass', requireAuth, async (req, res) => {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + duration * 60 * 1000);
 
-    const targetUserId = ['super_admin', 'org_admin', 'supervisor'].includes(req.user.role)
+    const targetUserId = canRole(req.user.role, 'assignments:create')
       ? (userId || req.user._id)
       : req.user._id;
 
@@ -145,7 +144,7 @@ router.post('/break-glass', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/users', requireAuth, requireRoles('super_admin'), requirePermissions('users:invite'), async (req, res) => {
+router.post('/users', requireAuth, requirePermissions('users:invite'), async (req, res) => {
   try {
     const { fullName, email, role } = req.body || {};
     if (!fullName || !email || !role) {
@@ -227,7 +226,7 @@ router.post('/users', requireAuth, requireRoles('super_admin'), requirePermissio
   }
 });
 
-router.patch('/users/:id/reset-password', requireAuth, requireRoles('super_admin', 'org_admin'), async (req, res) => {
+router.patch('/users/:id/reset-password', requireAuth, requirePermissions('users:password_reset'), async (req, res) => {
   try {
     const { newPassword } = req.body || {};
     if (!newPassword || String(newPassword).length < 8) {

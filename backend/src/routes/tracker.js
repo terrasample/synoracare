@@ -5,6 +5,7 @@ const Assignment = require('../models/Assignment');
 const Client = require('../models/Client');
 const TrackerEntry = require('../models/TrackerEntry');
 const AuditEvent = require('../models/AuditEvent');
+const { canRole } = require('../config/accessControl');
 
 const router = express.Router();
 const upload = multer({
@@ -21,7 +22,7 @@ const upload = multer({
 });
 
 async function getAccessibleClientIds(user) {
-  if (['super_admin', 'org_admin', 'supervisor'].includes(user.role)) {
+  if (canRole(user.role, 'clients:all:read')) {
     const clients = await Client.find({ orgId: user.orgId }).select('_id').lean();
     return clients.map((c) => String(c._id));
   }

@@ -13,11 +13,14 @@ const ROLE_PERMISSIONS = {
     'tracker:entry:create',
     'tracker:entry:read',
     'ask:approved_guidance:read',
-    'shifts:handoff:create'
+    'shifts:handoff:create',
+    'shifts:own:read'
   ],
   supervisor: [
     'clients:assigned:read',
     'clients:all:read',
+    'users:read',
+    'assignments:read',
     'tracker:entry:create',
     'tracker:entry:read',
     'tracker:entry:review',
@@ -25,21 +28,27 @@ const ROLE_PERMISSIONS = {
     'assignments:create',
     'ask:approved_guidance:read',
     'audit:org:read',
-    'shifts:handoff:create'
+    'shifts:handoff:create',
+    'shifts:all:read',
+    'legal_records:export'
   ],
   org_admin: [
     'clients:all:read',
     'clients:create',
     'clients:update',
+    'users:read',
     'users:invite',
     'users:password_reset',
+    'assignments:read',
     'assignments:create',
     'documents:upload',
     'tracker:entry:read',
     'ask:approved_guidance:read',
     'audit:org:read',
     'role_labels:update',
-    'reports:export'
+    'reports:export',
+    'shifts:all:read',
+    'legal_records:export'
   ],
   super_admin: [
     'clients:all:read',
@@ -47,15 +56,19 @@ const ROLE_PERMISSIONS = {
     'clients:update',
     'clients:archive',
     'clients:delete',
+    'users:read',
     'users:invite',
     'users:password_reset',
+    'assignments:read',
     'assignments:create',
     'documents:upload',
     'tracker:entry:read',
     'ask:approved_guidance:read',
     'audit:org:read',
     'role_labels:update',
-    'reports:export'
+    'reports:export',
+    'shifts:all:read',
+    'legal_records:export'
   ]
 };
 

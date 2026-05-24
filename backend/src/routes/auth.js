@@ -9,7 +9,7 @@ const RecoveryToken = require('../models/RecoveryToken');
 const AuditEvent = require('../models/AuditEvent');
 const { createRateLimiter } = require('../middleware/rateLimit');
 const { requireAuth } = require('../middleware/auth');
-const { requireRoles } = require('../middleware/rbac');
+const { requirePermissions } = require('../middleware/permissions');
 const {
   SYSTEM_ROLES,
   getPermissionsForRole,
@@ -218,7 +218,7 @@ router.get('/permissions', requireAuth, async (req, res) => {
   }
 });
 
-router.patch('/role-labels', requireAuth, requireRoles('super_admin', 'org_admin'), async (req, res) => {
+router.patch('/role-labels', requireAuth, requirePermissions('role_labels:update'), async (req, res) => {
   try {
     const incoming = req.body?.roleDisplayLabels;
     const sanitized = sanitizeRoleDisplayLabels(incoming);
