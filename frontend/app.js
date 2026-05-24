@@ -1640,7 +1640,7 @@ function buildDemoAskResponse({ clientId, question, mode = 'general' }) {
   const clientName = selectedClient?.displayName || 'the selected client';
   const prompt = String(question || '').toLowerCase();
 
-  if (mode === 'meal') {
+  if (mode === 'meal' || /meal|eating|food|nutrition|diet|appetite|swallow|texture/.test(prompt)) {
     return {
       answer: `${clientName} meal support demo summary: confirm texture-safe meal setup, verify allergy flags before serving, and use calm one-step prompts with pacing support. Escalate to supervisor if intake drops or swallow concerns appear.`,
       grounded: true,
@@ -1650,6 +1650,22 @@ function buildDemoAskResponse({ clientId, question, mode = 'general' }) {
         allergies: 'Avoid peanut ingredients and citrus concentrates per demo allergy profile.',
         behavior: 'Use calm redirection if routine changes trigger distress. Keep transitions short and predictable.',
         protocols: 'Offer hand-over-hand cueing only when verbal prompts fail. Pause and re-approach after 2 minutes if refusal persists.'
+      },
+      missingSections: [],
+      escalationRequired: false
+    };
+  }
+
+  if (/bath|shower|hygiene|wash|grooming|soap|towel/.test(prompt)) {
+    return {
+      answer: `${clientName} bathing support demo summary: gather all supplies before entering the bathroom (washcloth, soap, towel, change of clothes), use warm water and test temperature on your wrist first, verbally prepare each step before touching (e.g., "I'm going to wash your arms now"), allow adequate time without rushing, and offer hand-over-hand support only if requested or needed. Maintain dignity throughout by providing privacy, using appropriate draping, and respecting personal preferences.`,
+      grounded: true,
+      sources: getDemoAskSources(clientName),
+      structured: {
+        setup: 'Prepare all supplies: washcloth, mild soap, warm towel, change of clothes, and optional comfort items (bath salts, music). Check bathroom temperature and water pressure.',
+        safety: 'Test water temperature on your wrist first (aim for 95–105°F). Ensure non-slip surfaces, grab bars, and secure step stool if needed. Never leave the client unattended in the shower.',
+        technique: 'Use gentle, one-step verbal cues. Start with less sensitive areas (arms, legs) before face and genital areas. Minimize water on face unless client prefers a shower over tub bath.',
+        comfort: 'Offer hand-over-hand support for scrubbing if requested. Allow the client to do as much as independently possible. Provide a warm robe immediately after and positive encouragement throughout.'
       },
       missingSections: [],
       escalationRequired: false
