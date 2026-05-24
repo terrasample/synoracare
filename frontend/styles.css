@@ -47,12 +47,6 @@ html, body {
   position: sticky; top: 0; z-index: 100; flex-shrink: 0;
 }
 .topbar-left { display: flex; align-items: center; gap: 10px; }
-.topbar-brand-mark {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
 .topbar-right { display: flex; align-items: center; gap: 10px; }
 .topbar-right #demoRoleSwitcher { min-width: 112px; }
 .topbar-logo { font-weight: 800; font-size: 17px; letter-spacing: -0.02em; color: var(--accent-dark); }
@@ -1908,8 +1902,7 @@ body.guest-mode #loginSection {
   
   /* Topbar */
   .topbar { padding: 0 10px; }
-  .topbar-logo { display: none; }
-  .topbar-brand-mark { width: 20px; height: 20px; }
+  .topbar-logo { display: inline; font-size: 13px; }
   .topbar-right { gap: 4px; }
   
   /* Modal */
