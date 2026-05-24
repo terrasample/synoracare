@@ -2634,6 +2634,32 @@ function initializeInviteAndResetFromUrl() {
   }
 }
 
+function initializeGuestEntryFromUrl() {
+  if (currentUser) return;
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('showDemo') !== '1') return;
+
+  const landing = document.getElementById('landingHero');
+  const demo = document.getElementById('demoRequestSection');
+  const login = document.getElementById('loginSection');
+
+  if (landing) landing.style.display = 'block';
+  if (login) login.style.display = 'none';
+  if (demo) {
+    demo.style.display = 'block';
+    requestAnimationFrame(() => {
+      const top = Math.max(0, demo.offsetTop - 60);
+      window.scrollTo(0, top);
+    });
+  }
+
+  params.delete('showDemo');
+  const nextQuery = params.toString();
+  const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash || ''}`;
+  window.history.replaceState({}, document.title, nextUrl);
+}
+
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   await withSubmitLock(e.target, async () => {
@@ -3600,6 +3626,7 @@ document.getElementById('roleLabelsForm')?.addEventListener('submit', async (e) 
 
 updateSession();
 initializeInviteAndResetFromUrl();
+initializeGuestEntryFromUrl();
 fetchAndShowVersion();
 ensureDemoPatientWorkspaceLoaded();
 if (currentUser && token) {
