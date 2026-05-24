@@ -1939,3 +1939,273 @@ body.guest-mode #loginSection {
     max-width: 100%;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Ultra-Small Mobile (< 480px) - iPhone SE, older phones
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  /* Prevent horizontal scroll on all elements */
+  html, body {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  
+  /* Inputs: 16px font prevents iOS auto-zoom */
+  input, textarea, select,
+  .form-group input, .form-group textarea, .form-group select,
+  .login-input-wrap input {
+    font-size: 16px !important;
+  }
+  
+  /* Remove min-widths that cause overflow */
+  .topbar-right #demoRoleSwitcher {
+    min-width: auto;
+    max-width: 100%;
+    flex: 0 1 auto;
+    font-size: 13px;
+  }
+  
+  .chat-header-right select {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .home-stats-row .stat-chip {
+    min-width: 0;
+    flex: 1 1 calc(50% - 4px);
+  }
+  
+  /* Forms */
+  form {
+    max-width: 100%;
+  }
+  
+  /* Modal responsive for small screens */
+  .modal-content {
+    width: 96vw;
+    max-width: 96vw;
+    max-height: 90vh;
+    border-radius: 10px;
+  }
+  
+  .shift-report-container {
+    max-width: 100%;
+  }
+  
+  /* Breakglass and demo cards */
+  .breakglass-card {
+    max-width: 100%;
+    padding: 14px 10px;
+  }
+  
+  .demo-request-card {
+    max-width: 100%;
+    margin: 20px 0;
+    padding: 14px 10px;
+  }
+  
+  /* Page padding */
+  .page {
+    padding: 12px 8px !important;
+  }
+  
+  /* Page header */
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  
+  .page-header > div {
+    width: 100%;
+  }
+  
+  .page-header-actions {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .page-header-actions select,
+  .page-header-actions input {
+    width: 100%;
+  }
+  
+  .page-header-actions button {
+    width: 100%;
+  }
+  
+  /* Sidebar on mobile */
+  .sidebar {
+    width: min(85vw, 280px);
+  }
+  
+  /* Topbar */
+  .topbar {
+    min-height: 48px;
+    padding: 8px;
+    gap: 4px;
+  }
+  
+  .topbar-left {
+    width: 100%;
+  }
+  
+  .topbar-right {
+    width: 100%;
+    gap: 4px;
+  }
+  
+  .topbar-logo {
+    font-size: 13px;
+  }
+  
+  .session-info {
+    max-width: calc(100% - 80px);
+    font-size: 11px;
+  }
+  
+  /* Chat interface */
+  .chat-header {
+    padding: 8px 10px;
+    flex-wrap: wrap;
+  }
+  
+  .chat-header-right {
+    width: 100%;
+    order: 10;
+  }
+  
+  .chat-input-bar {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  
+  .chat-input-bar textarea {
+    font-size: 16px !important;
+    border-radius: 14px;
+    padding: 9px 11px;
+    min-height: 36px;
+  }
+  
+  .send-btn {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+  
+  .chat-messages {
+    padding: 10px 8px;
+  }
+  
+  .chat-message {
+    max-width: 88%;
+  }
+  
+  /* ISP grid */
+  .isp-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  /* Patient workspace */
+  .patient-tab-row {
+    gap: 4px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .patient-tab-btn {
+    padding: 8px 10px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  
+  .patient-tab-content {
+    padding: 10px 0;
+  }
+  
+  /* Tracker */
+  .tracker-item {
+    padding: 10px;
+  }
+  
+  .tracker-summary {
+    font-size: 12px;
+  }
+  
+  /* Quick actions */
+  .home-quick-actions {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  
+  .quick-action-btn {
+    padding: 10px;
+    font-size: 12px;
+    width: 100%;
+  }
+  
+  /* Data items */
+  .data-item {
+    padding: 10px;
+  }
+  
+  .data-item-label {
+    font-size: 12px;
+  }
+  
+  .data-item-meta {
+    font-size: 11px;
+  }
+  
+  /* Buttons */
+  button {
+    min-height: 44px;
+  }
+  
+  .btn-primary, .btn-secondary, .btn-tertiary, .btn-danger {
+    font-size: 13px;
+    padding: 10px 14px;
+  }
+  
+  /* Modals and overlays */
+  .modal {
+    padding: 10px;
+  }
+  
+  .modal-header {
+    padding: 12px 10px;
+  }
+  
+  .modal-body {
+    padding: 12px 10px;
+  }
+  
+  .modal-footer {
+    padding: 10px;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .modal-footer button {
+    width: 100%;
+  }
+  
+  /* Ensure no fixed widths that exceed screen */
+  .compliance-links {
+    grid-template-columns: 1fr;
+  }
+  
+  .two-col-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .tracker-layout {
+    grid-template-columns: 1fr;
+  }
+}
