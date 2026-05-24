@@ -5,8 +5,11 @@ const Assignment = require('../models/Assignment');
 const User = require('../models/User');
 const InviteToken = require('../models/InviteToken');
 const AuditEvent = require('../models/AuditEvent');
+const Organization = require('../models/Organization');
 const { requireAuth } = require('../middleware/auth');
 const { requireRoles } = require('../middleware/rbac');
+const { requirePermissions } = require('../middleware/permissions');
+const { getRoleDisplayLabel, mergeRoleDisplayLabels } = require('../config/accessControl');
 
 const router = express.Router();
 
@@ -21,6 +24,11 @@ function buildInviteUrl(token, email) {
   return `${base}/index.html?${query}`;
 }
 
+async function getOrgRoleDisplayLabels(orgId) {
+  const org = await Organization.findById(orgId).select('roleDisplayLabels').lean();
+  return mergeRoleDisplayLabels(org?.roleDisplayLabels || {});
+}
+
 router.get('/', requireAuth, requireRoles('super_admin', 'org_admin', 'supervisor'), async (req, res) => {
   try {
     const assignments = await Assignment.find({ orgId: req.user.orgId }).lean();
@@ -32,11 +40,17 @@ router.get('/', requireAuth, requireRoles('super_admin', 'org_admin', 'superviso
 
 router.get('/users', requireAuth, requireRoles('super_admin', 'org_admin', 'supervisor'), async (req, res) => {
   try {
+    const roleDisplayLabels = await getOrgRoleDisplayLabels(req.user.orgId);
     const users = await User.find({ orgId: req.user.orgId })
       .select('_id fullName email role status inviteAcceptedAt')
       .sort({ fullName: 1 })
       .lean();
-    return res.json({ users });
+    return res.json({
+      users: users.map((user) => ({
+        ...user,
+        roleDisplayName: getRoleDisplayLabel(user.role, roleDisplayLabels)
+      }))
+    });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to list users' });
   }
@@ -131,7 +145,7 @@ router.post('/break-glass', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/users', requireAuth, requireRoles('super_admin'), async (req, res) => {
+router.post('/users', requireAuth, requireRoles('super_admin'), requirePermissions('users:invite'), async (req, res) => {
   try {
     const { fullName, email, role } = req.body || {};
     if (!fullName || !email || !role) {
@@ -193,12 +207,15 @@ router.post('/users', requireAuth, requireRoles('super_admin'), async (req, res)
       payload: { action: 'team_invite_created', targetUserId: String(user._id), targetEmail: normalizedEmail }
     });
 
+    const roleDisplayLabels = await getOrgRoleDisplayLabels(req.user.orgId);
+
     return res.status(201).json({
       user: {
         id: user._id,
         fullName: user.fullName,
         email: user.email,
         role: user.role,
+        roleDisplayName: getRoleDisplayLabel(user.role, roleDisplayLabels),
         status: user.status
       },
       inviteToken: rawInviteToken,

@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const { requireAuth } = require('../middleware/auth');
-const { requireRoles } = require('../middleware/rbac');
+const { requirePermissions } = require('../middleware/permissions');
 const CareDocument = require('../models/CareDocument');
 const CareChunk = require('../models/CareChunk');
 const AuditEvent = require('../models/AuditEvent');
@@ -24,7 +24,7 @@ async function extractText(file) {
   return file.buffer.toString('utf8');
 }
 
-router.post('/upload', requireAuth, requireRoles('super_admin', 'org_admin', 'supervisor'), upload.single('document'), async (req, res) => {
+router.post('/upload', requireAuth, requirePermissions('documents:upload'), upload.single('document'), async (req, res) => {
   try {
     const { clientId, docType, title, effectiveDate } = req.body || {};
     if (!req.file) return res.status(400).json({ error: 'document file required' });

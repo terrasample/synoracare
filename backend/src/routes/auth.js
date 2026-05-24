@@ -8,6 +8,15 @@ const InviteToken = require('../models/InviteToken');
 const RecoveryToken = require('../models/RecoveryToken');
 const AuditEvent = require('../models/AuditEvent');
 const { createRateLimiter } = require('../middleware/rateLimit');
+const { requireAuth } = require('../middleware/auth');
+const { requireRoles } = require('../middleware/rbac');
+const {
+  SYSTEM_ROLES,
+  getPermissionsForRole,
+  sanitizeRoleDisplayLabels,
+  mergeRoleDisplayLabels,
+  getRoleDisplayLabel
+} = require('../config/accessControl');
 const env = require('../config/env');
 
 const router = express.Router();
@@ -89,6 +98,30 @@ function buildFrontendUrl(path, query) {
   return `${base}${path}${queryText}`;
 }
 
+async function getOrganizationRoleLabels(orgId) {
+  if (!orgId) return mergeRoleDisplayLabels({});
+
+  const org = await Organization.findById(orgId)
+    .select('roleDisplayLabels')
+    .lean();
+
+  return mergeRoleDisplayLabels(org?.roleDisplayLabels || {});
+}
+
+async function buildAuthUserPayload(user) {
+  const roleDisplayLabels = await getOrganizationRoleLabels(user.orgId);
+  return {
+    id: user._id,
+    fullName: user.fullName,
+    role: user.role,
+    roleDisplayName: getRoleDisplayLabel(user.role, roleDisplayLabels),
+    roleDisplayLabels,
+    permissions: getPermissionsForRole(user.role),
+    orgId: user.orgId,
+    email: user.email
+  };
+}
+
 router.post('/bootstrap', async (req, res) => {
   try {
     const count = await User.countDocuments({});
@@ -128,7 +161,7 @@ router.post('/bootstrap', async (req, res) => {
       payload: { action: 'bootstrap' }
     });
 
-    return res.json({ token, user: { id: user._id, fullName: user.fullName, role: user.role, orgId: user.orgId } });
+    return res.json({ token, user: await buildAuthUserPayload(user) });
   } catch (error) {
     return res.status(500).json({ error: 'Bootstrap failed' });
   }
@@ -161,19 +194,62 @@ router.post('/login', async (req, res) => {
     const token = signToken(user);
     await AuditEvent.create({ orgId: user.orgId, userId: user._id, eventType: 'login', payload: {} });
 
-    return res.json({
-      token,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        role: user.role,
-        orgId: user.orgId
-      }
-    });
+    return res.json({ token, user: await buildAuthUserPayload(user) });
   } catch (error) {
     return res.status(500).json({ error: 'Login failed' });
   }
   });
+});
+
+router.get('/permissions', requireAuth, async (req, res) => {
+  try {
+    const roleDisplayLabels = await getOrganizationRoleLabels(req.user.orgId);
+    const permissions = getPermissionsForRole(req.user.role);
+
+    return res.json({
+      role: req.user.role,
+      roleDisplayName: getRoleDisplayLabel(req.user.role, roleDisplayLabels),
+      roleDisplayLabels,
+      permissions,
+      supportedRoles: SYSTEM_ROLES
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to load permissions' });
+  }
+});
+
+router.patch('/role-labels', requireAuth, requireRoles('super_admin', 'org_admin'), async (req, res) => {
+  try {
+    const incoming = req.body?.roleDisplayLabels;
+    const sanitized = sanitizeRoleDisplayLabels(incoming);
+
+    const org = await Organization.findByIdAndUpdate(
+      req.user.orgId,
+      { $set: { roleDisplayLabels: sanitized } },
+      { new: true }
+    )
+      .select('roleDisplayLabels')
+      .lean();
+
+    const roleDisplayLabels = mergeRoleDisplayLabels(org?.roleDisplayLabels || {});
+
+    await AuditEvent.create({
+      orgId: req.user.orgId,
+      userId: req.user._id,
+      eventType: 'security_alert',
+      payload: {
+        action: 'role_labels_updated',
+        updatedRoles: Object.keys(sanitized)
+      }
+    });
+
+    return res.json({
+      ok: true,
+      roleDisplayLabels
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to update role labels' });
+  }
 });
 
 router.post('/forgot-password/request', async (req, res) => {
@@ -420,13 +496,7 @@ router.post('/recover-account', async (req, res) => {
       ok: true,
       action,
       token,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        role: user.role,
-        orgId: user.orgId,
-        email: user.email
-      }
+      user: await buildAuthUserPayload(user)
     });
   } catch (error) {
     return res.status(500).json({ error: 'Account recovery failed' });
@@ -487,13 +557,7 @@ router.post('/accept-invite', async (req, res) => {
       return res.json({
         ok: true,
         token,
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          role: user.role,
-          orgId: user.orgId,
-          email: user.email
-        }
+        user: await buildAuthUserPayload(user)
       });
     } catch (error) {
       return res.status(500).json({ error: 'Invite acceptance failed' });

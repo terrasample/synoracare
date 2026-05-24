@@ -23,9 +23,17 @@ const DEFAULT_API_BASE = (() => {
 const API_BASE = window.SYNORACARE_CONFIG?.API_BASE || window.CAREGUIDE_CONFIG?.API_BASE || DEFAULT_API_BASE;
 const DEMO_TOGGLE_ALLOWED_EMAILS = new Set(['terrasample@yahoo.com']);
 const AUTH_SESSION_STORAGE_KEY = 'synoracare_auth_session_v1';
+const DEFAULT_ROLE_DISPLAY_LABELS = {
+  dsp: 'Direct Support Professional',
+  supervisor: 'Supervisor',
+  org_admin: 'Organization Admin',
+  super_admin: 'Super Admin'
+};
 let token = '';
 let currentUser = null;
 let roleViewOverride = null;
+let orgRoleDisplayLabels = { ...DEFAULT_ROLE_DISPLAY_LABELS };
+let authContextLoadedForToken = '';
 let clientsCache = [];
 let usersCache = [];
 let selectedTrainingContext = 'pre_shift';
@@ -78,6 +86,8 @@ function clearAuthSessionState() {
   token = '';
   currentUser = null;
   roleViewOverride = null;
+  orgRoleDisplayLabels = { ...DEFAULT_ROLE_DISPLAY_LABELS };
+  authContextLoadedForToken = '';
   persistAuthSession();
 }
 
@@ -472,8 +482,8 @@ function updateSession() {
   }
 
   info.textContent = roleViewOverride
-    ? `${currentUser.fullName} | ${currentUser.role} (viewing as ${activeRole})`
-    : `${currentUser.fullName} | ${currentUser.role}`;
+    ? `${currentUser.fullName} | ${getRoleDisplayLabel(currentUser.role)} (viewing as ${getRoleDisplayLabel(activeRole)})`
+    : `${currentUser.fullName} | ${getRoleDisplayLabel(currentUser.role)}`;
   if (logoutBtn) logoutBtn.style.display = '';
 
   if (roleSwitcher) {
@@ -494,7 +504,71 @@ function updateSession() {
   loadCurrentShift();
   updateShiftUI();
   renderHomeSection();
+  renderRoleLabelSettings();
   persistAuthSession();
+}
+
+function getRoleDisplayLabel(role) {
+  const normalizedRole = String(role || '').trim();
+  return orgRoleDisplayLabels?.[normalizedRole] || DEFAULT_ROLE_DISPLAY_LABELS[normalizedRole] || normalizedRole;
+}
+
+function applyAuthUserContext(user) {
+  if (!user) return;
+
+  const roleLabelsFromApi = user.roleDisplayLabels && typeof user.roleDisplayLabels === 'object'
+    ? user.roleDisplayLabels
+    : null;
+
+  orgRoleDisplayLabels = {
+    ...DEFAULT_ROLE_DISPLAY_LABELS,
+    ...(roleLabelsFromApi || {})
+  };
+
+  if (Array.isArray(user.permissions)) {
+    currentUser.permissions = [...user.permissions];
+  }
+
+  if (token) {
+    authContextLoadedForToken = token;
+  }
+}
+
+async function loadAuthContext() {
+  if (!token || !currentUser || authContextLoadedForToken === token) return;
+
+  try {
+    const data = await api('/api/auth/permissions');
+    orgRoleDisplayLabels = {
+      ...DEFAULT_ROLE_DISPLAY_LABELS,
+      ...(data.roleDisplayLabels || {})
+    };
+    currentUser.permissions = Array.isArray(data.permissions) ? data.permissions : [];
+    authContextLoadedForToken = token;
+    persistAuthSession();
+    renderRoleLabelSettings();
+    updateSession();
+  } catch (error) {
+    console.warn('Could not load auth context:', error.message);
+  }
+}
+
+function renderRoleLabelSettings() {
+  const panel = document.getElementById('roleLabelsPanel');
+  const form = document.getElementById('roleLabelsForm');
+  if (!panel || !form) return;
+
+  if (!currentUser || !['super_admin', 'org_admin'].includes(currentUser.role)) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  panel.style.display = '';
+  for (const role of Object.keys(DEFAULT_ROLE_DISPLAY_LABELS)) {
+    const input = form.querySelector(`input[name="${role}"]`);
+    if (!input) continue;
+    input.value = getRoleDisplayLabel(role);
+  }
 }
 
 function canToggleDemoMode() {
@@ -770,7 +844,7 @@ async function updateTrackerStatus(entryId, status) {
 function syncUserPicker() {
   const options = usersCache.map((user) => ({
     value: user._id,
-    label: `${user.fullName} (${user.role})`
+    label: `${user.fullName} (${user.roleDisplayName || getRoleDisplayLabel(user.role)})`
   }));
   setSelectOptions('assignmentUserId', options, 'Select User');
   setSelectOptions('resetPasswordUserId', options, 'Select Team Member');
@@ -1034,10 +1108,10 @@ async function renderHomeSection() {
   if (welcomeTitle) welcomeTitle.textContent = `Welcome back, ${currentUser.fullName}`;
 
   const roleLabels = {
-    dsp: 'Direct Support Professional',
-    supervisor: 'Supervisor',
-    org_admin: 'Organization Admin',
-    super_admin: 'Super Admin'
+    dsp: getRoleDisplayLabel('dsp'),
+    supervisor: getRoleDisplayLabel('supervisor'),
+    org_admin: getRoleDisplayLabel('org_admin'),
+    super_admin: getRoleDisplayLabel('super_admin')
   };
   if (welcomeRole) welcomeRole.textContent = roleLabels[role] || role;
 
@@ -1422,7 +1496,7 @@ function renderUserList(users) {
   list.innerHTML = users.map((u) => `
     <div class="data-item">
       <span class="data-item-label">${safeText(u.fullName)}</span>
-      <span class="data-item-meta data-item-role role-${safeText(u.role)}">${safeText(u.role)}</span>
+      <span class="data-item-meta data-item-role role-${safeText(u.role)}">${safeText(u.roleDisplayName || getRoleDisplayLabel(u.role))}</span>
       <span class="data-item-meta">${safeText(u.status || 'active')}</span>
       <span class="data-item-email">${safeText(u.email)}</span>
     </div>
@@ -1615,6 +1689,7 @@ document.getElementById('bootstrapForm').addEventListener('submit', async (e) =>
     token = data.token;
     currentUser = data.user;
     roleViewOverride = null;
+    applyAuthUserContext(data.user);
     updateSession();
     await refreshAllPickers();
   } catch (err) {
@@ -1768,6 +1843,7 @@ accountRecoveryForm?.addEventListener('submit', async (e) => {
     token = data.token;
     currentUser = data.user;
     roleViewOverride = null;
+    applyAuthUserContext(data.user);
     if (accountRecoveryOutput) {
       accountRecoveryOutput.textContent = 'Password reset successful. Signing you in...';
     }
@@ -1797,6 +1873,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     token = data.token;
     currentUser = data.user;
     roleViewOverride = null;
+    applyAuthUserContext(data.user);
     updateSession();
     await refreshAllPickers();
   } catch (err) {
@@ -1874,6 +1951,7 @@ inviteAcceptForm?.addEventListener('submit', async (e) => {
 
     token = data.token;
     currentUser = data.user;
+    applyAuthUserContext(data.user);
     updateSession();
     await refreshAllPickers();
     if (inviteAcceptOutput) inviteAcceptOutput.textContent = 'Account activated. Signing in...';
@@ -2766,13 +2844,56 @@ document.getElementById('demoRoleSwitcher')?.addEventListener('change', async (e
   roleViewOverride = newRole === 'super_admin' ? null : newRole;
   updateSession();
   await refreshAllPickers();
-  showToast(`Viewing as ${getActiveRole().replace('_', ' ')} role`, 'success');
+  showToast(`Viewing as ${getRoleDisplayLabel(getActiveRole())}`, 'success');
+});
+
+document.getElementById('roleLabelsForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = Object.fromEntries(new FormData(e.target).entries());
+  const payload = {
+    roleDisplayLabels: {
+      dsp: String(formData.dsp || '').trim(),
+      supervisor: String(formData.supervisor || '').trim(),
+      org_admin: String(formData.org_admin || '').trim(),
+      super_admin: String(formData.super_admin || '').trim()
+    }
+  };
+
+  const output = document.getElementById('roleLabelsOutput');
+
+  try {
+    const data = await api('/api/auth/role-labels', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    orgRoleDisplayLabels = {
+      ...DEFAULT_ROLE_DISPLAY_LABELS,
+      ...(data.roleDisplayLabels || {})
+    };
+
+    renderRoleLabelSettings();
+    updateSession();
+    syncUserPicker();
+    renderUserList(usersCache);
+
+    if (output) output.textContent = 'Role labels updated successfully.';
+    showToast('Role labels updated.', 'success');
+  } catch (err) {
+    if (output) output.textContent = `Failed to update labels: ${err.message}`;
+    showToast(err.message, 'error');
+  }
 });
 
 updateSession();
 initializeInviteAndResetFromUrl();
 fetchAndShowVersion();
 ensureDemoPatientWorkspaceLoaded();
+if (currentUser && token) {
+  applyAuthUserContext(currentUser);
+  loadAuthContext();
+}
 
 if (currentUser && token) {
   refreshAllPickers().catch(() => {

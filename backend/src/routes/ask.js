@@ -1,5 +1,6 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
+const { requirePermissions } = require('../middleware/permissions');
 const Assignment = require('../models/Assignment');
 const Client = require('../models/Client');
 const AuditEvent = require('../models/AuditEvent');
@@ -154,7 +155,7 @@ async function getClientAccess(user, clientId) {
   return { allowed: !!assignment, assignment };
 }
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, requirePermissions('ask:approved_guidance:read'), async (req, res) => {
   try {
     const { clientId, question } = req.body || {};
     if (!clientId || !question) return res.status(400).json({ error: 'clientId and question required' });
@@ -212,7 +213,7 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/isp-assistant', requireAuth, async (req, res) => {
+router.post('/isp-assistant', requireAuth, requirePermissions('ask:approved_guidance:read'), async (req, res) => {
   try {
     const { clientId } = req.body || {};
     if (!clientId) return res.status(400).json({ error: 'clientId required' });

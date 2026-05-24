@@ -577,6 +577,17 @@
             </select>
             <button type="submit">Create Invite</button>
           </form>
+          <div id="roleLabelsPanel" style="display:none; margin-top:18px;">
+            <h3 class="col-heading">Role Display Labels</h3>
+            <form id="roleLabelsForm">
+              <input name="dsp" placeholder="DSP label" maxlength="60" />
+              <input name="supervisor" placeholder="Supervisor label" maxlength="60" />
+              <input name="org_admin" placeholder="Org Admin label" maxlength="60" />
+              <input name="super_admin" placeholder="Super Admin label" maxlength="60" />
+              <button type="submit" class="btn-secondary">Save Labels</button>
+            </form>
+            <p id="roleLabelsOutput" class="empty-state"></p>
+          </div>
           <p id="userInviteOutput" class="empty-state"></p>
         </div>
         <div class="two-col-right">
