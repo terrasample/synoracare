@@ -22,6 +22,7 @@ const DEFAULT_API_BASE = (() => {
 
 const API_BASE = window.SYNORACARE_CONFIG?.API_BASE || window.CAREGUIDE_CONFIG?.API_BASE || DEFAULT_API_BASE;
 const DEMO_TOGGLE_ALLOWED_EMAILS = new Set(['terrasample@yahoo.com']);
+const AUTH_SESSION_STORAGE_KEY = 'synoracare_auth_session_v1';
 let token = '';
 let currentUser = null;
 let roleViewOverride = null;
@@ -36,6 +37,51 @@ let currentTrackerFeed = [];
 let trackerStatusFilter = '';
 let demoMode = localStorage.getItem('synoracare_demo_mode') === '1' || new URLSearchParams(window.location.search).get('demo') === '1';
 if (demoMode) localStorage.setItem('synoracare_demo_mode', '1');
+
+function persistAuthSession() {
+  try {
+    if (!token || !currentUser) {
+      localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+      return;
+    }
+
+    localStorage.setItem(
+      AUTH_SESSION_STORAGE_KEY,
+      JSON.stringify({
+        token,
+        currentUser,
+        roleViewOverride: currentUser.role === 'super_admin' ? roleViewOverride : null
+      })
+    );
+  } catch {
+    // Ignore storage failures in private/incognito contexts.
+  }
+}
+
+function restoreAuthSession() {
+  try {
+    const raw = localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
+    if (!raw) return;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.token || !parsed.currentUser) return;
+
+    token = String(parsed.token);
+    currentUser = parsed.currentUser;
+    roleViewOverride = currentUser.role === 'super_admin' ? (parsed.roleViewOverride || null) : null;
+  } catch {
+    localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+  }
+}
+
+function clearAuthSessionState() {
+  token = '';
+  currentUser = null;
+  roleViewOverride = null;
+  persistAuthSession();
+}
+
+restoreAuthSession();
 
 // Shift management
 let currentShift = null;
@@ -421,6 +467,7 @@ function updateSession() {
     applyRoleMode('guest');
     renderTraining('guest', selectedTrainingContext);
     saveCurrentShift(null);
+    persistAuthSession();
     return;
   }
 
@@ -436,6 +483,7 @@ function updateSession() {
       roleSwitcher.title = 'Role view';
       roleSwitcher.setAttribute('aria-label', 'Role view');
     } else {
+      roleViewOverride = null;
       roleSwitcher.style.display = 'none';
     }
   }
@@ -446,6 +494,7 @@ function updateSession() {
   loadCurrentShift();
   updateShiftUI();
   renderHomeSection();
+  persistAuthSession();
 }
 
 function canToggleDemoMode() {
@@ -967,9 +1016,7 @@ async function api(path, options = {}) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (response.status === 401 && token) {
-      token = '';
-      currentUser = null;
-      roleViewOverride = null;
+      clearAuthSessionState();
       updateSession();
       throw new Error('Session expired. Please sign in again.');
     }
@@ -2296,9 +2343,7 @@ document.getElementById('patientTabRow')?.addEventListener('click', (e) => {
 });
 
 document.getElementById('logoutBtn')?.addEventListener('click', () => {
-  token = '';
-  currentUser = null;
-  roleViewOverride = null;
+  clearAuthSessionState();
   clientsCache = [];
   usersCache = [];
   legalExportPayload = null;
@@ -2728,3 +2773,10 @@ updateSession();
 initializeInviteAndResetFromUrl();
 fetchAndShowVersion();
 ensureDemoPatientWorkspaceLoaded();
+
+if (currentUser && token) {
+  refreshAllPickers().catch(() => {
+    clearAuthSessionState();
+    updateSession();
+  });
+}
