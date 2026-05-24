@@ -1567,7 +1567,7 @@ function renderClientList(clients) {
   const canDelete = hasPermission('clients:delete');
 
   list.innerHTML = clients.map((c) => `
-    <div class="data-item">
+    <div class="data-item" data-client-open-id="${safeText(c._id)}" role="button" tabindex="0" aria-label="Open ${safeText(c.displayName)} in patient workspace">
       <div class="data-item-stack">
         <span class="data-item-label">${safeText(c.displayName)}</span>
         <span class="data-item-meta">${safeText(c.externalId || '—')}</span>
@@ -1580,6 +1580,24 @@ function renderClientList(clients) {
       </div>
     </div>
   `).join('');
+}
+
+async function openClientWorkspace(clientId) {
+  const patientClientSelect = document.getElementById('patientWorkspaceClientId');
+  if (!patientClientSelect) {
+    showToast('Patient workspace is not available right now.', 'error');
+    return;
+  }
+
+  const hasMatchingOption = Array.from(patientClientSelect.options || []).some((option) => option.value === String(clientId));
+  if (!hasMatchingOption) {
+    showToast('Could not open this client in patient workspace.', 'error');
+    return;
+  }
+
+  patientClientSelect.value = String(clientId);
+  navigateTo('patientWorkspaceSection');
+  await loadPatientWorkspace();
 }
 
 async function handleClientListAction(action, clientId) {
@@ -2235,15 +2253,45 @@ document.getElementById('refreshClientsBtn').addEventListener('click', async () 
 });
 
 document.getElementById('clientsList')?.addEventListener('click', async (e) => {
-  const button = e.target.closest('[data-client-action]');
-  if (!button) return;
+  const actionButton = e.target.closest('[data-client-action]');
+  if (actionButton) {
+    const action = actionButton.getAttribute('data-client-action');
+    const clientId = actionButton.getAttribute('data-client-id');
+    if (!action || !clientId) return;
 
-  const action = button.getAttribute('data-client-action');
-  const clientId = button.getAttribute('data-client-id');
-  if (!action || !clientId) return;
+    try {
+      await handleClientListAction(action, clientId);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+    return;
+  }
+
+  const clientCard = e.target.closest('[data-client-open-id]');
+  if (!clientCard) return;
+
+  const clientId = clientCard.getAttribute('data-client-open-id');
+  if (!clientId) return;
 
   try {
-    await handleClientListAction(action, clientId);
+    await openClientWorkspace(clientId);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
+
+document.getElementById('clientsList')?.addEventListener('keydown', async (e) => {
+  if (!(e.key === 'Enter' || e.key === ' ')) return;
+
+  const clientCard = e.target.closest('[data-client-open-id]');
+  if (!clientCard) return;
+
+  e.preventDefault();
+  const clientId = clientCard.getAttribute('data-client-open-id');
+  if (!clientId) return;
+
+  try {
+    await openClientWorkspace(clientId);
   } catch (err) {
     showToast(err.message, 'error');
   }
