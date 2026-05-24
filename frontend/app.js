@@ -209,6 +209,37 @@ const DEMO_TRACKER_ENTRIES = [
   }
 ];
 
+const PAGE_ACCESS_RULES = {
+  askSection: 'ask:approved_guidance:read',
+  uploadSection: 'documents:upload',
+  assignmentSection: 'assignments:create',
+  breakGlassSection: 'assignments:create',
+  createClientSection: 'clients:create',
+  createUserSection: 'users:invite',
+  legalRecordsSection: 'legal_records:export',
+  auditSection: 'audit:org:read'
+};
+
+function canAccessPage(pageId) {
+  if (!pageId) return false;
+
+  if (!currentUser) {
+    return pageId === 'loginSection';
+  }
+
+  const requiredPermission = PAGE_ACCESS_RULES[pageId];
+  if (!requiredPermission) return true;
+  return hasPermission(requiredPermission);
+}
+
+function updateNavAccess() {
+  document.querySelectorAll('.nav-item[data-nav-target]').forEach((item) => {
+    const target = item.dataset.navTarget;
+    const allowed = canAccessPage(target);
+    item.style.display = allowed ? '' : 'none';
+  });
+}
+
 const DEMO_PATIENT_WORKSPACE_ENTRIES = [
   {
     _id: 'demo-workspace-1',
@@ -270,7 +301,17 @@ function saveDemoClients(clients) {
   }
 }
 
-function navigateTo(pageId) {
+function navigateTo(pageId, options = {}) {
+  const shouldShowDeniedToast = options.showDeniedToast !== false;
+  const fallbackPage = currentUser ? 'homeSection' : 'loginSection';
+
+  if (!canAccessPage(pageId)) {
+    if (shouldShowDeniedToast) {
+      showToast('You do not have access to that page.', 'error');
+    }
+    pageId = fallbackPage;
+  }
+
   document.querySelectorAll('.page').forEach((page) => {
     page.style.display = page.id === pageId ? '' : 'none';
   });
@@ -280,6 +321,7 @@ function navigateTo(pageId) {
   });
   const main = document.querySelector('.main-content');
   if (main) main.scrollTop = 0;
+  return pageId;
 }
 
 const ROLE_TRAINING = {
@@ -541,6 +583,7 @@ function updateSession() {
     applyRoleMode('guest');
     renderTraining('guest', selectedTrainingContext);
     saveCurrentShift(null);
+    updateNavAccess();
     persistAuthSession();
     return;
   }
@@ -569,6 +612,7 @@ function updateSession() {
   updateShiftUI();
   renderHomeSection();
   renderRoleLabelSettings();
+  updateNavAccess();
   persistAuthSession();
 }
 
@@ -2592,8 +2636,8 @@ document.addEventListener('click', (e) => {
     if (trackerStatus) {
       setTrackerStatusFilter(trackerStatus);
     }
-    navigateTo(navBtn.dataset.navTarget);
-    if (window.innerWidth <= 900) document.body.classList.remove('sidebar-open');
+    const didNavigate = navigateTo(navBtn.dataset.navTarget);
+    if (didNavigate && window.innerWidth <= 900) document.body.classList.remove('sidebar-open');
     return;
   }
 
@@ -2901,7 +2945,9 @@ document.getElementById('autoRefreshToggle')?.addEventListener('click', (e) => {
 // Load Who's Working when tracker section is shown
 const originalNavigateTo = window.navigateTo;
 window.navigateTo = function(pageId) {
-  originalNavigateTo.call(this, pageId);
+  const navigatedPage = originalNavigateTo.call(this, pageId);
+  if (!navigatedPage || navigatedPage !== pageId) return;
+
   if (pageId === 'trackerSection') {
     renderWhosWorking();
     // Show/hide copy from yesterday container based on client selection
