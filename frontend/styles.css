@@ -1659,3 +1659,221 @@ body.guest-mode #loginSection {
   font-size: 10px;
   font-weight: 600;
 }
+
+/* Mobile-First Responsive Design */
+@media (max-width: 768px) {
+  /* Layout adjustments */
+  .page { padding: 16px 16px; }
+  
+  /* Guest mode layout - stack on mobile */
+  body.guest-mode .main-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px 12px;
+    align-items: start;
+  }
+  body.guest-mode #landingHero {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  body.guest-mode #loginSection {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  body.guest-mode #bootstrapSection {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  
+  /* Hero section adjustments */
+  .hero {
+    padding: 24px 20px !important;
+    gap: 16px;
+  }
+  .hero-copy h2 { font-size: 1.35rem; }
+  .hero-visuals {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .hero-gallery {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  
+  /* Forms */
+  form { max-width: 100%; }
+  .demo-form .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+  .demo-form .form-row > .form-group {
+    flex: 1;
+  }
+  
+  /* Cards and containers */
+  .demo-request-card {
+    max-width: 100%;
+    margin: 24px 0;
+  }
+  .breakglass-card {
+    max-width: 100%;
+  }
+  .compliance-links {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  /* Stats and quick actions */
+  .home-stats-row {
+    gap: 8px;
+  }
+  .home-stats-row .stat-chip {
+    min-width: 100px;
+    padding: 12px 16px;
+    min-height: 80px;
+  }
+  .home-quick-actions {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  
+  /* Topbar adjustments */
+  .topbar { padding: 0 12px; }
+  .topbar-logo { font-size: 15px; }
+  .topbar-right { gap: 6px; }
+  .sidebar-toggle { display: flex; }
+  
+  /* Modal adjustments */
+  .modal-content {
+    width: 95%;
+    max-height: 85vh;
+  }
+  
+  /* Utility - ensure no horizontal overflow */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Extra small screens */
+  .page { padding: 12px 10px; }
+  
+  body.guest-mode .main-content {
+    padding: 12px 8px;
+    gap: 10px;
+  }
+  
+  .hero {
+    padding: 16px 12px !important;
+    gap: 12px;
+    border-radius: 10px;
+  }
+  .hero-copy h2 { font-size: 1.15rem; }
+  .hero-copy p { font-size: 13px; }
+  .hero-ctas {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+  .hero-ctas .btn-primary,
+  .hero-ctas .btn-secondary,
+  .hero-ctas .btn-tertiary {
+    width: 100%;
+  }
+  
+  .hero-visuals {
+    grid-template-columns: 1fr;
+  }
+  .hero-gallery {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Login card */
+  .login-card {
+    max-width: 100% !important;
+    padding: 10px 8px 12px !important;
+    gap: 10px;
+  }
+  .login-logo-wrap {
+    max-width: 100% !important;
+    padding: 12px 6px 8px !important;
+    border-radius: 8px;
+  }
+  
+  /* Demo form */
+  .demo-form {
+    gap: 12px;
+  }
+  .demo-form .form-row {
+    flex-direction: column;
+  }
+  .demo-form button {
+    width: 100%;
+    align-self: stretch;
+  }
+  .demo-form button + button {
+    margin-left: 0;
+    margin-top: 8px;
+  }
+  
+  /* Stats */
+  .home-stats-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .home-stats-row .stat-chip {
+    width: 100%;
+    min-width: unset;
+  }
+  
+  /* Quick actions grid */
+  .home-quick-actions {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Page header */
+  .page-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .page-header h2 { font-size: 1.1rem; }
+  .page-header-actions {
+    width: 100%;
+  }
+  
+  /* Topbar */
+  .topbar { padding: 0 10px; }
+  .topbar-logo { display: none; }
+  .topbar-brand-mark { width: 20px; height: 20px; }
+  .topbar-right { gap: 4px; }
+  
+  /* Modal */
+  .modal-content {
+    width: 98%;
+    border-radius: 8px;
+  }
+  .modal-header { padding: 12px; }
+  .modal-body { padding: 12px; }
+  .modal-footer { padding: 10px 12px; }
+  
+  /* Cards */
+  .auth-card-inner {
+    padding: 16px 12px;
+    border-radius: 10px;
+  }
+  .auth-card-inner h2 { font-size: 0.95rem; }
+  
+  /* Ensure no overflow anywhere */
+  * {
+    max-width: 100%;
+  }
+  
+  /* Override any inline styles that might cause issues */
+  .demo-form button,
+  form button {
+    max-width: 100%;
+  }
+}
