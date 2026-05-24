@@ -54,6 +54,7 @@ html, body {
   flex-shrink: 0;
 }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
+.topbar-right #demoRoleSwitcher { min-width: 112px; }
 .topbar-logo { font-weight: 800; font-size: 17px; letter-spacing: -0.02em; color: var(--accent-dark); }
 .session-info { font-size: 13px; color: var(--muted); }
 .demo-mode-toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; position: relative; }
@@ -218,6 +219,10 @@ body.guest-mode #bootstrapSection {
 .home-stats-row .stat-chip.stat-warn .stat-value { color: #92400e !important; }
 .home-stats-row .stat-chip.stat-danger .stat-value { color: #b91c1c !important; }
 .home-stats-row .stat-chip.stat-ok .stat-value { color: #166534 !important; }
+.home-stats-row .stat-value-home { color: #0f172a !important; }
+.home-stats-row .stat-value-home.stat-value-warn { color: #92400e !important; }
+.home-stats-row .stat-value-home.stat-value-danger { color: #b91c1c !important; }
+.home-stats-row .stat-value-home.stat-value-ok { color: #166534 !important; }
 .home-stats-row .stat-label { font-size: 12px; color: #334155 !important; margin-top: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; opacity: 1; }
 .home-quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 20px; width: 100%; }
 .home-quick-actions .quick-action-btn { appearance: none; -webkit-appearance: none; background: linear-gradient(180deg, #ffffff, #f7fafc); border: 1px solid var(--line); color: var(--accent-dark) !important; font: inherit; font-weight: 800; font-size: 14px; border-radius: 12px; padding: 12px 16px; min-height: 46px; width: 100%; text-align: center; white-space: normal; line-height: 1.25; cursor: pointer; transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease; box-shadow: var(--shadow); }
@@ -506,6 +511,12 @@ button:hover { background: var(--accent-dark); border-color: var(--accent-dark);
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 8px;
+  }
+  .topbar-right #demoRoleSwitcher {
+    order: 2;
+    flex: 0 0 auto;
+    min-width: 120px;
+    max-width: 45vw;
   }
   .topbar-logo { font-size: 15px; }
   .topbar-brand-mark { width: 20px; height: 20px; }
