@@ -171,6 +171,219 @@ const DEMO_CLIENTS = [
 ];
 const DEMO_CLIENTS_STORAGE_KEY = 'synoracare_demo_clients';
 
+const DEMO_CLIENT_CARE_INFO = {
+  'demo-client-1': {
+    displayName: 'Jordan Miles',
+    care: [
+      {
+        title: 'Morning ADL Support',
+        content: 'Assist with personal hygiene and grooming between 7:00 AM and 8:00 AM. Use verbal prompts, allow maximum independence, and document completion on the care tracker.',
+        icon: '🧼'
+      },
+      {
+        title: 'Transfer Assistance',
+        content: 'Provide steady support during transfers from bed to chair using approved stand-pivot technique. Always lock wheels before assisting.',
+        icon: '🚶'
+      },
+      {
+        title: 'Toileting Protocol',
+        content: 'Accompany and supervise during all toileting. Ensure dignity and privacy. Check for signs of discomfort or health changes.',
+        icon: '🚽'
+      }
+    ],
+    nutrition: [
+      {
+        title: 'Meal Times',
+        content: 'Breakfast: 7:30 AM | Lunch: 12:00 PM | Dinner: 5:30 PM | Snacks: 10 AM & 3 PM as needed.',
+        icon: '⏰'
+      },
+      {
+        title: 'Diet Type',
+        content: 'Regular diet with whole grains, fresh fruits, and vegetables. Adequate hydration: 8 glasses of water daily. Avoid caffeine after 2 PM.',
+        icon: '🥗'
+      },
+      {
+        title: 'Dietary Restrictions',
+        content: 'ALLERGY ALERT: Peanuts and tree nuts (anaphylaxis risk). NO shellfish, dairy alternatives recommended. Sodium restriction: <2300mg/day.',
+        icon: '🚫'
+      }
+    ],
+    medications: [
+      {
+        title: 'Morning Medications (7:30 AM)',
+        content: 'Metformin 500mg x2 tablets (diabetes), Lisinopril 10mg x1 tablet (hypertension). Take with food. Monitor blood pressure daily.',
+        icon: '💊'
+      },
+      {
+        title: 'Afternoon Medications (1:00 PM)',
+        content: 'Sertraline 50mg x1 tablet (depression). Take with or without food. Report mood changes to supervisor.',
+        icon: '💊'
+      },
+      {
+        title: 'Evening Medications (7:30 PM)',
+        content: 'Atorvastatin 20mg x1 tablet (cholesterol). Take before bed. No grapefruit juice. Verify pulse before administration.',
+        icon: '💊'
+      }
+    ],
+    behavior: [
+      {
+        title: 'Behavioral Baseline',
+        content: 'Jordan typically responds well to structured routines and consistent DSP interactions. Prefers calm environments with minimal noise.',
+        icon: '😊'
+      },
+      {
+        title: 'Escalation Triggers',
+        content: 'Sudden routine changes, loud noises, and transitions between activities. Allow 10-minute warning before any schedule change.',
+        icon: '⚠️'
+      },
+      {
+        title: 'De-escalation Techniques',
+        content: 'Use calm voice, offer choices, provide quiet time in preferred space. If distressed, pause activity and reassure. Never force completion. Contact supervisor if escalation continues.',
+        icon: '🧘'
+      }
+    ],
+    safety: [
+      {
+        title: 'Fall Risk Level',
+        content: 'HIGH. Ensure non-slip footwear at all times. Use grab bars in bathroom. Avoid clutter in walking paths. Supervise during ambulation.',
+        icon: '⚠️'
+      },
+      {
+        title: 'Skin Integrity',
+        content: 'Check for pressure areas daily, especially heels and sacrum. Reposition every 2 hours. Report any redness or breakdown immediately.',
+        icon: '🩹'
+      },
+      {
+        title: 'Infection Control',
+        content: 'Hand hygiene before and after care. Use PPE as indicated. Report fever, cough, or signs of infection within 30 minutes of observation.',
+        icon: '✋'
+      }
+    ]
+  },
+  'demo-client-2': {
+    displayName: 'Avery Brooks',
+    care: [
+      {
+        title: 'Self-Care Activities',
+        content: 'Avery is mostly independent with grooming and dressing. Provide oversight only. Encourage participation and offer assistance only when requested.',
+        icon: '🧼'
+      },
+      {
+        title: 'Mobility Support',
+        content: 'Ambulates with a cane independently. Ensure cane is within reach at all times. Watch for balance issues on stairs.',
+        icon: '🚶'
+      }
+    ],
+    nutrition: [
+      {
+        title: 'Meal Preferences',
+        content: 'Prefers smaller, frequent meals. High-protein options preferred. Enjoys home-cooked style foods. Avoid overly processed foods.',
+        icon: '🍽️'
+      },
+      {
+        title: 'Dietary Restrictions',
+        content: 'Gluten-free diet required (celiac disease). Check all packaged food labels. Offer GF bread, pasta, and cereals only.',
+        icon: '🌾'
+      }
+    ],
+    medications: [
+      {
+        title: 'Morning Medications (8:00 AM)',
+        content: 'Levothyroxine 75mcg x1 tablet (thyroid). Take on empty stomach, 30 minutes before breakfast. Do not take with calcium or iron supplements.',
+        icon: '💊'
+      },
+      {
+        title: 'Evening Medications (8:00 PM)',
+        content: 'Omeprazole 20mg x1 capsule (GERD). Take 30 minutes before meals.',
+        icon: '💊'
+      }
+    ],
+    behavior: [
+      {
+        title: 'Personality',
+        content: 'Avery is sociable and enjoys conversations. Prefers a relaxed, friendly approach. Values independence and autonomy in decisions.',
+        icon: '😊'
+      },
+      {
+        title: 'Preferences',
+        content: 'Enjoys reading and listening to music. Prefers morning activities. Can become withdrawn if left alone for extended periods.',
+        icon: '🎵'
+      }
+    ],
+    safety: [
+      {
+        title: 'General Safety',
+        content: 'Low fall risk but monitor on wet surfaces. Ensure adequate lighting. Keep pathways clear.',
+        icon: '💡'
+      }
+    ]
+  },
+  'demo-client-3': {
+    displayName: 'Taylor Reed',
+    care: [
+      {
+        title: 'Personal Care',
+        content: 'Requires full assistance with ADLs. Use standard protocols for bathing, dressing, and grooming. Communicate each step clearly.',
+        icon: '🧼'
+      }
+    ],
+    nutrition: [
+      {
+        title: 'Feeding Support',
+        content: 'Requires supervision and minimal hand-over-hand cueing during meals. Ensure client drinks adequate fluids. Monitor for choking risks.',
+        icon: '🥄'
+      },
+      {
+        title: 'Swallowing Precautions',
+        content: 'Soft, moist foods preferred. Thickened liquids required (nectar consistency). Sit upright during meals for 30 minutes after eating.',
+        icon: '⚠️'
+      }
+    ],
+    medications: [
+      {
+        title: 'All Medications (7:00 AM & 7:00 PM)',
+        content: 'Donepezil 10mg x1 tablet (dementia). Amlodipine 5mg x1 tablet (hypertension). Assist with self-administration or administer directly as needed.',
+        icon: '💊'
+      }
+    ],
+    behavior: [
+      {
+        title: 'Cognitive Status',
+        content: 'Mid-stage dementia. Short-term memory loss expected. Repeat instructions as needed. Use simple, concrete language.',
+        icon: '🧠'
+      },
+      {
+        title: 'Emotional Needs',
+        content: 'Responds well to reassurance and physical comfort (hand-holding, gentle touch). Avoid arguing about facts or reality.',
+        icon: '❤️'
+      }
+    ],
+    safety: [
+      {
+        title: 'Wandering Risk',
+        content: 'MODERATE. Ensure client is supervised in common areas. Door alarms activated. Wears ID bracelet at all times.',
+        icon: '🚪'
+      }
+    ]
+  }
+};
+
+function getDemoClientCareInfo(clientId, tab) {
+  const clientInfo = DEMO_CLIENT_CARE_INFO[clientId];
+  if (!clientInfo) return [];
+  
+  const tabMap = {
+    care: 'care',
+    nutrition: 'nutrition',
+    medications: 'medications',
+    behavior: 'behavior',
+    safety: 'safety'
+  };
+  
+  const tabKey = tabMap[tab];
+  return clientInfo[tabKey] || [];
+}
+
 const DEMO_USERS = [
   { _id: 'demo-user-1', fullName: 'Nia Carter', role: 'dsp' },
   { _id: 'demo-user-2', fullName: 'Isaiah Moore', role: 'dsp' },
@@ -1985,6 +2198,21 @@ function renderPatientTabContent() {
     return;
   }
 
+  // First, try to show client care information if available
+  if (demoMode) {
+    const careInfo = getDemoClientCareInfo(currentPatientWorkspace.clientId, selectedPatientTab);
+    if (careInfo && careInfo.length > 0) {
+      container.innerHTML = `<div class="patient-items">${careInfo.map((item) => `
+        <article class="patient-item">
+          <p class="patient-item-title">${item.icon || ''} ${safeText(item.title)}</p>
+          <p class="patient-item-meta">${safeText(item.content)}</p>
+        </article>
+      `).join('')}</div>`;
+      return;
+    }
+  }
+
+  // Fallback to tracker entries filtered by tab
   const filtered = currentPatientWorkspace.entries.filter((entry) => entryMatchesTab(entry, selectedPatientTab));
   if (!filtered.length) {
     container.innerHTML = '<p class="empty-state">No matching records for this tab yet.</p>';
