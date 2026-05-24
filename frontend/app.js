@@ -29,6 +29,70 @@ const DEFAULT_ROLE_DISPLAY_LABELS = {
   org_admin: 'Organization Admin',
   super_admin: 'Super Admin'
 };
+const ROLE_PERMISSION_FALLBACK = {
+  dsp: [
+    'clients:assigned:read',
+    'tracker:entry:create',
+    'tracker:entry:read',
+    'ask:approved_guidance:read',
+    'shifts:handoff:create',
+    'shifts:own:read'
+  ],
+  supervisor: [
+    'clients:assigned:read',
+    'clients:all:read',
+    'users:read',
+    'assignments:read',
+    'tracker:entry:create',
+    'tracker:entry:read',
+    'tracker:entry:review',
+    'documents:upload',
+    'assignments:create',
+    'ask:approved_guidance:read',
+    'audit:org:read',
+    'shifts:handoff:create',
+    'shifts:all:read',
+    'legal_records:export'
+  ],
+  org_admin: [
+    'clients:all:read',
+    'clients:create',
+    'clients:update',
+    'users:read',
+    'users:invite',
+    'users:password_reset',
+    'assignments:read',
+    'assignments:create',
+    'documents:upload',
+    'tracker:entry:read',
+    'ask:approved_guidance:read',
+    'audit:org:read',
+    'role_labels:update',
+    'reports:export',
+    'shifts:all:read',
+    'legal_records:export'
+  ],
+  super_admin: [
+    'clients:all:read',
+    'clients:create',
+    'clients:update',
+    'clients:archive',
+    'clients:delete',
+    'users:read',
+    'users:invite',
+    'users:password_reset',
+    'assignments:read',
+    'assignments:create',
+    'documents:upload',
+    'tracker:entry:read',
+    'ask:approved_guidance:read',
+    'audit:org:read',
+    'role_labels:update',
+    'reports:export',
+    'shifts:all:read',
+    'legal_records:export'
+  ]
+};
 let token = '';
 let currentUser = null;
 let roleViewOverride = null;
@@ -513,6 +577,32 @@ function getRoleDisplayLabel(role) {
   return orgRoleDisplayLabels?.[normalizedRole] || DEFAULT_ROLE_DISPLAY_LABELS[normalizedRole] || normalizedRole;
 }
 
+function getRolePermissions(role) {
+  const normalizedRole = String(role || '').trim();
+  return ROLE_PERMISSION_FALLBACK[normalizedRole] || [];
+}
+
+function hasPermission(permission, options = {}) {
+  if (!currentUser) return false;
+
+  const normalizedPermission = String(permission || '').trim();
+  if (!normalizedPermission) return false;
+
+  const useActiveRole = options.useActiveRole !== false;
+  const activeRole = useActiveRole ? getActiveRole() : currentUser.role;
+
+  if (useActiveRole && activeRole && activeRole !== currentUser.role) {
+    return getRolePermissions(activeRole).includes(normalizedPermission);
+  }
+
+  const currentPermissions = Array.isArray(currentUser.permissions) ? currentUser.permissions : [];
+  if (currentPermissions.length > 0) {
+    return currentPermissions.includes(normalizedPermission);
+  }
+
+  return getRolePermissions(currentUser.role).includes(normalizedPermission);
+}
+
 function applyAuthUserContext(user) {
   if (!user) return;
 
@@ -558,7 +648,7 @@ function renderRoleLabelSettings() {
   const form = document.getElementById('roleLabelsForm');
   if (!panel || !form) return;
 
-  if (!currentUser || !['super_admin', 'org_admin'].includes(currentUser.role)) {
+  if (!hasPermission('role_labels:update', { useActiveRole: false })) {
     panel.style.display = 'none';
     return;
   }
@@ -893,7 +983,7 @@ async function refreshUsers() {
 async function refreshAllPickers() {
   if (!token) return;
   await refreshClients();
-  if (currentUser && ['super_admin', 'org_admin', 'supervisor'].includes(currentUser.role)) {
+  if (hasPermission('users:read')) {
     await refreshUsers();
   }
 }
@@ -1165,7 +1255,7 @@ async function renderHomeSection() {
 
     const homeAlerts = document.getElementById('homeAlerts');
     if (homeAlerts) {
-      if (clientsCache.length === 0 && ['org_admin', 'super_admin'].includes(role)) {
+      if (clientsCache.length === 0 && hasPermission('clients:create')) {
         homeAlerts.innerHTML = `<div class="onboard-hint"><strong>Get started:</strong> Add your first client below, then assign a DSP to begin care tracking.<button type="button" class="quick-action-btn" data-scroll-target="createClientSection" style="margin-left:12px;">Add First Client →</button></div>`;
       } else if ((summaryData.escalated || 0) > 0) {
         try {
@@ -1367,10 +1457,9 @@ function renderClientList(clients) {
     return;
   }
 
-  const activeRole = getActiveRole();
-  const canEdit = ['super_admin', 'org_admin'].includes(activeRole);
-  const canArchive = activeRole === 'super_admin';
-  const canDelete = activeRole === 'super_admin';
+  const canEdit = hasPermission('clients:update');
+  const canArchive = hasPermission('clients:archive');
+  const canDelete = hasPermission('clients:delete');
 
   list.innerHTML = clients.map((c) => `
     <div class="data-item">
