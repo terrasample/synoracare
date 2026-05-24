@@ -1205,38 +1205,29 @@ async function renderHomeSection() {
   };
   if (welcomeRole) welcomeRole.textContent = roleLabels[role] || role;
 
-  const actionsByRole = {
-    dsp: [
-      { label: 'Ask Grounded Q&A', target: 'askSection' },
-      { label: 'Log Event', target: 'trackerSection' },
-      { label: 'Emergency Access', target: 'breakGlassSection' },
-      { label: 'My Training', target: 'trainingSection' }
-    ],
-    supervisor: [
-      { label: 'Review Tracker', target: 'trackerSection' },
-      { label: 'Upload Document', target: 'uploadSection' },
-      { label: 'Assign DSP', target: 'assignmentSection' },
-      { label: 'Audit Log', target: 'auditSection' }
-    ],
-    org_admin: [
-      { label: 'Add Client', target: 'createClientSection' },
-      { label: 'Assign DSP', target: 'assignmentSection' },
-      { label: 'Legal Export', target: 'legalRecordsSection' },
-      { label: 'Audit Log', target: 'auditSection' }
-    ],
-    super_admin: [
-      { label: 'Add Team Member', target: 'createUserSection' },
-      { label: 'Add Client', target: 'createClientSection' },
-      { label: 'Assign DSP', target: 'assignmentSection' },
-      { label: 'Legal Export', target: 'legalRecordsSection' },
-      { label: 'Audit Log', target: 'auditSection' }
-    ]
-  };
+  const actionCatalog = [
+    { label: 'Ask Grounded Q&A', target: 'askSection', permission: 'ask:approved_guidance:read' },
+    { label: 'Log Event', target: 'trackerSection', permission: 'tracker:entry:create' },
+    { label: 'Review Tracker', target: 'trackerSection', permission: 'tracker:entry:read' },
+    { label: 'Emergency Access', target: 'breakGlassSection' },
+    { label: 'My Training', target: 'trainingSection' },
+    { label: 'Upload Document', target: 'uploadSection', permission: 'documents:upload' },
+    { label: 'Assign DSP', target: 'assignmentSection', permission: 'assignments:create' },
+    { label: 'Add Team Member', target: 'createUserSection', permission: 'users:invite' },
+    { label: 'Add Client', target: 'createClientSection', permission: 'clients:create' },
+    { label: 'Legal Export', target: 'legalRecordsSection', permission: 'legal_records:export' },
+    { label: 'Audit Log', target: 'auditSection', permission: 'audit:org:read' }
+  ];
+
+  const actions = actionCatalog.filter((action) => {
+    if (!action.permission) return true;
+    return hasPermission(action.permission);
+  });
 
   const homeActions = document.getElementById('homeActions');
   if (homeActions) {
-    const actions = actionsByRole[role] || actionsByRole.dsp;
-    homeActions.innerHTML = actions
+    const visibleActions = actions.length > 0 ? actions : [{ label: 'My Training', target: 'trainingSection' }];
+    homeActions.innerHTML = visibleActions
       .map((a) => `<button type="button" class="quick-action-btn" data-nav-target="${safeText(a.target)}">${safeText(a.label)}</button>`)
       .join('');
   }
