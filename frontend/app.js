@@ -568,6 +568,53 @@ function showToast(message, type = 'error') {
   }, 3600);
 }
 
+function setFormSubmittingState(form, isSubmitting, pendingLabel = 'Saving...') {
+  if (!form) return;
+
+  const submitControl = form.querySelector('button[type="submit"], input[type="submit"]');
+  if (!submitControl) return;
+
+  if (isSubmitting) {
+    submitControl.dataset.originalLabel = submitControl.tagName === 'INPUT'
+      ? (submitControl.value || '')
+      : (submitControl.textContent || '');
+
+    if (submitControl.tagName === 'INPUT') {
+      submitControl.value = pendingLabel;
+    } else {
+      submitControl.textContent = pendingLabel;
+    }
+    submitControl.disabled = true;
+    form.dataset.submitting = '1';
+    return;
+  }
+
+  if (submitControl.dataset.originalLabel !== undefined) {
+    if (submitControl.tagName === 'INPUT') {
+      submitControl.value = submitControl.dataset.originalLabel;
+    } else {
+      submitControl.textContent = submitControl.dataset.originalLabel;
+    }
+    delete submitControl.dataset.originalLabel;
+  }
+
+  submitControl.disabled = false;
+  delete form.dataset.submitting;
+}
+
+async function withSubmitLock(form, run, pendingLabel) {
+  if (!form || form.dataset.submitting === '1') {
+    return;
+  }
+
+  setFormSubmittingState(form, true, pendingLabel);
+  try {
+    await run();
+  } finally {
+    setFormSubmittingState(form, false);
+  }
+}
+
 function updateSession() {
   const info = document.getElementById('sessionInfo');
   const logoutBtn = document.getElementById('logoutBtn');
@@ -2123,39 +2170,41 @@ function initializeInviteAndResetFromUrl() {
 
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const payload = Object.fromEntries(new FormData(e.target).entries());
+  await withSubmitLock(e.target, async () => {
+    const payload = Object.fromEntries(new FormData(e.target).entries());
 
-  if (demoMode) {
-    const demoClients = getDemoClients();
-    const nextClient = {
-      _id: `demo-client-${Date.now()}`,
-      displayName: String(payload.displayName || '').trim() || 'Demo Client',
-      externalId: String(payload.externalId || '').trim() || `SC-DEMO-${demoClients.length + 1001}`
-    };
-    demoClients.unshift(nextClient);
-    saveDemoClients(demoClients);
-    clientsCache = demoClients;
-    syncClientPickers();
-    renderClientList(clientsCache);
-    e.target.reset();
-    showToast('Demo client added successfully.', 'success');
-    if (currentUser) {
-      renderHomeSection().catch(() => {});
+    if (demoMode) {
+      const demoClients = getDemoClients();
+      const nextClient = {
+        _id: `demo-client-${Date.now()}`,
+        displayName: String(payload.displayName || '').trim() || 'Demo Client',
+        externalId: String(payload.externalId || '').trim() || `SC-DEMO-${demoClients.length + 1001}`
+      };
+      demoClients.unshift(nextClient);
+      saveDemoClients(demoClients);
+      clientsCache = demoClients;
+      syncClientPickers();
+      renderClientList(clientsCache);
+      e.target.reset();
+      showToast('Demo client added successfully.', 'success');
+      if (currentUser) {
+        renderHomeSection().catch(() => {});
+      }
+      return;
     }
-    return;
-  }
 
-  try {
-    await api('/api/clients', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    await refreshClients();
-  } catch (err) {
-    const list = document.getElementById('clientsList');
-    if (list) list.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
-  }
+    try {
+      await api('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      await refreshClients();
+    } catch (err) {
+      const list = document.getElementById('clientsList');
+      if (list) list.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
+    }
+  }, 'Saving...');
 });
 
 document.getElementById('refreshClientsBtn').addEventListener('click', async () => {
@@ -2242,90 +2291,96 @@ document.getElementById('trainingContextRow').addEventListener('click', (e) => {
 
 document.getElementById('assignmentForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const payload = Object.fromEntries(new FormData(e.target).entries());
-  try {
-    const data = await api('/api/assignments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    setOutput('assignmentOutput', data);
-    await refreshClients();
-  } catch (err) {
-    setOutput('assignmentOutput', err.message);
-  }
+  await withSubmitLock(e.target, async () => {
+    const payload = Object.fromEntries(new FormData(e.target).entries());
+    try {
+      const data = await api('/api/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      setOutput('assignmentOutput', data);
+      await refreshClients();
+    } catch (err) {
+      setOutput('assignmentOutput', err.message);
+    }
+  }, 'Saving...');
 });
 
 document.getElementById('uploadForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const formData = new FormData(e.target);
-  try {
-    const response = await fetch(`${API_BASE}/api/documents/upload`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: formData
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Upload failed');
-    setOutput('uploadOutput', data);
-  } catch (err) {
-    setOutput('uploadOutput', err.message);
-  }
+  await withSubmitLock(e.target, async () => {
+    const formData = new FormData(e.target);
+    try {
+      const response = await fetch(`${API_BASE}/api/documents/upload`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Upload failed');
+      setOutput('uploadOutput', data);
+    } catch (err) {
+      setOutput('uploadOutput', err.message);
+    }
+  }, 'Uploading...');
 });
 
 document.getElementById('askForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const clientId = document.getElementById('askClientId')?.value || '';
-  const questionEl = e.target.querySelector('textarea[name="question"]');
-  const question = questionEl ? questionEl.value.trim() : '';
+  await withSubmitLock(e.target, async () => {
+    const clientId = document.getElementById('askClientId')?.value || '';
+    const questionEl = e.target.querySelector('textarea[name="question"]');
+    const question = questionEl ? questionEl.value.trim() : '';
 
-  if (!clientId) {
-    showToast('Please select a client first.', 'info');
-    return;
-  }
+    if (!clientId) {
+      showToast('Please select a client first.', 'info');
+      return;
+    }
 
-  const messages = document.getElementById('chatMessages');
+    const messages = document.getElementById('chatMessages');
 
-  // Remove welcome state on first message
-  const welcome = messages?.querySelector('.chat-welcome-state');
-  if (welcome) welcome.remove();
+    // Remove welcome state on first message
+    const welcome = messages?.querySelector('.chat-welcome-state');
+    if (welcome) welcome.remove();
 
-  // Append user bubble
-  if (messages) {
-    const userBubble = document.createElement('div');
-    userBubble.className = 'chat-message chat-message-user';
-    userBubble.innerHTML = `<div class="chat-bubble"><div class="chat-bubble-text">${safeText(question)}</div></div>`;
-    messages.appendChild(userBubble);
-    messages.scrollTop = messages.scrollHeight;
-  }
+    // Append user bubble
+    if (messages) {
+      const userBubble = document.createElement('div');
+      userBubble.className = 'chat-message chat-message-user';
+      userBubble.innerHTML = `<div class="chat-bubble"><div class="chat-bubble-text">${safeText(question)}</div></div>`;
+      messages.appendChild(userBubble);
+      messages.scrollTop = messages.scrollHeight;
+    }
 
-  // Append typing indicator
-  if (messages) {
-    const typing = document.createElement('div');
-    typing.className = 'chat-message chat-message-ai chat-typing';
-    typing.innerHTML = '<div class="chat-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
-    messages.appendChild(typing);
-    messages.scrollTop = messages.scrollHeight;
-  }
+    // Append typing indicator
+    if (messages) {
+      const typing = document.createElement('div');
+      typing.className = 'chat-message chat-message-ai chat-typing';
+      typing.innerHTML = '<div class="chat-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+      messages.appendChild(typing);
+      messages.scrollTop = messages.scrollHeight;
+    }
 
-  // Clear input
-  if (questionEl) questionEl.value = '';
+    // Clear input
+    if (questionEl) questionEl.value = '';
 
-  if (demoMode) {
-    renderAskAnswer(buildDemoAskResponse({ clientId, question }));
-    return;
-  }
+    if (demoMode) {
+      renderAskAnswer(buildDemoAskResponse({ clientId, question }));
+      return;
+    }
 
-  try {
-    const data = await api('/api/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId, question })
-    });
-    renderAskAnswer(data);
-  } catch (err) {
-    renderAskAnswer(err.message);
-  }
+    try {
+      const data = await api('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, question })
+      });
+      renderAskAnswer(data);
+    } catch (err) {
+      renderAskAnswer(err.message);
+    }
+  }, 'Sending...');
 });
 
 // Sync askClientId into the form
@@ -2380,18 +2435,35 @@ document.getElementById('refreshTrackerSummaryBtn').addEventListener('click', as
 
 document.getElementById('trackerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const formData = new FormData(e.target);
-  try {
-    const response = await fetch(`${API_BASE}/api/tracker`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: formData
-    });
+  await withSubmitLock(e.target, async () => {
+    const formData = new FormData(e.target);
+    try {
+      const response = await fetch(`${API_BASE}/api/tracker`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData
+      });
 
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      // Try to save offline if network error
-      if (!navigator.onLine || response.status >= 500) {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        // Try to save offline if network error
+        if (!navigator.onLine || response.status >= 500) {
+          const entry = Object.fromEntries(formData.entries());
+          saveOfflineEntry(entry);
+          const feed = document.getElementById('trackerFeed');
+          if (feed) feed.innerHTML = `<p class="tracker-empty">Entry saved offline. Will sync when connection restored.</p>`;
+          e.target.reset();
+          return;
+        }
+        throw new Error(data.error || 'Failed to create tracker entry');
+      }
+
+      e.target.reset();
+      await loadTrackerFeed();
+      await loadTrackerSummary();
+    } catch (err) {
+      // On network error, save offline
+      if (!navigator.onLine) {
         const entry = Object.fromEntries(formData.entries());
         saveOfflineEntry(entry);
         const feed = document.getElementById('trackerFeed');
@@ -2399,25 +2471,10 @@ document.getElementById('trackerForm').addEventListener('submit', async (e) => {
         e.target.reset();
         return;
       }
-      throw new Error(data.error || 'Failed to create tracker entry');
-    }
-
-    e.target.reset();
-    await loadTrackerFeed();
-    await loadTrackerSummary();
-  } catch (err) {
-    // On network error, save offline
-    if (!navigator.onLine) {
-      const entry = Object.fromEntries(formData.entries());
-      saveOfflineEntry(entry);
       const feed = document.getElementById('trackerFeed');
-      if (feed) feed.innerHTML = `<p class="tracker-empty">Entry saved offline. Will sync when connection restored.</p>`;
-      e.target.reset();
-      return;
+      if (feed) feed.innerHTML = `<p class="tracker-empty">${safeText(err.message)}</p>`;
     }
-    const feed = document.getElementById('trackerFeed');
-    if (feed) feed.innerHTML = `<p class="tracker-empty">${safeText(err.message)}</p>`;
-  }
+  }, 'Saving...');
 });
 
 document.getElementById('trackerStatusForm').addEventListener('submit', async (e) => {
@@ -2460,47 +2517,51 @@ document.getElementById('trackerFeed').addEventListener('click', async (e) => {
 
 document.getElementById('breakGlassForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const payload = Object.fromEntries(new FormData(e.target).entries());
-  try {
-    const data = await api('/api/assignments/break-glass', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    setOutput('breakGlassOutput', data);
-    await refreshClients();
-  } catch (err) {
-    setOutput('breakGlassOutput', err.message);
-  }
+  await withSubmitLock(e.target, async () => {
+    const payload = Object.fromEntries(new FormData(e.target).entries());
+    try {
+      const data = await api('/api/assignments/break-glass', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      setOutput('breakGlassOutput', data);
+      await refreshClients();
+    } catch (err) {
+      setOutput('breakGlassOutput', err.message);
+    }
+  }, 'Submitting...');
 });
 
 document.getElementById('legalRecordsForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const raw = Object.fromEntries(new FormData(e.target).entries());
-  const payload = {
-    clientId: raw.clientId,
-    stateCode: String(raw.stateCode || '').trim().toUpperCase(),
-    includeAudit: raw.includeAudit === 'on'
-  };
+  await withSubmitLock(e.target, async () => {
+    const raw = Object.fromEntries(new FormData(e.target).entries());
+    const payload = {
+      clientId: raw.clientId,
+      stateCode: String(raw.stateCode || '').trim().toUpperCase(),
+      includeAudit: raw.includeAudit === 'on'
+    };
 
-  if (raw.retentionYearsOverride) {
-    payload.retentionYearsOverride = Number(raw.retentionYearsOverride);
-  }
+    if (raw.retentionYearsOverride) {
+      payload.retentionYearsOverride = Number(raw.retentionYearsOverride);
+    }
 
-  try {
-    const data = await api('/api/legal-records/export', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    renderLegalRecordsSummary(data);
-  } catch (err) {
-    const list = document.getElementById('legalRecordsSummary');
-    if (list) list.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
-    legalExportPayload = null;
-    const downloadBtn = document.getElementById('downloadLegalExportBtn');
-    if (downloadBtn) downloadBtn.disabled = true;
-  }
+    try {
+      const data = await api('/api/legal-records/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      renderLegalRecordsSummary(data);
+    } catch (err) {
+      const list = document.getElementById('legalRecordsSummary');
+      if (list) list.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
+      legalExportPayload = null;
+      const downloadBtn = document.getElementById('downloadLegalExportBtn');
+      if (downloadBtn) downloadBtn.disabled = true;
+    }
+  }, 'Generating...');
 });
 
 document.getElementById('downloadLegalExportBtn')?.addEventListener('click', () => {
