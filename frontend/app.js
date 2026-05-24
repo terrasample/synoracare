@@ -89,6 +89,54 @@ const DEMO_TRACKER_ENTRIES = [
   }
 ];
 
+const DEMO_PATIENT_WORKSPACE_ENTRIES = [
+  {
+    _id: 'demo-workspace-1',
+    eventType: 'adl',
+    priority: 'normal',
+    status: 'completed',
+    summary: 'Morning ADL support completed with verbal prompts and transfer assistance.',
+    details: 'Client accepted routine, no resistance noted, hygiene checklist complete.',
+    updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'demo-workspace-2',
+    eventType: 'medication',
+    priority: 'high',
+    status: 'pending',
+    summary: 'Evening medication pass pending nurse verification.',
+    details: 'MAR reviewed and medication prepared for handoff.',
+    updatedAt: new Date(Date.now() - 55 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'demo-workspace-3',
+    eventType: 'behavior',
+    priority: 'urgent',
+    status: 'escalated',
+    summary: 'Behavior escalation logged after abrupt routine change.',
+    details: 'De-escalation protocol initiated and supervisor notified for review.',
+    updatedAt: new Date(Date.now() - 25 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'demo-workspace-4',
+    eventType: 'note',
+    priority: 'normal',
+    status: 'completed',
+    summary: 'Nutrition intake recorded: full breakfast and hydration target met.',
+    details: 'No food allergy triggers observed. Hydration chart updated.',
+    updatedAt: new Date(Date.now() - 90 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'demo-workspace-5',
+    eventType: 'incident',
+    priority: 'high',
+    status: 'pending',
+    summary: 'Safety follow-up required for hallway near-fall observation.',
+    details: 'No injury reported. Environmental sweep and footwear check scheduled.',
+    updatedAt: new Date(Date.now() - 40 * 60 * 1000).toISOString()
+  }
+];
+
 function getDemoClients() {
   // Always use the defined DEMO_CLIENTS for consistency
   return DEMO_CLIENTS.map((client) => ({ ...client }));
@@ -529,6 +577,20 @@ function syncClientPickers() {
   setSelectOptions('trackerClientId', options, 'Select Client');
   setSelectOptions('legalRecordsClientId', options, 'Select Client');
   setSelectOptions('patientWorkspaceClientId', options, 'Select Client');
+
+  const patientSelect = document.getElementById('patientWorkspaceClientId');
+  if (demoMode && patientSelect && !patientSelect.value && options.length) {
+    patientSelect.value = options[0].value;
+  }
+}
+
+function getDemoPatientWorkspaceEntries(clientId) {
+  return DEMO_PATIENT_WORKSPACE_ENTRIES.map((entry, index) => ({
+    ...entry,
+    _id: `${entry._id}-${clientId}-${index}`,
+    clientId,
+    createdAt: entry.updatedAt
+  }));
 }
 
 async function loadTrackerFeed() {
@@ -1348,6 +1410,15 @@ async function loadPatientWorkspace() {
     return;
   }
 
+  if (demoMode) {
+    currentPatientWorkspace = {
+      clientId,
+      entries: getDemoPatientWorkspaceEntries(clientId)
+    };
+    renderPatientTabContent();
+    return;
+  }
+
   const data = await api(`/api/tracker?clientId=${encodeURIComponent(clientId)}&limit=200`);
   currentPatientWorkspace = {
     clientId,
@@ -2116,6 +2187,16 @@ document.getElementById('downloadLegalExportBtn')?.addEventListener('click', () 
 });
 
 document.getElementById('loadPatientWorkspaceBtn')?.addEventListener('click', async () => {
+  try {
+    await loadPatientWorkspace();
+  } catch (err) {
+    const container = document.getElementById('patientTabContent');
+    if (container) container.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
+  }
+});
+
+document.getElementById('patientWorkspaceClientId')?.addEventListener('change', async () => {
+  if (!demoMode) return;
   try {
     await loadPatientWorkspace();
   } catch (err) {
