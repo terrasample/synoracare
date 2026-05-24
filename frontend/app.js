@@ -1133,12 +1133,121 @@ function renderClientList(clients) {
     return;
   }
 
+  const activeRole = getActiveRole();
+  const canEdit = ['super_admin', 'org_admin'].includes(activeRole);
+  const canArchive = activeRole === 'super_admin';
+  const canDelete = activeRole === 'super_admin';
+
   list.innerHTML = clients.map((c) => `
     <div class="data-item">
-      <span class="data-item-label">${safeText(c.displayName)}</span>
-      <span class="data-item-meta">${safeText(c.externalId || '—')}</span>
+      <div class="data-item-stack">
+        <span class="data-item-label">${safeText(c.displayName)}</span>
+        <span class="data-item-meta">${safeText(c.externalId || '—')}</span>
+        <span class="data-item-meta">Status: ${safeText(c.status || 'active')}</span>
+      </div>
+      <div class="data-item-actions">
+        ${canEdit ? `<button type="button" class="btn-secondary btn-sm" data-client-action="edit" data-client-id="${safeText(c._id)}">Edit</button>` : ''}
+        ${canArchive && c.status !== 'inactive' ? `<button type="button" class="btn-secondary btn-sm" data-client-action="archive" data-client-id="${safeText(c._id)}">Archive</button>` : ''}
+        ${canDelete ? `<button type="button" class="btn-danger btn-sm" data-client-action="delete" data-client-id="${safeText(c._id)}">Delete</button>` : ''}
+      </div>
     </div>
   `).join('');
+}
+
+async function handleClientListAction(action, clientId) {
+  const client = clientsCache.find((item) => String(item._id) === String(clientId));
+  if (!client) {
+    showToast('Client not found.', 'error');
+    return;
+  }
+
+  if (action === 'edit') {
+    const nextName = window.prompt('Client name', client.displayName || '');
+    if (nextName === null) return;
+    const trimmedName = String(nextName).trim();
+    if (!trimmedName) {
+      showToast('Client name is required.', 'error');
+      return;
+    }
+
+    const nextExternalId = window.prompt('External ID (optional)', client.externalId || '');
+    if (nextExternalId === null) return;
+
+    if (demoMode) {
+      clientsCache = clientsCache.map((item) => (
+        String(item._id) === String(clientId)
+          ? { ...item, displayName: trimmedName, externalId: String(nextExternalId || '').trim() }
+          : item
+      ));
+      saveDemoClients(clientsCache);
+      syncClientPickers();
+      renderClientList(clientsCache);
+      showToast('Demo client updated.', 'success');
+      return;
+    }
+
+    await api(`/api/clients/${encodeURIComponent(clientId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        displayName: trimmedName,
+        externalId: String(nextExternalId || '').trim(),
+        notes: client.notes || ''
+      })
+    });
+    await refreshClients();
+    showToast('Client updated successfully.', 'success');
+    return;
+  }
+
+  if (action === 'archive') {
+    const confirmed = window.confirm(`Archive ${client.displayName}? This removes active access but keeps records.`);
+    if (!confirmed) return;
+
+    if (demoMode) {
+      clientsCache = clientsCache.map((item) => (
+        String(item._id) === String(clientId)
+          ? { ...item, status: 'inactive' }
+          : item
+      ));
+      saveDemoClients(clientsCache);
+      syncClientPickers();
+      renderClientList(clientsCache);
+      showToast('Demo client archived.', 'success');
+      return;
+    }
+
+    await api(`/api/clients/${encodeURIComponent(clientId)}/archive`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    await refreshClients();
+    showToast('Client archived successfully.', 'success');
+    return;
+  }
+
+  if (action === 'delete') {
+    const typed = window.prompt(`Type DELETE to permanently remove ${client.displayName}.`);
+    if (typed !== 'DELETE') {
+      showToast('Delete cancelled.', 'info');
+      return;
+    }
+
+    if (demoMode) {
+      clientsCache = clientsCache.filter((item) => String(item._id) !== String(clientId));
+      saveDemoClients(clientsCache);
+      syncClientPickers();
+      renderClientList(clientsCache);
+      showToast('Demo client deleted.', 'success');
+      return;
+    }
+
+    await api(`/api/clients/${encodeURIComponent(clientId)}`, {
+      method: 'DELETE'
+    });
+    await refreshClients();
+    showToast('Client deleted successfully.', 'success');
+  }
 }
 
 function renderUserList(users) {
@@ -1656,6 +1765,21 @@ document.getElementById('refreshClientsBtn').addEventListener('click', async () 
   } catch (err) {
     const list = document.getElementById('clientsList');
     if (list) list.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
+  }
+});
+
+document.getElementById('clientsList')?.addEventListener('click', async (e) => {
+  const button = e.target.closest('[data-client-action]');
+  if (!button) return;
+
+  const action = button.getAttribute('data-client-action');
+  const clientId = button.getAttribute('data-client-id');
+  if (!action || !clientId) return;
+
+  try {
+    await handleClientListAction(action, clientId);
+  } catch (err) {
+    showToast(err.message, 'error');
   }
 });
 
