@@ -107,6 +107,7 @@ let currentPatientWorkspace = { clientId: '', entries: [] };
 let currentPage = '';
 let currentTrackerFeed = [];
 let trackerStatusFilter = '';
+const chatSourceRegistry = new Map();
 let demoMode = localStorage.getItem('synoracare_demo_mode') === '1' || new URLSearchParams(window.location.search).get('demo') === '1';
 if (demoMode) localStorage.setItem('synoracare_demo_mode', '1');
 
@@ -1403,6 +1404,13 @@ function renderAskAnswer(data) {
   const structured = data?.structured || null;
   const missingSections = Array.isArray(data?.missingSections) ? data.missingSections : [];
   const escalationRequired = Boolean(data?.escalationRequired);
+  const sourceMessageId = sources.length
+    ? `source-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    : '';
+
+  if (sourceMessageId) {
+    chatSourceRegistry.set(sourceMessageId, sources);
+  }
 
   const formatStructuredBlock = (value, emptyLabel = 'Not found in active documents.') => {
     const text = String(value || '').trim();
@@ -1424,7 +1432,7 @@ function renderAskAnswer(data) {
     : '';
 
   const sourcesHtml = sources.length
-    ? `<div class="chat-sources">${sources.map((s) => `<span class="source-tag">${safeText(s.sourceFileName || s.title || s.docType || 'document')}</span>`).join('')}</div>`
+    ? `<div class="chat-sources">${sources.map((s, index) => `<button type="button" class="source-tag source-tag-btn" data-source-message-id="${safeText(sourceMessageId)}" data-source-index="${index}">${safeText(formatSourceLabel(s.sourceFileName || s.title || s.docType || 'document'))}</button>`).join('')}</div>`
     : '';
 
   const bubble = document.createElement('div');
@@ -1432,6 +1440,63 @@ function renderAskAnswer(data) {
   bubble.innerHTML = `<div class="chat-bubble"><div class="chat-bubble-text">${safeText(answer).replace(/\n/g, '<br>')}</div>${structuredHtml}${sourcesHtml}</div>`;
   messages.appendChild(bubble);
   messages.scrollTop = messages.scrollHeight;
+}
+
+function formatSourceLabel(rawLabel) {
+  let label = String(rawLabel || 'document');
+
+  if (!/Individual Support Plan \(ISP\)/i.test(label)) {
+    label = label.replace(/\bISP\b/g, 'Individual Support Plan (ISP)');
+  }
+
+  if (!/Medication Administration Record \(MAR\)/i.test(label)) {
+    label = label.replace(/\bMAR\b/g, 'Medication Administration Record (MAR)');
+  }
+
+  return label;
+}
+
+function inferSourceDocType(source) {
+  const docType = String(source?.docType || '').toLowerCase();
+  const sourceName = String(source?.sourceFileName || source?.title || '').toLowerCase();
+
+  if (docType.includes('isp') || sourceName.includes('isp')) return 'isp';
+  if (docType.includes('mar') || sourceName.includes('mar')) return 'mar';
+  if (docType.includes('behavior') || sourceName.includes('behavior')) return 'behavior';
+  return 'document';
+}
+
+function getDemoSourceExcerpt(source) {
+  if (String(source?.excerpt || '').trim()) return String(source.excerpt).trim();
+
+  const docType = inferSourceDocType(source);
+  if (docType === 'isp') {
+    return 'Assist with bathing using step-by-step prompts, ensure privacy and safety checks, and document support level plus response before handoff.';
+  }
+  if (docType === 'mar') {
+    return 'Verify medication timing and MAR entries before and after care tasks, including any deviations or alerts requiring supervisor follow-up.';
+  }
+  if (docType === 'behavior') {
+    return 'Use calm redirection if distress is observed, avoid escalating language, and follow de-escalation sequence documented in the behavior plan.';
+  }
+  return 'Preview not available for this source yet. Open the Documents section for full records.';
+}
+
+function openSourcePreview(source) {
+  const modal = document.getElementById('sourcePreviewModal');
+  const title = document.getElementById('sourcePreviewTitle');
+  const meta = document.getElementById('sourcePreviewMeta');
+  const excerpt = document.getElementById('sourcePreviewExcerpt');
+  if (!modal || !title || !meta || !excerpt) return;
+
+  const sourceName = formatSourceLabel(source?.sourceFileName || source?.title || source?.docType || 'Document');
+  const sectionHint = String(source?.sectionHint || source?.docType || '').trim();
+  const previewText = getDemoSourceExcerpt(source);
+
+  title.textContent = sourceName;
+  meta.textContent = sectionHint ? `Section: ${sectionHint}` : 'Section: General guidance';
+  excerpt.textContent = previewText;
+  modal.style.display = 'flex';
 }
 
 function getSelectedAskClient() {
@@ -1446,9 +1511,24 @@ function getSelectedAskClient() {
 
 function getDemoAskSources(clientName) {
   return [
-    { sourceFileName: `${clientName} ISP (Demo)` },
-    { sourceFileName: `${clientName} MAR (Demo)` },
-    { sourceFileName: `${clientName} Behavior Plan (Demo)` }
+    {
+      sourceFileName: `${clientName} Individual Support Plan (ISP) (Demo)`,
+      docType: 'isp',
+      sectionHint: 'Personal care supports',
+      excerpt: 'Use clear, one-step prompts for bathing and grooming. Respect preferences, maintain dignity, and document assistance level before shift handoff.'
+    },
+    {
+      sourceFileName: `${clientName} Medication Administration Record (MAR) (Demo)`,
+      docType: 'mar',
+      sectionHint: 'Medication timing and verification',
+      excerpt: 'Confirm MAR timing windows and note any variances observed during personal care activities. Escalate missed or uncertain entries immediately.'
+    },
+    {
+      sourceFileName: `${clientName} Behavior Plan (Demo)`,
+      docType: 'behavior',
+      sectionHint: 'De-escalation supports',
+      excerpt: 'If distress rises during ADLs, pause, offer calm reassurance, and follow the documented de-escalation sequence before resuming care tasks.'
+    }
   ];
 }
 
@@ -2459,6 +2539,18 @@ document.getElementById('askClientId')?.addEventListener('change', () => {
 
 // Chat starter buttons
 document.getElementById('chatMessages')?.addEventListener('click', (e) => {
+  const sourceBtn = e.target.closest('.source-tag-btn');
+  if (sourceBtn) {
+    const sourceMessageId = sourceBtn.dataset.sourceMessageId;
+    const sourceIndex = Number(sourceBtn.dataset.sourceIndex || -1);
+    const sourceList = chatSourceRegistry.get(sourceMessageId) || [];
+    const source = sourceList[sourceIndex];
+    if (source) {
+      openSourcePreview(source);
+    }
+    return;
+  }
+
   const btn = e.target.closest('.chat-starter-btn');
   if (!btn) return;
 
@@ -2722,6 +2814,18 @@ document.getElementById('endShiftBtn')?.addEventListener('click', async () => {
 // Shift report modal close button
 document.querySelector('#shiftReportModal .modal-close')?.addEventListener('click', () => {
   document.getElementById('shiftReportModal').style.display = 'none';
+});
+
+// Source preview modal close behavior
+document.querySelector('#sourcePreviewModal .modal-close')?.addEventListener('click', () => {
+  const modal = document.getElementById('sourcePreviewModal');
+  if (modal) modal.style.display = 'none';
+});
+
+document.getElementById('sourcePreviewModal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'sourcePreviewModal') {
+    e.currentTarget.style.display = 'none';
+  }
 });
 
 document.getElementById('demoModeToggle')?.addEventListener('change', (e) => {

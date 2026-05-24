@@ -265,6 +265,29 @@ body.guest-mode #bootstrapSection {
 .chat-message-ai .chat-bubble { background: var(--surface); border: 1px solid var(--line); color: var(--text); border-bottom-left-radius: 4px; box-shadow: var(--shadow); }
 .chat-sources { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
 .source-tag { font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-bg); border: 1px solid var(--accent-border); border-radius: 6px; padding: 2px 8px; }
+.source-tag-btn {
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.source-tag-btn:hover,
+.source-tag-btn:focus-visible {
+  background: #dff5df;
+  border-color: #6bbf83;
+  outline: none;
+}
+.source-preview-meta {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.source-preview-excerpt {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+}
 .isp-brief { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
 .isp-escalation-banner { background: #fff1f2; border: 1px solid #fecdd3; color: #9f1239; border-radius: 10px; padding: 8px 10px; font-size: 12px; font-weight: 600; }
 .isp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
