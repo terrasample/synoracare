@@ -122,7 +122,7 @@ function persistAuthSession() {
       JSON.stringify({
         token,
         currentUser,
-        roleViewOverride: currentUser.role === 'super_admin' ? roleViewOverride : null
+        roleViewOverride: canUseRoleSwitcher() ? roleViewOverride : null
       })
     );
   } catch {
@@ -140,7 +140,7 @@ function restoreAuthSession() {
 
     token = String(parsed.token);
     currentUser = parsed.currentUser;
-    roleViewOverride = currentUser.role === 'super_admin' ? (parsed.roleViewOverride || null) : null;
+    roleViewOverride = canUseRoleSwitcher() ? (parsed.roleViewOverride || null) : null;
   } catch {
     localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
   }
@@ -551,7 +551,7 @@ function updateSession() {
   if (logoutBtn) logoutBtn.style.display = '';
 
   if (roleSwitcher) {
-    if (currentUser.role === 'super_admin') {
+    if (canUseRoleSwitcher()) {
       roleSwitcher.style.display = '';
       roleSwitcher.value = activeRole;
       roleSwitcher.title = 'Role view';
@@ -601,6 +601,11 @@ function hasPermission(permission, options = {}) {
   }
 
   return getRolePermissions(currentUser.role).includes(normalizedPermission);
+}
+
+function canUseRoleSwitcher() {
+  // Role switcher is reserved for the highest-privilege admin role.
+  return hasPermission('clients:delete', { useActiveRole: false });
 }
 
 function applyAuthUserContext(user) {
@@ -663,7 +668,7 @@ function renderRoleLabelSettings() {
 
 function canToggleDemoMode() {
   if (!currentUser) return true;
-  if (currentUser.role === 'super_admin') return true;
+  if (canUseRoleSwitcher()) return true;
   return DEMO_TOGGLE_ALLOWED_EMAILS.has(String(currentUser.email || '').toLowerCase());
 }
 
@@ -2913,7 +2918,7 @@ window.navigateTo = function(pageId) {
 
 // Demo mode role switcher
 document.getElementById('demoRoleSwitcher')?.addEventListener('change', async (e) => {
-  if (!currentUser || currentUser.role !== 'super_admin') {
+  if (!currentUser || !canUseRoleSwitcher()) {
     showToast('Only super admins can switch roles.', 'error');
     return;
   }
