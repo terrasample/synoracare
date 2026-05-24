@@ -1404,6 +1404,7 @@ function renderAskAnswer(data) {
   const structured = data?.structured || null;
   const missingSections = Array.isArray(data?.missingSections) ? data.missingSections : [];
   const escalationRequired = Boolean(data?.escalationRequired);
+  const latestQuestion = Array.from(messages.querySelectorAll('.chat-message-user .chat-bubble-text')).pop()?.textContent || '';
   const sourceMessageId = sources.length
     ? `source-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
     : '';
@@ -1431,15 +1432,95 @@ function renderAskAnswer(data) {
       </div>`
     : '';
 
+  const immediateGuidance = buildImmediateGuidance({ question: latestQuestion, sources, structured });
+  const guidanceHtml = immediateGuidance
+    ? `<div class="chat-guidance"><h4>${safeText(immediateGuidance.title)}</h4><p>${safeText(immediateGuidance.body)}</p></div>`
+    : '';
+
   const sourcesHtml = sources.length
     ? `<div class="chat-sources">${sources.map((s, index) => `<button type="button" class="source-tag source-tag-btn" data-source-message-id="${safeText(sourceMessageId)}" data-source-index="${index}">${safeText(formatSourceLabel(s.sourceFileName || s.title || s.docType || 'document'))}</button>`).join('')}</div>`
     : '';
 
   const bubble = document.createElement('div');
   bubble.className = 'chat-message chat-message-ai';
-  bubble.innerHTML = `<div class="chat-bubble"><div class="chat-bubble-text">${safeText(answer).replace(/\n/g, '<br>')}</div>${structuredHtml}${sourcesHtml}</div>`;
+  bubble.innerHTML = `<div class="chat-bubble"><div class="chat-bubble-text">${safeText(answer).replace(/\n/g, '<br>')}</div>${guidanceHtml}${structuredHtml}${sourcesHtml}</div>`;
   messages.appendChild(bubble);
   messages.scrollTop = messages.scrollHeight;
+}
+
+function inferCareTopic(text) {
+  const normalized = String(text || '').toLowerCase();
+  if (!normalized) return 'general';
+  if (/bath|bathing|shower|toilet|groom|personal care|adl/.test(normalized)) return 'bathing';
+  if (/meal|meals|eat|eating|diet|food|feeding|snack|nutrition/.test(normalized)) return 'meal';
+  if (/med|medication|mar|med pass/.test(normalized)) return 'medication';
+  if (/behavior|distress|escalat|de-escalat|redirect/.test(normalized)) return 'behavior';
+  return 'general';
+}
+
+function getPrimarySourceForTopic(topic, sources) {
+  const sourceList = Array.isArray(sources) ? sources : [];
+  if (!sourceList.length) return null;
+
+  if (topic === 'bathing' || topic === 'meal') {
+    return sourceList.find((source) => inferSourceDocType(source) === 'isp') || sourceList[0];
+  }
+  if (topic === 'medication') {
+    return sourceList.find((source) => inferSourceDocType(source) === 'mar') || sourceList[0];
+  }
+  if (topic === 'behavior') {
+    return sourceList.find((source) => inferSourceDocType(source) === 'behavior') || sourceList[0];
+  }
+  return sourceList[0];
+}
+
+function buildImmediateGuidance({ question, sources, structured }) {
+  const topic = inferCareTopic(question);
+  const primarySource = getPrimarySourceForTopic(topic, sources);
+  const sectionName = String(primarySource?.sectionHint || '').trim() || 'the cited section';
+  const sourceName = primarySource
+    ? formatSourceLabel(primarySource.sourceFileName || primarySource.title || primarySource.docType || 'Document')
+    : 'the cited document';
+
+  if (topic === 'bathing') {
+    return {
+      title: 'Start Here For Bathing',
+      body: `Open ${sourceName} and go straight to ${sectionName}. That is the first place the DSP should check for bathing supports, cueing, dignity steps, and safety instructions before providing care.`
+    };
+  }
+
+  if (topic === 'meal') {
+    const mealDetails = [];
+    if (String(structured?.diet || '').trim()) mealDetails.push('dietary restrictions');
+    if (String(structured?.allergies || '').trim()) mealDetails.push('allergies');
+    if (String(structured?.protocols || '').trim()) mealDetails.push('assistance protocols');
+    const detailText = mealDetails.length ? ` Check ${mealDetails.join(', ')} immediately before serving.` : '';
+    return {
+      title: 'Start Here For Meals',
+      body: `Open ${sourceName} and go straight to ${sectionName}. That is the first place the DSP should check for meal setup, feeding supports, and food safety guidance.${detailText}`
+    };
+  }
+
+  if (topic === 'medication') {
+    return {
+      title: 'Start Here For Medication Support',
+      body: `Open ${sourceName} and go straight to ${sectionName}. That is the first place the DSP should verify timing, administration status, and any variance notes before proceeding.`
+    };
+  }
+
+  if (topic === 'behavior') {
+    return {
+      title: 'Start Here For Behavior Support',
+      body: `Open ${sourceName} and go straight to ${sectionName}. That is the first place the DSP should check for de-escalation steps and required responses before continuing the task.`
+    };
+  }
+
+  return primarySource
+    ? {
+        title: 'Start With The Primary Source',
+        body: `Open ${sourceName} and go straight to ${sectionName}. That is the quickest place for the DSP to confirm the documented care instructions before acting.`
+      }
+    : null;
 }
 
 function formatSourceLabel(rawLabel) {
@@ -1485,6 +1566,9 @@ function getDemoSourceExcerpt(source) {
 function openSourcePreview(source) {
   const modal = document.getElementById('sourcePreviewModal');
   const title = document.getElementById('sourcePreviewTitle');
+  const callout = document.getElementById('sourcePreviewCallout');
+  const calloutTitle = document.getElementById('sourcePreviewCalloutTitle');
+  const calloutBody = document.getElementById('sourcePreviewCalloutBody');
   const meta = document.getElementById('sourcePreviewMeta');
   const excerpt = document.getElementById('sourcePreviewExcerpt');
   if (!modal || !title || !meta || !excerpt) return;
@@ -1492,8 +1576,27 @@ function openSourcePreview(source) {
   const sourceName = formatSourceLabel(source?.sourceFileName || source?.title || source?.docType || 'Document');
   const sectionHint = String(source?.sectionHint || source?.docType || '').trim();
   const previewText = getDemoSourceExcerpt(source);
+  const docType = inferSourceDocType(source);
+
+  let previewTitle = 'Use This Source First';
+  let previewBody = 'This is the fastest place for the DSP to confirm the documented instruction before proceeding.';
+  if (docType === 'isp') {
+    previewTitle = 'Primary Care Instruction Source';
+    previewBody = 'Use this first for bathing, meals, personal care supports, and day-to-day assistance instructions.';
+  } else if (docType === 'mar') {
+    previewTitle = 'Medication Verification Source';
+    previewBody = 'Use this first when the DSP needs to confirm medication timing, administration status, or med-related caution before care.';
+  } else if (docType === 'behavior') {
+    previewTitle = 'Behavior Response Source';
+    previewBody = 'Use this first when the DSP needs de-escalation steps, behavior triggers, or response guidance during care.';
+  }
 
   title.textContent = sourceName;
+  if (callout && calloutTitle && calloutBody) {
+    callout.style.display = 'block';
+    calloutTitle.textContent = previewTitle;
+    calloutBody.textContent = previewBody;
+  }
   meta.textContent = sectionHint ? `Section: ${sectionHint}` : 'Section: General guidance';
   excerpt.textContent = previewText;
   modal.style.display = 'flex';
@@ -1515,7 +1618,7 @@ function getDemoAskSources(clientName) {
       sourceFileName: `${clientName} Individual Support Plan (ISP) (Demo)`,
       docType: 'isp',
       sectionHint: 'Personal care supports',
-      excerpt: 'Use clear, one-step prompts for bathing and grooming. Respect preferences, maintain dignity, and document assistance level before shift handoff.'
+      excerpt: 'Use clear, one-step prompts for bathing and grooming. Respect preferences, maintain dignity, and document assistance level before shift handoff. This is the primary place the DSP should look for bathing and meal assistance instructions.'
     },
     {
       sourceFileName: `${clientName} Medication Administration Record (MAR) (Demo)`,
