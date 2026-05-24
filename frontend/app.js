@@ -1021,17 +1021,89 @@ function renderAskAnswer(data) {
   if (typing) typing.remove();
 
   const answer = typeof data === 'string' ? data : (data?.answer || 'No answer returned.');
-  const sources = Array.isArray(data?.sources) ? data.sources : [];
+  const sources = Array.isArray(data?.sources)
+    ? data.sources
+    : (Array.isArray(data?.citations) ? data.citations : []);
+  const structured = data?.structured || null;
+  const missingSections = Array.isArray(data?.missingSections) ? data.missingSections : [];
+  const escalationRequired = Boolean(data?.escalationRequired);
+
+  const formatStructuredBlock = (value, emptyLabel = 'Not found in active documents.') => {
+    const text = String(value || '').trim();
+    if (!text) return `<p class="isp-empty">${safeText(emptyLabel)}</p>`;
+    return `<p>${safeText(text).replace(/\n/g, '<br>')}</p>`;
+  };
+
+  const structuredHtml = structured
+    ? `<div class="isp-brief">
+        ${escalationRequired ? `<div class="isp-escalation-banner"><strong>Escalation required:</strong> ${safeText(data?.escalationMessage || 'Missing required guidance. Escalate before proceeding.')}</div>` : ''}
+        <div class="isp-grid">
+          <article class="isp-card"><h4>Dietary Restrictions</h4>${formatStructuredBlock(structured.diet)}</article>
+          <article class="isp-card"><h4>Allergies</h4>${formatStructuredBlock(structured.allergies)}</article>
+          <article class="isp-card"><h4>Behavior Notes</h4>${formatStructuredBlock(structured.behavior)}</article>
+          <article class="isp-card"><h4>Assistance Protocols</h4>${formatStructuredBlock(structured.protocols)}</article>
+        </div>
+        ${missingSections.length ? `<p class="isp-missing">Missing sections: ${safeText(missingSections.join(', '))}</p>` : ''}
+      </div>`
+    : '';
 
   const sourcesHtml = sources.length
-    ? `<div class="chat-sources">${sources.map((s) => `<span class="source-tag">${safeText(s.title || s.docType || 'document')}</span>`).join('')}</div>`
+    ? `<div class="chat-sources">${sources.map((s) => `<span class="source-tag">${safeText(s.sourceFileName || s.title || s.docType || 'document')}</span>`).join('')}</div>`
     : '';
 
   const bubble = document.createElement('div');
   bubble.className = 'chat-message chat-message-ai';
-  bubble.innerHTML = `<div class="chat-bubble"><div class="chat-bubble-text">${safeText(answer).replace(/\n/g, '<br>')}</div>${sourcesHtml}</div>`;
+  bubble.innerHTML = `<div class="chat-bubble"><div class="chat-bubble-text">${safeText(answer).replace(/\n/g, '<br>')}</div>${structuredHtml}${sourcesHtml}</div>`;
   messages.appendChild(bubble);
   messages.scrollTop = messages.scrollHeight;
+}
+
+function getSelectedAskClient() {
+  const select = document.getElementById('askClientId');
+  if (!select) return { clientId: '', clientName: 'this client' };
+  const clientId = select.value || '';
+  const option = select.options[select.selectedIndex];
+  const label = option ? String(option.textContent || '').trim() : '';
+  const clientName = label ? label.split('(')[0].trim() : 'this client';
+  return { clientId, clientName };
+}
+
+async function requestMealAssistSnapshot() {
+  const { clientId, clientName } = getSelectedAskClient();
+  if (!clientId) {
+    showToast('Please select a client first.', 'info');
+    return;
+  }
+
+  const messages = document.getElementById('chatMessages');
+  const userQuestion = `How should I assist ${clientName} with meals?`;
+
+  const welcome = messages?.querySelector('.chat-welcome-state');
+  if (welcome) welcome.remove();
+
+  if (messages) {
+    const userBubble = document.createElement('div');
+    userBubble.className = 'chat-message chat-message-user';
+    userBubble.innerHTML = `<div class="chat-bubble"><div class="chat-bubble-text">${safeText(userQuestion)}</div></div>`;
+    messages.appendChild(userBubble);
+
+    const typing = document.createElement('div');
+    typing.className = 'chat-message chat-message-ai chat-typing';
+    typing.innerHTML = '<div class="chat-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+    messages.appendChild(typing);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  try {
+    const data = await api('/api/ask/isp-assistant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId })
+    });
+    renderAskAnswer(data);
+  } catch (err) {
+    renderAskAnswer(err.message);
+  }
 }
 
 function renderAuditFeed(data) {
@@ -1784,6 +1856,12 @@ document.getElementById('askClientId')?.addEventListener('change', () => {
 document.getElementById('chatMessages')?.addEventListener('click', (e) => {
   const btn = e.target.closest('.chat-starter-btn');
   if (!btn) return;
+
+  if (btn.dataset.quickAssist === 'meal') {
+    requestMealAssistSnapshot();
+    return;
+  }
+
   const textarea = document.querySelector('#askForm textarea');
   if (textarea) {
     textarea.value = btn.dataset.question;
