@@ -24,6 +24,7 @@ const API_BASE = window.SYNORACARE_CONFIG?.API_BASE || window.CAREGUIDE_CONFIG?.
 const DEMO_TOGGLE_ALLOWED_EMAILS = new Set(['terrasample@yahoo.com']);
 let token = '';
 let currentUser = null;
+let roleViewOverride = null;
 let clientsCache = [];
 let usersCache = [];
 let selectedTrainingContext = 'pre_shift';
@@ -367,34 +368,37 @@ function updateSession() {
   const info = document.getElementById('sessionInfo');
   const logoutBtn = document.getElementById('logoutBtn');
   const roleSwitcher = document.getElementById('demoRoleSwitcher');
-  
+  const activeRole = getActiveRole();
+
   if (!currentUser) {
     info.textContent = 'Not logged in';
     if (logoutBtn) logoutBtn.style.display = 'none';
     if (roleSwitcher) roleSwitcher.style.display = 'none';
+    roleViewOverride = null;
     syncDemoToggle();
     applyRoleMode('guest');
     renderTraining('guest', selectedTrainingContext);
     saveCurrentShift(null);
     return;
   }
-  
-  info.textContent = `${currentUser.fullName} | ${currentUser.role}`;
+
+  info.textContent = roleViewOverride
+    ? `${currentUser.fullName} | ${currentUser.role} (viewing as ${activeRole})`
+    : `${currentUser.fullName} | ${currentUser.role}`;
   if (logoutBtn) logoutBtn.style.display = '';
-  
-  // Show role switcher only in demo mode
+
   if (roleSwitcher) {
-    if (demoMode && currentUser.email?.includes('preview')) {
+    if (currentUser.role === 'super_admin') {
       roleSwitcher.style.display = '';
-      roleSwitcher.value = currentUser.role;
+      roleSwitcher.value = activeRole;
     } else {
       roleSwitcher.style.display = 'none';
     }
   }
-  
-  applyRoleMode(currentUser.role);
+
+  applyRoleMode(activeRole);
   syncDemoToggle();
-  renderTraining(currentUser.role, selectedTrainingContext);
+  renderTraining(activeRole, selectedTrainingContext);
   loadCurrentShift();
   updateShiftUI();
   renderHomeSection();
@@ -722,6 +726,10 @@ function saveOfflineEntry(entry) {
   }
 }
 
+function getActiveRole() {
+  return currentUser ? (roleViewOverride || currentUser.role) : 'guest';
+}
+
 function getOfflineEntries() {
   try {
     return JSON.parse(localStorage.getItem(OFFLINE_ENTRIES_KEY) || '[]');
@@ -901,6 +909,7 @@ async function api(path, options = {}) {
     if (response.status === 401 && token) {
       token = '';
       currentUser = null;
+      roleViewOverride = null;
       updateSession();
       throw new Error('Session expired. Please sign in again.');
     }
@@ -911,7 +920,7 @@ async function api(path, options = {}) {
 
 async function renderHomeSection() {
   if (!currentUser) return;
-  const role = currentUser.role;
+  const role = getActiveRole();
 
   const welcomeTitle = document.getElementById('homeWelcomeTitle');
   const welcomeRole = document.getElementById('homeWelcomeRole');
@@ -939,7 +948,6 @@ async function renderHomeSection() {
       { label: 'Audit Log', target: 'auditSection' }
     ],
     org_admin: [
-      { label: 'Add Team Member', target: 'createUserSection' },
       { label: 'Add Client', target: 'createClientSection' },
       { label: 'Assign DSP', target: 'assignmentSection' },
       { label: 'Legal Export', target: 'legalRecordsSection' },
@@ -1070,7 +1078,7 @@ function renderUserList(users) {
   if (!list) return;
 
   if (!users || !users.length) {
-    list.innerHTML = '<p class="empty-state">No team members yet.</p>';
+    list.innerHTML = '<p class="empty-state">No staff yet.</p>';
     return;
   }
 
@@ -1237,6 +1245,7 @@ document.getElementById('bootstrapForm').addEventListener('submit', async (e) =>
     });
     token = data.token;
     currentUser = data.user;
+    roleViewOverride = null;
     updateSession();
     await refreshAllPickers();
   } catch (err) {
@@ -1413,6 +1422,7 @@ accountRecoveryForm?.addEventListener('submit', async (e) => {
 
     token = data.token;
     currentUser = data.user;
+    roleViewOverride = null;
     if (accountRecoveryOutput) {
       accountRecoveryOutput.textContent = 'Password reset successful. Signing you in...';
     }
@@ -1445,6 +1455,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     setDemoMode(true);
     token = `demo-preview-${previewRole}`;
     currentUser = { ...previewUser };
+    roleViewOverride = null;
     updateSession();
     await refreshAllPickers();
     showToast(`Signed in as preview ${previewUser.role.replace('_', ' ')}`, 'success');
@@ -1459,6 +1470,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     });
     token = data.token;
     currentUser = data.user;
+    roleViewOverride = null;
     updateSession();
     await refreshAllPickers();
   } catch (err) {
@@ -1677,7 +1689,7 @@ document.getElementById('trainingContextRow').addEventListener('click', (e) => {
   if (!button) return;
 
   selectedTrainingContext = button.dataset.trainingContext;
-  renderTraining(currentUser ? currentUser.role : 'guest', selectedTrainingContext);
+  renderTraining(getActiveRole(), selectedTrainingContext);
 });
 
 document.getElementById('assignmentForm').addEventListener('submit', async (e) => {
@@ -1971,6 +1983,7 @@ document.getElementById('patientTabRow')?.addEventListener('click', (e) => {
 document.getElementById('logoutBtn')?.addEventListener('click', () => {
   token = '';
   currentUser = null;
+  roleViewOverride = null;
   clientsCache = [];
   usersCache = [];
   legalExportPayload = null;
@@ -2380,20 +2393,18 @@ window.navigateTo = function(pageId) {
 
 // Demo mode role switcher
 document.getElementById('demoRoleSwitcher')?.addEventListener('change', async (e) => {
+  if (!currentUser || currentUser.role !== 'super_admin') {
+    showToast('Only super admins can switch roles.', 'error');
+    return;
+  }
+
   const newRole = e.target.value;
-  const previewUser = ROLE_PREVIEW_USERS[newRole];
-  if (!previewUser) return;
-  
-  // Clear demo clients cache so they reload for the new role
-  try {
-    localStorage.removeItem(DEMO_CLIENTS_STORAGE_KEY);
-  } catch (e) {}
-  
-  // Update current user to new role
-  currentUser = { ...previewUser };
+  if (!newRole) return;
+
+  roleViewOverride = newRole === 'super_admin' ? null : newRole;
   updateSession();
   await refreshAllPickers();
-  showToast(`Switched to ${previewUser.role.replace('_', ' ')} role`, 'success');
+  showToast(`Viewing as ${getActiveRole().replace('_', ' ')} role`, 'success');
 });
 
 updateSession();

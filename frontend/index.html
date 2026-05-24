@@ -20,6 +20,7 @@
     <div class="topbar-right">
       <span id="sessionInfo" class="session-info">Not logged in</span>
       <select id="demoRoleSwitcher" style="display:none; font-size: 12px; padding: 5px 8px; border: 1px solid #d9e0ea; border-radius: 6px; background: #ffffff; cursor: pointer;">
+        <option value="super_admin">Super Admin</option>
         <option value="dsp">DSP</option>
         <option value="supervisor">Supervisor</option>
         <option value="org_admin">Org Admin</option>
@@ -65,9 +66,9 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
           <span class="nav-label">Assign</span>
         </button>
-        <button type="button" class="nav-item nav-role-admin" data-nav-target="createUserSection">
+        <button type="button" class="nav-item nav-role-superadmin" data-nav-target="createUserSection">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-          <span class="nav-label">Team</span>
+          <span class="nav-label">Staff</span>
         </button>
         <button type="button" class="nav-item nav-role-admin" data-nav-target="createClientSection">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -590,7 +591,7 @@
     <section class="page" id="createUserSection" style="display:none;">
       <div class="page-header">
         <div>
-          <h2>Team Members</h2>
+          <h2>Staff</h2>
           <p class="page-desc">Invite staff members to activate their own accounts securely</p>
         </div>
       </div>

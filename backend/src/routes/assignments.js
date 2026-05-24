@@ -131,7 +131,7 @@ router.post('/break-glass', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/users', requireAuth, requireRoles('super_admin', 'org_admin'), async (req, res) => {
+router.post('/users', requireAuth, requireRoles('super_admin'), async (req, res) => {
   try {
     const { fullName, email, role } = req.body || {};
     if (!fullName || !email || !role) {
