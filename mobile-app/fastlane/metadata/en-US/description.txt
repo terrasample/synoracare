@@ -1,4 +1,4 @@
-SynoraCare AI helps care teams make safer, faster, and better-documented decisions during live shifts.
+SynoraCare helps care teams make safer, faster, and better-documented decisions during live shifts.
 
 The app gives authorized staff grounded guidance from care documentation, including ISP, MAR, and behavior plans, while maintaining role-based access and operational accountability.
 
@@ -10,4 +10,4 @@ Key capabilities include:
 • Break-glass emergency access with documented rationale
 • Audit-ready activity history and compliance-aligned operations
 
-SynoraCare AI is designed to support teams in delivering consistent care quality while improving documentation accuracy and response time.
+SynoraCare is designed to support teams in delivering consistent care quality while improving documentation accuracy and response time.

@@ -102,6 +102,7 @@ let clientsCache = [];
 let usersCache = [];
 let selectedTrainingContext = 'pre_shift';
 let legalExportPayload = null;
+let currentReportPayload = null;
 let selectedPatientTab = 'care';
 let currentPatientWorkspace = { clientId: '', entries: [] };
 let currentPage = '';
@@ -425,6 +426,8 @@ const DEMO_TRACKER_ENTRIES = [
 
 const PAGE_ACCESS_RULES = {
   askSection: 'ask:approved_guidance:read',
+  careModulesSection: 'tracker:entry:read',
+  reportingSection: 'tracker:entry:read',
   uploadSection: 'documents:upload',
   assignmentSection: 'assignments:create',
   createClientSection: ['clients:assigned:read', 'clients:all:read'],
@@ -551,7 +554,38 @@ function navigateTo(pageId, options = {}) {
   });
   const main = document.querySelector('.main-content');
   if (main) main.scrollTop = 0;
+  handlePageNavigation(pageId);
   return pageId;
+}
+
+function handlePageNavigation(pageId) {
+  if (!currentUser) return;
+
+  if (pageId === 'homeSection') {
+    renderHomeSection().catch(() => {});
+    return;
+  }
+
+  if (pageId === 'trackerSection') {
+    setTrackerStatusFilter(trackerStatusFilter).catch(() => {});
+    return;
+  }
+
+  if (pageId === 'patientWorkspaceSection') {
+    loadPatientWorkspace().catch(() => {});
+    return;
+  }
+
+  if (pageId === 'careModulesSection') {
+    loadTrackerFeed()
+      .then(() => renderCareModulesSection())
+      .catch(() => renderCareModulesSection());
+    return;
+  }
+
+  if (pageId === 'reportingSection') {
+    loadReportingSection().catch(() => {});
+  }
 }
 
 const ROLE_TRAINING = {
@@ -1020,9 +1054,7 @@ function setDemoMode(nextMode) {
     loadTrackerSummary(),
     loadTrackerFeed()
   ]).then(() => {
-    // Re-render current section if it needs fresh data
-    if (page === 'homeSection') renderHomeSection();
-    else if (page === 'trackerSection') renderTrackerFeed(currentTrackerFeed || []);
+    handlePageNavigation(page);
   }).catch((err) => {
     console.error('Error refreshing data after demo mode toggle:', err);
   });
@@ -1118,6 +1150,7 @@ function syncClientPickers() {
   setSelectOptions('trackerClientId', options, 'Select Client');
   setSelectOptions('legalRecordsClientId', options, 'Select Client');
   setSelectOptions('patientWorkspaceClientId', options, 'Select Client');
+  setSelectOptions('reportingClientId', options, 'All Clients');
 
   const patientSelect = document.getElementById('patientWorkspaceClientId');
   if (demoMode && patientSelect && !patientSelect.value && options.length) {
@@ -1230,6 +1263,194 @@ function renderTrackerFeed(entries) {
 function setTrackerStatusFilter(status) {
   trackerStatusFilter = status || '';
   return Promise.all([loadTrackerSummary(), loadTrackerFeed()]);
+}
+
+function getClientNameById(clientId) {
+  const client = clientsCache.find((item) => item._id === clientId);
+  return client?.displayName || 'Unknown Client';
+}
+
+function renderCareModulesSection() {
+  const grid = document.getElementById('careModulesGrid');
+  if (!grid) return;
+
+  const activeClients = clientsCache.filter((client) => (client?.status || 'active') === 'active').length;
+  const trackerEntries = currentTrackerFeed || [];
+  const pending = trackerEntries.filter((entry) => entry.status === 'pending').length;
+  const escalated = trackerEntries.filter((entry) => entry.status === 'escalated').length;
+  const incidents = trackerEntries.filter((entry) => entry.eventType === 'incident').length;
+
+  const modules = [
+    {
+      title: 'Medication Safety',
+      description: 'Track med passes, pending verifications, and escalation patterns by client.',
+      metricLabel: 'Pending medication workflows',
+      metricValue: pending
+    },
+    {
+      title: 'Behavior & Incident',
+      description: 'Review behavior events, crisis notes, and immediate incident follow-ups.',
+      metricLabel: 'Incident-related events',
+      metricValue: incidents
+    },
+    {
+      title: 'Daily Living & ADL',
+      description: 'Monitor ADL completion, routine adherence, and support continuity.',
+      metricLabel: 'Active clients in care',
+      metricValue: activeClients
+    },
+    {
+      title: 'Risk & Escalation',
+      description: 'Prioritize high-risk entries with supervisor-ready escalation visibility.',
+      metricLabel: 'Escalated items',
+      metricValue: escalated
+    }
+  ];
+
+  grid.innerHTML = modules
+    .map((module) => `
+      <article class="care-module-card">
+        <h3>${safeText(module.title)}</h3>
+        <p>${safeText(module.description)}</p>
+        <div class="care-module-metric">
+          <span class="metric-value">${safeText(module.metricValue)}</span>
+          <span class="metric-label">${safeText(module.metricLabel)}</span>
+        </div>
+      </article>
+    `)
+    .join('');
+}
+
+function buildReportPayload(entries, filters) {
+  const filtered = entries.filter((entry) => {
+    const matchesClient = !filters.clientId || entry.clientId === filters.clientId;
+    const matchesStatus = !filters.status || entry.status === filters.status;
+
+    const createdAt = entry.createdAt || entry.updatedAt || entry.dueAt;
+    const stamp = createdAt ? new Date(createdAt).getTime() : NaN;
+    const fromStamp = filters.from ? new Date(`${filters.from}T00:00:00`).getTime() : null;
+    const toStamp = filters.to ? new Date(`${filters.to}T23:59:59`).getTime() : null;
+    const matchesFrom = fromStamp ? (!Number.isNaN(stamp) && stamp >= fromStamp) : true;
+    const matchesTo = toStamp ? (!Number.isNaN(stamp) && stamp <= toStamp) : true;
+    return matchesClient && matchesStatus && matchesFrom && matchesTo;
+  });
+
+  const byType = filtered.reduce((acc, entry) => {
+    const key = entry.eventType || 'other';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  const summary = {
+    total: filtered.length,
+    pending: filtered.filter((entry) => entry.status === 'pending').length,
+    completed: filtered.filter((entry) => entry.status === 'completed').length,
+    escalated: filtered.filter((entry) => entry.status === 'escalated').length
+  };
+
+  const sorted = [...filtered].sort((a, b) => {
+    const aStamp = new Date(a.createdAt || a.updatedAt || a.dueAt || 0).getTime();
+    const bStamp = new Date(b.createdAt || b.updatedAt || b.dueAt || 0).getTime();
+    return bStamp - aStamp;
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    filters,
+    summary,
+    byType,
+    entries: sorted
+  };
+}
+
+function renderReportPayload(payload) {
+  const summaryEl = document.getElementById('reportingSummary');
+  const byTypeEl = document.getElementById('reportByType');
+  const recentEl = document.getElementById('reportRecent');
+  if (!summaryEl || !byTypeEl || !recentEl) return;
+
+  summaryEl.innerHTML = `
+    <article class="report-kpi"><span>${safeText(payload.summary.total)}</span><small>Total Entries</small></article>
+    <article class="report-kpi"><span>${safeText(payload.summary.pending)}</span><small>Pending</small></article>
+    <article class="report-kpi"><span>${safeText(payload.summary.completed)}</span><small>Completed</small></article>
+    <article class="report-kpi"><span>${safeText(payload.summary.escalated)}</span><small>Escalated</small></article>
+  `;
+
+  const maxTypeValue = Math.max(...Object.values(payload.byType), 1);
+  const typeRows = Object.entries(payload.byType)
+    .sort((a, b) => b[1] - a[1])
+    .map(([type, count]) => {
+      const width = Math.max(10, Math.round((count / maxTypeValue) * 100));
+      return `
+        <div class="report-bar-row">
+          <span class="report-bar-label">${safeText(type)}</span>
+          <div class="report-bar-track"><span class="report-bar-fill" style="width:${safeText(width)}%"></span></div>
+          <span class="report-bar-count">${safeText(count)}</span>
+        </div>
+      `;
+    })
+    .join('');
+  byTypeEl.innerHTML = typeRows || '<p class="empty-state">No matching events for current filters.</p>';
+
+  const recentRows = payload.entries.slice(0, 12).map((entry) => {
+    return `
+      <div class="report-row">
+        <div>
+          <strong>${safeText(entry.summary || 'No summary')}</strong>
+          <p>${safeText(getClientNameById(entry.clientId))} | ${safeText(entry.eventType || 'other')}</p>
+        </div>
+        <div class="report-row-meta">
+          <span class="status-badge status-${safeText(entry.status || 'pending')}">${safeText(entry.status || 'pending')}</span>
+          <time>${safeText(formatDate(entry.createdAt || entry.updatedAt || entry.dueAt))}</time>
+        </div>
+      </div>
+    `;
+  }).join('');
+  recentEl.innerHTML = recentRows || '<p class="empty-state">No entries available.</p>';
+}
+
+async function loadReportingSection(formValues = null) {
+  const filters = formValues || {
+    clientId: document.getElementById('reportingClientId')?.value || '',
+    status: document.getElementById('reportingStatus')?.value || '',
+    from: document.getElementById('reportingFrom')?.value || '',
+    to: document.getElementById('reportingTo')?.value || ''
+  };
+
+  try {
+    const data = await api('/api/tracker?limit=250');
+    const sourceEntries = data.entries || [];
+    const payload = buildReportPayload(sourceEntries, filters);
+    currentReportPayload = payload;
+    renderReportPayload(payload);
+  } catch (error) {
+    if (demoMode) {
+      const payload = buildReportPayload(DEMO_TRACKER_ENTRIES, filters);
+      currentReportPayload = payload;
+      renderReportPayload(payload);
+      return;
+    }
+
+    currentReportPayload = null;
+    const summaryEl = document.getElementById('reportingSummary');
+    const byTypeEl = document.getElementById('reportByType');
+    const recentEl = document.getElementById('reportRecent');
+    if (summaryEl) summaryEl.innerHTML = `<p class="empty-state">${safeText(error.message)}</p>`;
+    if (byTypeEl) byTypeEl.innerHTML = '';
+    if (recentEl) recentEl.innerHTML = '';
+  }
+}
+
+function downloadReportFile(content, fileName, contentType) {
+  const blob = new Blob([content], { type: contentType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
 }
 
 async function openTrackerPhoto(entryId) {
@@ -1534,9 +1755,11 @@ async function renderHomeSection() {
   if (welcomeRole) welcomeRole.textContent = roleLabels[role] || role;
 
   const actionCatalog = [
-    { label: 'Ask Grounded Q&A', target: 'askSection', permission: 'ask:approved_guidance:read' },
+    { label: 'Ask Assistant', target: 'askSection', permission: 'ask:approved_guidance:read' },
     { label: 'Log Event', target: 'trackerSection', permission: 'tracker:entry:create' },
     { label: 'Review Tracker', target: 'trackerSection', permission: 'tracker:entry:read' },
+    { label: 'Care Modules', target: 'careModulesSection', permission: 'tracker:entry:read' },
+    { label: 'Reporting', target: 'reportingSection', permission: 'tracker:entry:read' },
     { label: 'Emergency Access', target: 'breakGlassSection' },
     { label: 'My Training', target: 'trainingSection' },
     { label: 'Upload Document', target: 'uploadSection', permission: 'documents:upload' },
@@ -2976,6 +3199,66 @@ document.getElementById('refreshTrackerSummaryBtn').addEventListener('click', as
     const container = document.getElementById('trackerSummaryCards');
     if (container) container.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
   }
+});
+
+document.getElementById('refreshCareModulesBtn')?.addEventListener('click', async () => {
+  try {
+    await loadTrackerFeed();
+    renderCareModulesSection();
+  } catch (err) {
+    const grid = document.getElementById('careModulesGrid');
+    if (grid) grid.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
+  }
+});
+
+document.getElementById('reportingForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = new FormData(e.target);
+  await loadReportingSection({
+    clientId: String(form.get('clientId') || ''),
+    status: String(form.get('status') || ''),
+    from: String(form.get('from') || ''),
+    to: String(form.get('to') || '')
+  });
+});
+
+document.getElementById('exportReportCsvBtn')?.addEventListener('click', () => {
+  if (!currentReportPayload || !currentReportPayload.entries?.length) {
+    showToast('Generate a report before exporting.', 'error');
+    return;
+  }
+
+  const header = ['client', 'eventType', 'status', 'priority', 'summary', 'createdAt'];
+  const rows = currentReportPayload.entries.map((entry) => {
+    return [
+      getClientNameById(entry.clientId),
+      entry.eventType || '',
+      entry.status || '',
+      entry.priority || '',
+      String(entry.summary || '').replaceAll('"', '""'),
+      entry.createdAt || entry.updatedAt || entry.dueAt || ''
+    ];
+  });
+
+  const csv = [header, ...rows]
+    .map((row) => row.map((cell) => `"${String(cell)}"`).join(','))
+    .join('\n');
+  const stamp = new Date().toISOString().replaceAll(':', '-');
+  downloadReportFile(csv, `synoracare-report-${stamp}.csv`, 'text/csv');
+});
+
+document.getElementById('exportReportJsonBtn')?.addEventListener('click', () => {
+  if (!currentReportPayload) {
+    showToast('Generate a report before exporting.', 'error');
+    return;
+  }
+
+  const stamp = new Date().toISOString().replaceAll(':', '-');
+  downloadReportFile(
+    JSON.stringify(currentReportPayload, null, 2),
+    `synoracare-report-${stamp}.json`,
+    'application/json'
+  );
 });
 
 document.getElementById('trackerForm').addEventListener('submit', async (e) => {

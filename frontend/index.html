@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SynoraCare AI</title>
-  <link rel="stylesheet" href="styles.css?v=20260525b" />
+  <title>SynoraCare</title>
+  <link rel="stylesheet" href="styles.css?v=20260525c" />
 </head>
 <body class="guest-mode role-guest">
 <div class="app-shell">
@@ -13,7 +13,7 @@
       <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle sidebar">
         <span></span><span></span><span></span>
       </button>
-      <span class="topbar-logo">SynoraCare AI</span>
+      <span class="topbar-logo">SynoraCare</span>
       <span id="versionBadge" class="version-badge" style="display:none;"></span>
     </div>
     <div class="topbar-right">
@@ -43,7 +43,7 @@
         </button>
         <button type="button" class="nav-item nav-ask" data-nav-target="askSection">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-          <span class="nav-label">Ask AI</span>
+          <span class="nav-label">Ask Assistant</span>
         </button>
         <button type="button" class="nav-item" data-nav-target="trackerSection">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg>
@@ -52,6 +52,14 @@
         <button type="button" class="nav-item" data-nav-target="patientWorkspaceSection">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.582-7 8-7s8 3 8 7"/></svg>
           <span class="nav-label">Patient</span>
+        </button>
+        <button type="button" class="nav-item" data-nav-target="careModulesSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="8" height="7" rx="1"/><rect x="13" y="4" width="8" height="7" rx="1"/><rect x="3" y="13" width="8" height="7" rx="1"/><rect x="13" y="13" width="8" height="7" rx="1"/></svg>
+          <span class="nav-label">Care Modules</span>
+        </button>
+        <button type="button" class="nav-item" data-nav-target="reportingSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="11" width="3" height="7" rx="1"/><rect x="11" y="8" width="3" height="10" rx="1"/><rect x="16" y="5" width="3" height="13" rx="1"/></svg>
+          <span class="nav-label">Reporting</span>
         </button>
         <button type="button" class="nav-item nav-role-supervisor" data-nav-target="uploadSection">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><polyline points="12,18 12,12"/><polyline points="9,15 12,12 15,15"/></svg>
@@ -267,11 +275,11 @@
       <div id="homeAlerts" class="home-alerts-panel"></div>
     </section>
 
-    <!-- ── AUTH: Ask AI (chat) ──────────────────────────────────── -->
+    <!-- ── AUTH: Ask Assistant (chat) ───────────────────────────── -->
     <section class="page" id="askSection" style="display:none;">
       <div class="chat-header">
         <div class="chat-header-left">
-          <h2>Ask AI</h2>
+          <h2>Ask Assistant</h2>
           <p class="page-desc">Grounded answers from care documents</p>
         </div>
         <div class="chat-header-right">
@@ -481,8 +489,8 @@
 
           <!-- Logo + brand -->
           <div class="login-logo-wrap">
-            <h1 class="login-brand-title">SynoraCare AI</h1>
-            <p class="login-brand-subtitle">AI operational support for healthcare and disability care teams</p>
+            <h1 class="login-brand-title">SynoraCare</h1>
+            <p class="login-brand-subtitle">Operational support for healthcare and disability care teams</p>
           </div>
 
           <!-- Form -->
@@ -851,6 +859,57 @@
       <div id="patientTabContent" class="patient-tab-content"></div>
     </section>
 
+    <!-- ── AUTH: Care Modules ───────────────────────────────────── -->
+    <section class="page" id="careModulesSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Care Modules</h2>
+          <p class="page-desc">Operational modules for frontline care, medication safety, behavior support, and incident response</p>
+        </div>
+        <div class="page-header-actions">
+          <button id="refreshCareModulesBtn" type="button" class="btn-secondary">Refresh Modules</button>
+        </div>
+      </div>
+      <div id="careModulesGrid" class="care-modules-grid"></div>
+    </section>
+
+    <!-- ── AUTH: Reporting ──────────────────────────────────────── -->
+    <section class="page" id="reportingSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Reporting</h2>
+          <p class="page-desc">Client and shift analytics for operational oversight and compliance-ready exports</p>
+        </div>
+      </div>
+      <form id="reportingForm" class="report-toolbar">
+        <select id="reportingClientId" name="clientId">
+          <option value="">All Clients</option>
+        </select>
+        <select id="reportingStatus" name="status">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="completed">Completed</option>
+          <option value="escalated">Escalated</option>
+        </select>
+        <input id="reportingFrom" name="from" type="date" />
+        <input id="reportingTo" name="to" type="date" />
+        <button type="submit">Generate Report</button>
+        <button id="exportReportCsvBtn" type="button" class="btn-secondary">Export CSV</button>
+        <button id="exportReportJsonBtn" type="button" class="btn-secondary">Export JSON</button>
+      </form>
+      <div id="reportingSummary" class="report-summary-grid"></div>
+      <div class="report-panels">
+        <article class="report-panel">
+          <h3>By Event Type</h3>
+          <div id="reportByType" class="report-bars"></div>
+        </article>
+        <article class="report-panel">
+          <h3>Recent Entries</h3>
+          <div id="reportRecent" class="report-table"></div>
+        </article>
+      </div>
+    </section>
+
     <!-- ── AUTH: Break Glass ────────────────────────────────────── -->
     <section class="page" id="breakGlassSection" style="display:none;">
       <div class="page-header">
@@ -966,6 +1025,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=20260525b"></script>
+  <script src="app.js?v=20260525c"></script>
 </body>
 </html>

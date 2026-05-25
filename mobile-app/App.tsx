@@ -57,7 +57,7 @@ export default function App() {
           <Pressable style={styles.backButton} onPress={() => setShowConsole(false)}>
             <Text style={styles.backButtonText}>Back</Text>
           </Pressable>
-          <Text style={styles.webTitle}>SynoraCare AI Console</Text>
+          <Text style={styles.webTitle}>SynoraCare Console</Text>
           <View style={styles.webStatusWrap}>
             <View style={[styles.dot, { backgroundColor: healthColor }]} />
             <Text style={styles.webStatusText}>{healthState.toUpperCase()}</Text>
@@ -67,7 +67,7 @@ export default function App() {
         <WebView source={{ uri: WEB_URL }} startInLoadingState renderLoading={() => (
           <View style={styles.loaderWrap}>
             <ActivityIndicator size="large" color="#22C55E" />
-            <Text style={styles.loaderText}>Loading SynoraCare AI...</Text>
+            <Text style={styles.loaderText}>Loading SynoraCare...</Text>
           </View>
         )} />
       </SafeAreaView>
@@ -83,7 +83,7 @@ export default function App() {
       <View style={styles.card}>
         <Image source={require('./assets/synoracare-logo.png')} style={styles.logo} resizeMode="contain" />
 
-        <Text style={styles.title}>SynoraCare AI</Text>
+        <Text style={styles.title}>SynoraCare</Text>
         <Text style={styles.subtitle}>Secure Care Intelligence in your pocket.</Text>
 
         <View style={styles.statusRow}>

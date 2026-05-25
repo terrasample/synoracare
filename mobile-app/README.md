@@ -1,6 +1,6 @@
-# SynoraCare AI Mobile App
+# SynoraCare Mobile App
 
-Expo React Native app for SynoraCare AI.
+Expo React Native app for SynoraCare.
 
 ## Run locally
 
@@ -16,7 +16,7 @@ npm run web
 
 ## What it does
 
-- Shows SynoraCare AI branded launch screen
+- Shows SynoraCare branded launch screen
 - Checks backend health (`/health`)
 - Opens live production console inside an in-app WebView
 
@@ -64,6 +64,6 @@ npm run submit:ios
 
 - Active Apple Developer Program membership
 - App ID using bundle identifier `com.synoracare.ai`
-- App Store Connect app record created for SynoraCare AI
+- App Store Connect app record created for SynoraCare
 - Privacy Policy URL and support URL ready
 - App screenshots for iPhone sizes and app icon 1024x1024

@@ -1,8 +1,8 @@
-# SynoraCare AI App Store Metadata (Copy/Paste)
+# SynoraCare App Store Metadata (Copy/Paste)
 
 ## App Information
 
-- App Name: SynoraCare AI
+- App Name: SynoraCare
 - Subtitle: Secure Care Intelligence
 - Bundle ID: com.synoracare.ai
 - SKU: SYNORACARE-AI-IOS-001
@@ -11,7 +11,7 @@
 
 ## Description
 
-SynoraCare AI helps care teams make safer, faster, and better-documented decisions during live shifts.
+SynoraCare helps care teams make safer, faster, and better-documented decisions during live shifts.
 
 The app gives authorized staff grounded guidance from care documentation, including ISP, MAR, and behavior plans, while maintaining role-based access and operational accountability.
 
@@ -23,7 +23,7 @@ Key capabilities include:
 - Break-glass emergency access with documented rationale
 - Audit-ready activity history and compliance-aligned operations
 
-SynoraCare AI is designed to support teams in delivering consistent care quality while improving documentation accuracy and response time.
+SynoraCare is designed to support teams in delivering consistent care quality while improving documentation accuracy and response time.
 
 ## Keywords
 
@@ -31,7 +31,7 @@ care, healthcare, dsp, caregiver, training, compliance, hipaa, staffing, documen
 
 ## Promotional Text
 
-SynoraCare AI gives care teams grounded guidance, real-time tracking, and compliance-ready workflows in one secure app.
+SynoraCare gives care teams grounded guidance, real-time tracking, and compliance-ready workflows in one secure app.
 
 ## Support URL
 
@@ -77,7 +77,7 @@ Accepted sizes include:
 Recommended screenshot set:
 1. Login / role-aware landing
 2. Dashboard / home stats
-3. Ask AI / grounded Q&A
+3. Ask Assistant / grounded Q&A
 4. Tracker / escalations
 5. Micro-Training context tabs
 
