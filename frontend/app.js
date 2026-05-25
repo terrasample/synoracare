@@ -3387,9 +3387,9 @@ async function updateVoiceCapabilityHint() {
 
   const permissionState = await resolveVoicePermissionState();
   if (permissionState === 'denied') {
-    voiceBtn.disabled = true;
-    voiceBtn.title = 'Microphone blocked in browser settings.';
-    setVoiceCapabilityHint('Microphone access is blocked. Enable mic permission in browser settings.', 'error');
+    voiceBtn.disabled = false;
+    voiceBtn.title = 'Microphone blocked. Enable permission, then tap again to retry.';
+    setVoiceCapabilityHint('Microphone access is blocked. Enable mic permission in browser settings, then tap the mic again to retry.', 'error');
     return { ready: false, message: 'Microphone permission is blocked.' };
   }
 
