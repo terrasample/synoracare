@@ -2652,6 +2652,9 @@ function openGuestDemoFlow() {
   }
 }
 
+// Expose function to window for onclick handlers
+window.openGuestDemoFlow = openGuestDemoFlow;
+
 function initializeGuestEntryFromUrl() {
   if (currentUser) return;
 
