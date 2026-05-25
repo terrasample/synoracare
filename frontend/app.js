@@ -1282,8 +1282,8 @@ async function refreshClients() {
     renderClientList(clientsCache);
   } catch (error) {
     console.error('Error loading clients:', error);
-    // Fall back to demo clients if API fails
-    clientsCache = getDemoClients();
+    // In non-demo mode, never render demo data.
+    clientsCache = [];
     syncClientPickers();
     renderClientList(clientsCache);
   }
