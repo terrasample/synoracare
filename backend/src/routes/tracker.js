@@ -242,4 +242,34 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
   }
 });
 
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const entry = await TrackerEntry.findOne({ _id: req.params.id, orgId: req.user.orgId });
+    if (!entry) return res.status(404).json({ error: 'Tracker entry not found' });
+
+    const accessibleClientIds = await getAccessibleClientIds(req.user);
+    if (!accessibleClientIds.includes(String(entry.clientId))) {
+      return res.status(403).json({ error: 'No access to this client' });
+    }
+
+    const entryId = String(entry._id);
+    await TrackerEntry.deleteOne({ _id: entry._id, orgId: req.user.orgId });
+
+    await AuditEvent.create({
+      orgId: req.user.orgId,
+      userId: req.user._id,
+      clientId: entry.clientId,
+      eventType: 'tracker_entry',
+      payload: {
+        action: 'deleted',
+        trackerId: entryId
+      }
+    });
+
+    return res.json({ ok: true, id: entryId });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to delete tracker entry' });
+  }
+});
+
 module.exports = router;
