@@ -1562,14 +1562,15 @@ async function renderHomeSection() {
 
   try {
     const summaryData = await api('/api/tracker/summary');
+    const visibleSummary = activeClientsCount === 0 ? { pending: 0, completed: 0, escalated: 0 } : summaryData;
     const homeStats = document.getElementById('homeStats');
     if (homeStats) {
       const clientsTarget = canAccessPage('createClientSection') ? 'createClientSection' : 'trackerSection';
       homeStats.innerHTML = `
         <button type="button" class="stat-chip stat-clickable" data-nav-target="${safeText(clientsTarget)}" aria-label="View clients"><span class="stat-value stat-value-home" style="color:#0f172a;">${activeClientsCount}</span><span class="stat-label">Clients</span></button>
-        <button type="button" class="stat-chip stat-warn stat-clickable" data-nav-target="trackerSection" data-tracker-status="pending" aria-label="View pending tracker entries"><span class="stat-value stat-value-home stat-value-warn" style="color:#92400e;">${summaryData.pending || 0}</span><span class="stat-label">Pending</span></button>
-        <button type="button" class="stat-chip stat-danger stat-clickable" data-nav-target="trackerSection" data-tracker-status="escalated" aria-label="View escalated tracker entries"><span class="stat-value stat-value-home stat-value-danger" style="color:#b91c1c;">${summaryData.escalated || 0}</span><span class="stat-label">Escalated</span></button>
-        <button type="button" class="stat-chip stat-ok stat-clickable" data-nav-target="trackerSection" data-tracker-status="completed" aria-label="View completed tracker entries"><span class="stat-value stat-value-home stat-value-ok" style="color:#166534;">${summaryData.completed || 0}</span><span class="stat-label">Completed</span></button>
+        <button type="button" class="stat-chip stat-warn stat-clickable" data-nav-target="trackerSection" data-tracker-status="pending" aria-label="View pending tracker entries"><span class="stat-value stat-value-home stat-value-warn" style="color:#92400e;">${visibleSummary.pending || 0}</span><span class="stat-label">Pending</span></button>
+        <button type="button" class="stat-chip stat-danger stat-clickable" data-nav-target="trackerSection" data-tracker-status="escalated" aria-label="View escalated tracker entries"><span class="stat-value stat-value-home stat-value-danger" style="color:#b91c1c;">${visibleSummary.escalated || 0}</span><span class="stat-label">Escalated</span></button>
+        <button type="button" class="stat-chip stat-ok stat-clickable" data-nav-target="trackerSection" data-tracker-status="completed" aria-label="View completed tracker entries"><span class="stat-value stat-value-home stat-value-ok" style="color:#166534;">${visibleSummary.completed || 0}</span><span class="stat-label">Completed</span></button>
       `;
     }
 
@@ -1577,7 +1578,7 @@ async function renderHomeSection() {
     if (homeAlerts) {
       if (activeClientsCount === 0 && hasPermission('clients:create')) {
         homeAlerts.innerHTML = `<div class="onboard-hint"><strong>Get started:</strong> Add your first client below, then assign a DSP to begin care tracking.<button type="button" class="quick-action-btn" data-scroll-target="createClientSection" style="margin-left:12px;">Add First Client →</button></div>`;
-      } else if ((summaryData.escalated || 0) > 0) {
+      } else if ((visibleSummary.escalated || 0) > 0) {
         try {
           const feedData = await api('/api/tracker?limit=20');
           const escalated = (feedData.entries || []).filter((e) => e.status === 'escalated').slice(0, 3);
