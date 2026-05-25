@@ -1418,7 +1418,13 @@ async function loadReportingSection(formValues = null) {
   };
 
   try {
-    const data = await api('/api/tracker?limit=250');
+    const params = new URLSearchParams({ limit: '250' });
+    if (filters.clientId) params.set('clientId', filters.clientId);
+    if (filters.status) params.set('status', filters.status);
+    if (filters.from) params.set('from', filters.from);
+    if (filters.to) params.set('to', filters.to);
+
+    const data = await api(`/api/tracker?${params.toString()}`);
     const sourceEntries = data.entries || [];
     const payload = buildReportPayload(sourceEntries, filters);
     currentReportPayload = payload;

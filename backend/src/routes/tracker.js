@@ -42,7 +42,7 @@ async function getAccessibleClientIds(user) {
 
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { clientId, status, limit } = req.query;
+    const { clientId, status, limit, from, to } = req.query;
     const accessibleClientIds = await getAccessibleClientIds(req.user);
     if (!accessibleClientIds.length) return res.json({ entries: [] });
 
@@ -60,6 +60,25 @@ router.get('/', requireAuth, async (req, res) => {
 
     if (status && ['pending', 'completed', 'escalated'].includes(String(status))) {
       query.status = String(status);
+    }
+
+    if (from || to) {
+      const createdAt = {};
+      if (from) {
+        const fromDate = new Date(`${String(from)}T00:00:00.000Z`);
+        if (!Number.isNaN(fromDate.getTime())) {
+          createdAt.$gte = fromDate;
+        }
+      }
+      if (to) {
+        const toDate = new Date(`${String(to)}T23:59:59.999Z`);
+        if (!Number.isNaN(toDate.getTime())) {
+          createdAt.$lte = toDate;
+        }
+      }
+      if (createdAt.$gte || createdAt.$lte) {
+        query.createdAt = createdAt;
+      }
     }
 
     const safeLimit = Math.min(Math.max(Number(limit || 50), 1), 200);
