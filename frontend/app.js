@@ -3300,6 +3300,8 @@ let voiceListening = false;
 let voiceHadError = false;
 let voiceBaseText = '';
 let voiceFinalTranscript = '';
+let voicePermissionStatus = null;
+let voicePermissionState = 'unknown';
 
 function getVoiceErrorMessage(errorCode) {
   const messages = {
@@ -3317,8 +3319,90 @@ function getVoiceElements() {
   return {
     statusWrap: document.getElementById('voiceStatus'),
     statusText: document.getElementById('voiceStatusText'),
-    voiceBtn: document.getElementById('voiceToTextBtn')
+    voiceBtn: document.getElementById('voiceToTextBtn'),
+    capabilityHint: document.getElementById('voiceCapabilityHint')
   };
+}
+
+function getSpeechRecognitionCtor() {
+  return window.SpeechRecognition || window.webkitSpeechRecognition;
+}
+
+function setVoiceCapabilityHint(text, variant = 'caution') {
+  const { capabilityHint } = getVoiceElements();
+  if (!capabilityHint) return;
+
+  capabilityHint.textContent = text;
+  capabilityHint.classList.remove('is-ready', 'is-caution', 'is-error');
+  capabilityHint.classList.add(
+    variant === 'ready' ? 'is-ready' : variant === 'error' ? 'is-error' : 'is-caution'
+  );
+}
+
+async function resolveVoicePermissionState() {
+  const supportsPermissionsApi = Boolean(navigator.permissions && navigator.permissions.query);
+  if (!supportsPermissionsApi) {
+    voicePermissionStatus = null;
+    voicePermissionState = 'unknown';
+    return voicePermissionState;
+  }
+
+  try {
+    if (!voicePermissionStatus) {
+      voicePermissionStatus = await navigator.permissions.query({ name: 'microphone' });
+      voicePermissionStatus.addEventListener('change', () => {
+        voicePermissionState = voicePermissionStatus?.state || 'unknown';
+        updateVoiceCapabilityHint();
+      });
+    }
+    voicePermissionState = voicePermissionStatus?.state || 'unknown';
+    return voicePermissionState;
+  } catch (err) {
+    voicePermissionStatus = null;
+    voicePermissionState = 'unknown';
+    return voicePermissionState;
+  }
+}
+
+async function updateVoiceCapabilityHint() {
+  const { voiceBtn } = getVoiceElements();
+  if (!voiceBtn) {
+    return { ready: false, message: 'Voice button not available.' };
+  }
+
+  const SpeechRecognition = getSpeechRecognitionCtor();
+  if (!SpeechRecognition) {
+    voiceBtn.disabled = true;
+    voiceBtn.title = 'Voice input is not supported in this browser.';
+    setVoiceCapabilityHint('Voice unavailable in this browser. Use Chrome on desktop or Android.', 'error');
+    return { ready: false, message: 'Voice input is not supported in this browser.' };
+  }
+
+  if (!window.isSecureContext) {
+    voiceBtn.disabled = true;
+    voiceBtn.title = 'Voice input requires HTTPS.';
+    setVoiceCapabilityHint('Voice requires HTTPS. Open the secure app URL to use the mic.', 'error');
+    return { ready: false, message: 'Voice input requires HTTPS.' };
+  }
+
+  const permissionState = await resolveVoicePermissionState();
+  if (permissionState === 'denied') {
+    voiceBtn.disabled = true;
+    voiceBtn.title = 'Microphone blocked in browser settings.';
+    setVoiceCapabilityHint('Microphone access is blocked. Enable mic permission in browser settings.', 'error');
+    return { ready: false, message: 'Microphone permission is blocked.' };
+  }
+
+  voiceBtn.disabled = false;
+  voiceBtn.title = 'Speak summary';
+
+  if (permissionState === 'granted') {
+    setVoiceCapabilityHint('Mic ready. Tap the mic and speak your tracker summary.', 'ready');
+    return { ready: true, message: 'Microphone ready.' };
+  }
+
+  setVoiceCapabilityHint('Mic available. Tap the mic and allow permission when prompted.', 'caution');
+  return { ready: true, message: 'Microphone permission will be requested when recording starts.' };
 }
 
 function setVoiceStatus(text, options = {}) {
@@ -3354,7 +3438,7 @@ function applyVoiceTranscript(transcript) {
 }
 
 function initVoiceToText() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const SpeechRecognition = getSpeechRecognitionCtor();
   if (!SpeechRecognition) {
     showToast('Voice input is not supported in this browser. Try Chrome on desktop or Android.', 'info');
     return false;
@@ -3399,6 +3483,10 @@ function initVoiceToText() {
     voiceListening = false;
     const message = getVoiceErrorMessage(e.error);
     setVoiceStatus(message, { isError: true, visible: true });
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      voicePermissionState = 'denied';
+      updateVoiceCapabilityHint();
+    }
     if (e.error !== 'aborted') {
       showToast(message, 'error');
     }
@@ -3426,8 +3514,14 @@ function initVoiceToText() {
   return true;
 }
 
-document.getElementById('voiceToTextBtn')?.addEventListener('click', (e) => {
+document.getElementById('voiceToTextBtn')?.addEventListener('click', async (e) => {
   e.preventDefault();
+
+  const voicePreflight = await updateVoiceCapabilityHint();
+  if (!voicePreflight.ready) {
+    showToast(voicePreflight.message, 'error');
+    return;
+  }
 
   if (!voiceRecognition && !initVoiceToText()) {
     return;
@@ -3452,6 +3546,8 @@ document.getElementById('voiceToTextBtn')?.addEventListener('click', (e) => {
     setVoiceStatus(message, { isError: true, visible: true });
   }
 });
+
+updateVoiceCapabilityHint();
 
 // Copy from Yesterday functionality
 async function loadYesterdayEntries() {

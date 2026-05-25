@@ -1876,6 +1876,35 @@ body.guest-mode #loginSection {
   background: var(--danger);
 }
 
+.voice-capability-hint {
+  margin: 6px 0;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.35;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.voice-capability-hint.is-ready {
+  border-color: #86efac;
+  background: var(--ok-bg);
+  color: #166534;
+}
+
+.voice-capability-hint.is-caution {
+  border-color: #fde68a;
+  background: var(--warn-bg);
+  color: #92400e;
+}
+
+.voice-capability-hint.is-error {
+  border-color: #fca5a5;
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
 .listening-dot {
   display: inline-block;
   width: 6px;
