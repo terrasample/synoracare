@@ -137,8 +137,18 @@ body.guest-mode #landingHero {
   display: block !important; padding: 0; max-width: none;
   animation: fadeUp 300ms ease both;
 }
+body.guest-mode #faqPreviewSection {
+  grid-column: 1; grid-row: 2;
+  display: block !important; padding: 0; max-width: none;
+  animation: fadeUp 300ms 90ms ease both;
+}
+body.guest-mode #demoRequestSection {
+  grid-column: 1; grid-row: 3;
+  display: block !important; padding: 0; max-width: none;
+  animation: fadeUp 300ms 150ms ease both;
+}
 body.guest-mode #loginSection {
-  grid-column: 2; grid-row: 1;
+  grid-column: 2; grid-row: 1 / span 3;
   display: block !important; padding: 0; max-width: none;
   animation: fadeUp 300ms 60ms ease both;
 }
@@ -193,7 +203,7 @@ body.guest-mode #bootstrapSection {
 
 /* Demo Request Form */
 .faq-preview-card {
-  margin: 26px auto 8px;
+  margin: 0;
   padding: 24px 26px;
   background: linear-gradient(180deg, #ffffff, #f9fbfd);
   border: 1px solid var(--line);
@@ -240,7 +250,7 @@ body.guest-mode #bootstrapSection {
 .faq-preview-footer a:hover {
   text-decoration: underline;
 }
-.demo-request-card { max-width: 640px; margin: 40px auto; }
+.demo-request-card { max-width: none; margin: 0; padding: 24px 26px; background: linear-gradient(180deg, #ffffff, #f9fbfd); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 .demo-inline-link {
   margin-top: 8px;
   color: var(--muted);
@@ -847,6 +857,10 @@ button:hover { background: var(--accent-dark); border-color: var(--accent-dark);
   .faq-stat-grid {
     grid-template-columns: 1fr;
   }
+
+  .faq-preview-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Output pre */
@@ -891,8 +905,10 @@ button:hover { background: var(--accent-dark); border-color: var(--accent-dark);
   .tracker-layout { grid-template-columns: 1fr; }
   body.guest-mode .main-content { grid-template-columns: 1fr; padding: 16px; }
   body.guest-mode #landingHero { grid-row: 1; }
-  body.guest-mode #loginSection { grid-column: 1; grid-row: 2; }
-  body.guest-mode #bootstrapSection { grid-column: 1; grid-row: 3; }
+  body.guest-mode #faqPreviewSection { grid-column: 1; grid-row: 2; }
+  body.guest-mode #demoRequestSection { grid-column: 1; grid-row: 3; }
+  body.guest-mode #loginSection { grid-column: 1; grid-row: 4; }
+  body.guest-mode #bootstrapSection { grid-column: 1; grid-row: 5; }
   .hero-visuals { grid-template-columns: 1fr 1fr; }
   .chat-message { max-width: 90%; }
   .isp-grid { grid-template-columns: 1fr; }
