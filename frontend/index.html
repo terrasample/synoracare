@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SynoraCare</title>
-  <link rel="stylesheet" href="styles.css?v=20260525c" />
+  <link rel="stylesheet" href="styles.css?v=20260525d" />
 </head>
 <body class="guest-mode role-guest">
 <div class="app-shell">
@@ -290,6 +290,21 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
           </button>
         </div>
+      </div>
+      <div class="ask-prompt-library" id="askPromptLibrary">
+        <div class="ask-prompt-library-top">
+          <div>
+            <p id="askPromptRoleLabel" class="ask-prompt-role-label">Prompt Library</p>
+            <p class="ask-prompt-help">Tap a prompt to auto-fill Ask Assistant.</p>
+          </div>
+          <div id="askPromptPhaseTabs" class="ask-prompt-phase-tabs" role="tablist" aria-label="Prompt shift phase">
+            <button type="button" class="ask-phase-btn is-active" data-ask-phase="pre_shift">Pre-Shift</button>
+            <button type="button" class="ask-phase-btn" data-ask-phase="documentation">Documentation</button>
+            <button type="button" class="ask-phase-btn" data-ask-phase="grounded_qa">Grounded Q&amp;A</button>
+            <button type="button" class="ask-phase-btn" data-ask-phase="escalation">Escalation</button>
+          </div>
+        </div>
+        <div id="askPromptGroups" class="ask-prompt-groups"></div>
       </div>
       <div id="chatMessages" class="chat-messages">
         <div class="chat-welcome-state">
@@ -1025,6 +1040,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=20260525c"></script>
+  <script src="app.js?v=20260525d"></script>
 </body>
 </html>

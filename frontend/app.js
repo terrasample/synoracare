@@ -101,6 +101,7 @@ let authContextLoadedForToken = '';
 let clientsCache = [];
 let usersCache = [];
 let selectedTrainingContext = 'pre_shift';
+let selectedAskPromptPhase = 'pre_shift';
 let legalExportPayload = null;
 let currentReportPayload = null;
 let selectedPatientTab = 'care';
@@ -561,6 +562,11 @@ function navigateTo(pageId, options = {}) {
 function handlePageNavigation(pageId) {
   if (!currentUser) return;
 
+  if (pageId === 'askSection') {
+    renderAskPromptLibrary();
+    return;
+  }
+
   if (pageId === 'homeSection') {
     renderHomeSection().catch(() => {});
     return;
@@ -721,6 +727,115 @@ const CONTEXT_TRAINING_VARIANTS = {
     ]
   }
 };
+
+const ASK_PROMPT_PHASE_LABELS = {
+  pre_shift: 'Pre-Shift',
+  documentation: 'Documentation',
+  grounded_qa: 'Grounded Q&A',
+  escalation: 'Escalation'
+};
+
+const DSP_PATIENT_PROMPT_LIBRARY = {
+  pre_shift: [
+    { category: 'Identity and Baseline', label: 'Patient baseline and communication', question: 'What is this patient baseline behavior, communication style, and preferred support approach for this shift?' },
+    { category: 'Identity and Baseline', label: 'Top goals today', question: 'What are this patient top care goals and priority outcomes for today?' },
+    { category: 'Safety Screening', label: 'Immediate safety risks', question: 'What immediate safety risks should I watch for right now, including fall, choking, seizure, and elopement concerns?' },
+    { category: 'Safety Screening', label: 'Environment safety check', question: 'What environment hazards or equipment checks should be completed before starting care with this patient?' },
+    { category: 'Medications', label: 'Meds due this shift', question: 'What medications are due this shift, at what times, and what verification steps are required before and after administration?' },
+    { category: 'Medications', label: 'PRN guidance', question: 'What PRN medication triggers and hold parameters apply for this patient today?' },
+    { category: 'Diet and Allergies', label: 'Allergies and restrictions', question: 'What allergies, diet restrictions, texture modifications, and hydration instructions apply to this patient?' },
+    { category: 'ADL Support', label: 'Personal care assistance level', question: 'What assistance level and protocol should I follow for bathing, toileting, dressing, grooming, and transfers?' },
+    { category: 'Behavior and Mental Health', label: 'Behavior triggers and supports', question: 'What known behavior triggers, early warning signs, and de-escalation techniques should I use for this patient?' },
+    { category: 'Coordination', label: 'Appointments and handoff tasks', question: 'What appointments, follow-up tasks, or unresolved handoff items do I need to complete for this patient today?' }
+  ],
+  documentation: [
+    { category: 'Charting Quality', label: 'What to document now', question: 'For this patient, what events and observations must be documented in real time during this shift?' },
+    { category: 'Charting Quality', label: 'Objective note format', question: 'How should I document this patient interaction in objective, compliance-ready language with timestamps?' },
+    { category: 'Medication Documentation', label: 'Med pass documentation', question: 'What details must be captured in documentation for this patient medication pass, including refusals, delays, or variances?' },
+    { category: 'ADL Documentation', label: 'ADL documentation checklist', question: 'What ADL outcomes, assistance level, and patient response details should I document for this patient?' },
+    { category: 'Incident Documentation', label: 'Incident report threshold', question: 'What incidents for this patient require formal incident reporting versus routine tracker notes?' },
+    { category: 'Handoff Documentation', label: 'End-of-shift handoff', question: 'What specific patient updates and unresolved risks must be included in end-of-shift handoff documentation?' }
+  ],
+  grounded_qa: [
+    { category: 'Care Plan Clarification', label: 'Clarify support steps', question: 'Based on this patient ISP, what exact step-by-step support sequence should I follow for this task?' },
+    { category: 'Care Plan Clarification', label: 'Allowed vs not allowed actions', question: 'For this patient, which actions are allowed, which are restricted, and when should I stop and escalate?' },
+    { category: 'Medication Clarification', label: 'Medication safety confirmation', question: 'Using current records, confirm medication timing, safety checks, and contraindication warnings for this patient.' },
+    { category: 'Nutrition Clarification', label: 'Meal support guidance', question: 'What meal setup, feeding assistance, and swallow precautions should I follow for this patient right now?' },
+    { category: 'Behavior Clarification', label: 'Behavior response sequence', question: 'What is the documented de-escalation sequence for this patient if distress escalates during care?' },
+    { category: 'Communication', label: 'Best communication approach', question: 'What communication techniques are most effective and respectful for this patient during direct support tasks?' }
+  ],
+  escalation: [
+    { category: 'Urgent Escalation', label: 'Escalate now criteria', question: 'What exact signs for this patient require immediate escalation to supervisor or nurse right now?' },
+    { category: 'Urgent Escalation', label: 'Immediate actions before call', question: 'What immediate safety actions should be taken for this patient before and during escalation outreach?' },
+    { category: 'Medication Escalation', label: 'Med uncertainty escalation', question: 'If I am unsure about medication instructions for this patient, what is the required escalation path and what should be documented?' },
+    { category: 'Behavior Escalation', label: 'Crisis behavior escalation', question: 'For this patient, what are the documented crisis escalation steps, including who to notify and in what order?' },
+    { category: 'Emergency Access', label: 'Break Glass criteria', question: 'When is break-glass access justified for this patient, and what emergency reason and follow-up notes are required?' },
+    { category: 'Escalation Handoff', label: 'Post-escalation summary', question: 'After escalation for this patient, what disposition and follow-up details must be recorded for the next shift?' }
+  ]
+};
+
+function getPromptLibraryForRole(role) {
+  if (role === 'dsp') return DSP_PATIENT_PROMPT_LIBRARY;
+
+  const fallbackQuestions = {
+    pre_shift: [
+      { category: 'Ops Review', label: 'Shift risk review', question: 'What patient-level risks and priority actions should the care team review at shift start?' }
+    ],
+    documentation: [
+      { category: 'Ops Review', label: 'Documentation quality check', question: 'Which patient entries need documentation quality follow-up for compliance and clarity?' }
+    ],
+    grounded_qa: [
+      { category: 'Ops Review', label: 'Care guidance validation', question: 'Which patient guidance responses need citation verification before action?' }
+    ],
+    escalation: [
+      { category: 'Ops Review', label: 'Open escalations', question: 'What patient escalations are currently open and who owns each next step?' }
+    ]
+  };
+
+  return fallbackQuestions;
+}
+
+function renderAskPromptLibrary() {
+  const role = currentUser ? getActiveRole() : 'guest';
+  const roleLabel = document.getElementById('askPromptRoleLabel');
+  const groups = document.getElementById('askPromptGroups');
+  if (!roleLabel || !groups) return;
+
+  const library = getPromptLibraryForRole(role);
+  const phase = library[selectedAskPromptPhase] ? selectedAskPromptPhase : 'pre_shift';
+  const prompts = library[phase] || [];
+
+  roleLabel.textContent = `Prompt Library: ${getRoleDisplayLabel(role)} | ${ASK_PROMPT_PHASE_LABELS[phase] || 'Pre-Shift'}`;
+
+  document.querySelectorAll('.ask-phase-btn').forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.askPhase === phase);
+  });
+
+  if (!prompts.length) {
+    groups.innerHTML = '<p class="empty-state">No prompts available for this role and phase yet.</p>';
+    return;
+  }
+
+  const grouped = prompts.reduce((acc, item) => {
+    const key = item.category || 'General';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+
+  groups.innerHTML = Object.entries(grouped)
+    .map(([category, items]) => {
+      return `
+        <article class="ask-prompt-group">
+          <h4>${safeText(category)}</h4>
+          <div class="ask-prompt-chip-row">
+            ${items.map((item) => `<button type="button" class="ask-prompt-chip" data-question="${safeText(item.question)}">${safeText(item.label)}</button>`).join('')}
+          </div>
+        </article>
+      `;
+    })
+    .join('');
+}
 
 const ROLE_HIDDEN_SECTIONS = {
   dsp: [
@@ -893,6 +1008,7 @@ function updateSession() {
     syncDemoToggle();
     applyRoleMode('guest');
     renderTraining('guest', selectedTrainingContext);
+    renderAskPromptLibrary();
     saveCurrentShift(null);
     updateNavAccess();
     persistAuthSession();
@@ -919,6 +1035,8 @@ function updateSession() {
   applyRoleMode(activeRole);
   syncDemoToggle();
   renderTraining(activeRole, selectedTrainingContext);
+  selectedAskPromptPhase = selectedTrainingContext;
+  renderAskPromptLibrary();
   loadCurrentShift();
   updateShiftUI();
   renderHomeSection();
@@ -3048,7 +3166,27 @@ document.getElementById('trainingContextRow').addEventListener('click', (e) => {
   if (!button) return;
 
   selectedTrainingContext = button.dataset.trainingContext;
+  selectedAskPromptPhase = selectedTrainingContext;
   renderTraining(getActiveRole(), selectedTrainingContext);
+  renderAskPromptLibrary();
+});
+
+document.getElementById('askPromptPhaseTabs')?.addEventListener('click', (e) => {
+  const button = e.target.closest('button[data-ask-phase]');
+  if (!button) return;
+
+  selectedAskPromptPhase = button.dataset.askPhase || 'pre_shift';
+  renderAskPromptLibrary();
+});
+
+document.getElementById('askPromptGroups')?.addEventListener('click', (e) => {
+  const button = e.target.closest('button.ask-prompt-chip[data-question]');
+  if (!button) return;
+
+  const textarea = document.querySelector('#askForm textarea');
+  if (!textarea) return;
+  textarea.value = button.dataset.question || '';
+  textarea.focus();
 });
 
 document.getElementById('assignmentForm').addEventListener('submit', async (e) => {
