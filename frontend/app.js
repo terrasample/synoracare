@@ -3296,47 +3296,161 @@ document.querySelector('#askForm textarea')?.addEventListener('input', function 
 
 // Voice-to-Text functionality
 let voiceRecognition = null;
+let voiceListening = false;
+let voiceHadError = false;
+let voiceBaseText = '';
+let voiceFinalTranscript = '';
+
+function getVoiceErrorMessage(errorCode) {
+  const messages = {
+    'not-allowed': 'Microphone access was blocked. Allow microphone access and try again.',
+    'service-not-allowed': 'Speech recognition service is unavailable in this browser.',
+    'no-speech': 'No speech detected. Please speak clearly and try again.',
+    'audio-capture': 'No microphone was detected. Check your audio input settings.',
+    'network': 'Speech service network issue. Check your connection and try again.',
+    'aborted': 'Voice capture was stopped.'
+  };
+  return messages[errorCode] || `Voice input error: ${errorCode}`;
+}
+
+function getVoiceElements() {
+  return {
+    statusWrap: document.getElementById('voiceStatus'),
+    statusText: document.getElementById('voiceStatusText'),
+    voiceBtn: document.getElementById('voiceToTextBtn')
+  };
+}
+
+function setVoiceStatus(text, options = {}) {
+  const { isError = false, visible = true } = options;
+  const { statusWrap, statusText, voiceBtn } = getVoiceElements();
+  if (!statusWrap || !statusText || !voiceBtn) return;
+
+  statusText.textContent = text;
+  statusWrap.style.display = visible ? 'flex' : 'none';
+  statusWrap.classList.toggle('is-error', isError);
+  voiceBtn.classList.toggle('is-listening', voiceListening);
+  voiceBtn.setAttribute('aria-pressed', voiceListening ? 'true' : 'false');
+}
+
+function getVoiceTargetField() {
+  return document.querySelector('#trackerForm input[name="summary"]')
+    || document.querySelector('#trackerForm textarea[name="details"]');
+}
+
+function normalizeVoiceText(value) {
+  const cleaned = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!cleaned) return '';
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
+
+function applyVoiceTranscript(transcript) {
+  const target = getVoiceTargetField();
+  if (!target) return;
+
+  const combined = [voiceBaseText, transcript].filter(Boolean).join(' ').trim();
+  target.value = normalizeVoiceText(combined);
+  target.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 function initVoiceToText() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
-    console.warn('Speech Recognition not supported');
-    return;
+    showToast('Voice input is not supported in this browser. Try Chrome on desktop or Android.', 'info');
+    return false;
   }
+
   voiceRecognition = new SpeechRecognition();
   voiceRecognition.continuous = false;
   voiceRecognition.interimResults = true;
+  voiceRecognition.maxAlternatives = 1;
   voiceRecognition.lang = 'en-US';
-  
+
   voiceRecognition.onstart = function() {
-    document.getElementById('voiceStatus').style.display = 'flex';
-    document.getElementById('voiceStatusText').textContent = 'Listening...';
+    voiceListening = true;
+    voiceHadError = false;
+    voiceFinalTranscript = '';
+    const target = getVoiceTargetField();
+    voiceBaseText = target ? String(target.value || '').trim() : '';
+    setVoiceStatus('Listening... Tap the mic again to stop.');
   };
-  
+
   voiceRecognition.onresult = function(e) {
-    let transcript = '';
+    let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
-      transcript += e.results[i][0].transcript;
+      const piece = String(e.results[i][0]?.transcript || '').trim();
+      if (!piece) continue;
+      if (e.results[i].isFinal) {
+        voiceFinalTranscript = `${voiceFinalTranscript} ${piece}`.trim();
+      } else {
+        interim = `${interim} ${piece}`.trim();
+      }
     }
-    const summaryInput = document.querySelector('#trackerForm input[name="summary"]');
-    if (summaryInput) {
-      summaryInput.value = transcript.charAt(0).toUpperCase() + transcript.slice(1);
-      summaryInput.dispatchEvent(new Event('change'));
+
+    const liveTranscript = `${voiceFinalTranscript} ${interim}`.trim();
+    applyVoiceTranscript(liveTranscript);
+    if (liveTranscript) {
+      setVoiceStatus('Transcribing...');
     }
   };
-  
+
   voiceRecognition.onerror = function(e) {
-    document.getElementById('voiceStatusText').textContent = `Error: ${e.error}`;
+    voiceHadError = true;
+    voiceListening = false;
+    const message = getVoiceErrorMessage(e.error);
+    setVoiceStatus(message, { isError: true, visible: true });
+    if (e.error !== 'aborted') {
+      showToast(message, 'error');
+    }
   };
-  
+
   voiceRecognition.onend = function() {
-    document.getElementById('voiceStatus').style.display = 'none';
+    voiceListening = false;
+    const hasTranscript = Boolean(voiceFinalTranscript.trim());
+
+    if (voiceHadError) {
+      setTimeout(() => setVoiceStatus('', { visible: false }), 2200);
+      return;
+    }
+
+    if (hasTranscript) {
+      setVoiceStatus('Voice captured.', { visible: true });
+      setTimeout(() => setVoiceStatus('', { visible: false }), 1200);
+      return;
+    }
+
+    setVoiceStatus('No speech captured. Try again and speak clearly.', { isError: true, visible: true });
+    setTimeout(() => setVoiceStatus('', { visible: false }), 2200);
   };
+
+  return true;
 }
 
 document.getElementById('voiceToTextBtn')?.addEventListener('click', (e) => {
   e.preventDefault();
-  if (!voiceRecognition) initVoiceToText();
-  if (voiceRecognition) voiceRecognition.start();
+
+  if (!voiceRecognition && !initVoiceToText()) {
+    return;
+  }
+
+  if (!voiceRecognition) {
+    return;
+  }
+
+  if (voiceListening) {
+    voiceRecognition.stop();
+    return;
+  }
+
+  try {
+    voiceRecognition.start();
+  } catch (err) {
+    const message = err?.name === 'InvalidStateError'
+      ? 'Voice capture is already active. Tap the mic again to stop.'
+      : 'Unable to start voice capture. Please try again.';
+    showToast(message, 'error');
+    setVoiceStatus(message, { isError: true, visible: true });
+  }
 });
 
 // Copy from Yesterday functionality
