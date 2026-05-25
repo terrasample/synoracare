@@ -3641,6 +3641,7 @@ async function renderWhosWorking() {
     container.innerHTML = html;
   } catch (error) {
     console.error('Failed to render Who\'s Working:', error);
+    // Only render demo data in demo mode; non-demo mode shows empty state
     if (demoMode) {
       container.innerHTML = `
         <div class="whos-working-card active">
@@ -3656,6 +3657,8 @@ async function renderWhosWorking() {
           <div class="whos-working-entry-count">📝 3 entries logged</div>
         </div>
       `;
+    } else {
+      if (container) container.innerHTML = '<p style="color: var(--muted); font-size: 12px; padding: 8px;">Unable to load shift data</p>';
     }
   }
 }
@@ -3710,6 +3713,7 @@ async function loadShiftMonitor() {
     container.innerHTML = html;
   } catch (error) {
     console.error('Failed to load shift monitor:', error);
+    // Only render demo data in demo mode; non-demo mode shows empty state
     if (demoMode) {
       document.getElementById('activeShiftCount').textContent = '2';
       document.getElementById('endedShiftCount').textContent = '3';
@@ -3747,6 +3751,14 @@ async function loadShiftMonitor() {
           </div>
         `;
       }
+    } else {
+      // Non-demo mode: show empty state on error
+      document.getElementById('activeShiftCount').textContent = '0';
+      document.getElementById('endedShiftCount').textContent = '0';
+      document.getElementById('totalEntriesCount').textContent = '0';
+      document.getElementById('escalationCount').textContent = '0';
+      const container = document.getElementById('activeShiftsContainer');
+      if (container) container.innerHTML = '<p style="padding: 20px; text-align: center; color: var(--muted);">Unable to load shift data</p>';
     }
   }
 }
