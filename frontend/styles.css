@@ -192,6 +192,54 @@ body.guest-mode #bootstrapSection {
 .gallery-tile { min-height: 90px; border-radius: 10px; border: 1px solid #d3dde8; background-color: var(--line-soft); background-size: cover; background-position: center; }
 
 /* Demo Request Form */
+.faq-preview-card {
+  margin: 26px auto 8px;
+  padding: 24px 26px;
+  background: linear-gradient(180deg, #ffffff, #f9fbfd);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.faq-preview-header {
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+.faq-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.faq-preview-item {
+  padding: 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+.faq-preview-item h3 {
+  font-size: 14px;
+  line-height: 1.35;
+  color: #102116;
+  margin-bottom: 8px;
+}
+.faq-preview-item p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.faq-preview-footer {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.faq-preview-footer a {
+  color: var(--accent-dark);
+  font-weight: 700;
+  text-decoration: none;
+}
+.faq-preview-footer a:hover {
+  text-decoration: underline;
+}
 .demo-request-card { max-width: 640px; margin: 40px auto; }
 .demo-inline-link {
   margin-top: 8px;

@@ -2634,17 +2634,14 @@ function initializeInviteAndResetFromUrl() {
   }
 }
 
-function initializeGuestEntryFromUrl() {
-  if (currentUser) return;
-
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('showDemo') !== '1') return;
-
+function openGuestDemoFlow() {
   const landing = document.getElementById('landingHero');
   const demo = document.getElementById('demoRequestSection');
+  const faqPreview = document.getElementById('faqPreviewSection');
   const login = document.getElementById('loginSection');
 
   if (landing) landing.style.display = 'block';
+  if (faqPreview) faqPreview.style.display = 'block';
   if (login) login.style.display = 'none';
   if (demo) {
     demo.style.display = 'block';
@@ -2653,6 +2650,15 @@ function initializeGuestEntryFromUrl() {
       window.scrollTo(0, top);
     });
   }
+}
+
+function initializeGuestEntryFromUrl() {
+  if (currentUser) return;
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('showDemo') !== '1') return;
+
+  openGuestDemoFlow();
 
   params.delete('showDemo');
   const nextQuery = params.toString();
