@@ -23,7 +23,7 @@ const upload = multer({
 
 async function getAccessibleClientIds(user) {
   if (canRole(user.role, 'clients:all:read')) {
-    const clients = await Client.find({ orgId: user.orgId }).select('_id').lean();
+    const clients = await Client.find({ orgId: user.orgId, status: 'active' }).select('_id').lean();
     return clients.map((c) => String(c._id));
   }
 
