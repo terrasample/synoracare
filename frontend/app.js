@@ -1106,8 +1106,8 @@ function hasPermission(permission, options = {}) {
 }
 
 function canUseRoleSwitcher() {
-  // Role switcher is reserved for the highest-privilege admin role.
-  return hasPermission('clients:delete', { useActiveRole: false });
+  // Role switcher is reserved for super admins only.
+  return String(currentUser?.role || '').trim() === 'super_admin';
 }
 
 function applyAuthUserContext(user) {
