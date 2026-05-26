@@ -3543,7 +3543,7 @@ document.getElementById('loadAuditBtn').addEventListener('click', async () => {
 
 document.getElementById('refreshTrackerBtn').addEventListener('click', async () => {
   try {
-    await loadTrackerFeed();
+    await Promise.all([loadTrackerFeed(), loadTrackerSummary()]);
   } catch (err) {
     const feed = document.getElementById('trackerFeed');
     if (feed) feed.innerHTML = `<p class="tracker-empty">${safeText(err.message)}</p>`;
@@ -4017,7 +4017,7 @@ async function resolveVoicePermissionState() {
   }
 }
 
-async function updateVoiceCapabilityHint() {
+async function updateVoiceCapabilityHint(options = {}) {
   const { voiceBtn } = getVoiceElements();
   if (!voiceBtn) {
     return { ready: false, message: 'Voice button not available.' };
@@ -4042,7 +4042,9 @@ async function updateVoiceCapabilityHint() {
   if (permissionState === 'denied') {
     voiceBtn.disabled = false;
     voiceBtn.title = 'Microphone blocked. Enable permission, then tap again to retry.';
-    setVoiceCapabilityHint('Microphone access is blocked. Enable mic permission in browser settings, then tap the mic again to retry.', 'error');
+    if (options && options.showBlockedError) {
+      setVoiceCapabilityHint('Microphone access is blocked. Enable mic permission in browser settings, then tap the mic again to retry.', 'error');
+    }
     return { ready: false, message: 'Microphone permission is blocked.' };
   }
 
@@ -4138,7 +4140,7 @@ function initVoiceToText() {
     setVoiceStatus(message, { isError: true, visible: true });
     if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
       voicePermissionState = 'denied';
-      updateVoiceCapabilityHint();
+      updateVoiceCapabilityHint({ showBlockedError: true });
     }
     if (e.error !== 'aborted') {
       showToast(message, 'error');
@@ -4170,7 +4172,7 @@ function initVoiceToText() {
 document.getElementById('voiceToTextBtn')?.addEventListener('click', async (e) => {
   e.preventDefault();
 
-  const voicePreflight = await updateVoiceCapabilityHint();
+  const voicePreflight = await updateVoiceCapabilityHint({ showBlockedError: true });
   if (!voicePreflight.ready) {
     showToast(voicePreflight.message, 'error');
     return;
