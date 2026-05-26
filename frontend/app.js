@@ -405,7 +405,7 @@ const DEMO_USERS = [
 const DEMO_TRACKER_SUMMARY = {
   pending: 6,
   escalated: 1,
-  completed: 18
+  completed: 3
 };
 
 const DEMO_TRACKER_ENTRIES = [
@@ -415,6 +415,7 @@ const DEMO_TRACKER_ENTRIES = [
     status: 'pending',
     eventType: 'medication',
     priority: 'high',
+    details: 'Metformin 500mg and Lisinopril 10mg due at 7:30 AM. DSP must verify identity before administering.',
     dueAt: new Date(Date.now() + 45 * 60 * 1000).toISOString()
   },
   {
@@ -423,6 +424,7 @@ const DEMO_TRACKER_ENTRIES = [
     status: 'escalated',
     eventType: 'behavior',
     priority: 'critical',
+    details: 'Jordan became agitated at 2:15 PM during transition to outdoor activity. Supervisor notified. Debrief must be completed before next shift.',
     dueAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
   },
   {
@@ -431,7 +433,71 @@ const DEMO_TRACKER_ENTRIES = [
     status: 'completed',
     eventType: 'adl',
     priority: 'medium',
+    details: 'Morning hygiene and grooming completed with verbal prompts only. Client cooperative throughout.',
     dueAt: new Date(Date.now() - 90 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'demo-tracker-4',
+    summary: 'Afternoon medication pass pending — Avery Brooks.',
+    status: 'pending',
+    eventType: 'medication',
+    priority: 'high',
+    details: 'Omeprazole 20mg due at 8:00 PM. Must be taken 30 minutes before dinner.',
+    dueAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'demo-tracker-5',
+    summary: 'Incident note pending — Taylor Reed wandering observed.',
+    status: 'pending',
+    eventType: 'incident',
+    priority: 'high',
+    details: 'Taylor found near exterior door at 10:45 AM. Door alarm activated. Returned safely to common area. Incident report required within 2 hours.',
+    dueAt: new Date(Date.now() + 1.5 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'demo-tracker-6',
+    summary: 'Meal support log completed — Taylor Reed lunch.',
+    status: 'completed',
+    eventType: 'adl',
+    priority: 'low',
+    details: 'Thickened liquids prepared correctly. Client consumed 75% of meal seated upright. No choking incidents. Remained upright 30 minutes post-meal.',
+    dueAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'demo-tracker-7',
+    summary: 'Skin integrity check pending — Jordan Miles heels.',
+    status: 'pending',
+    eventType: 'adl',
+    priority: 'medium',
+    details: 'Daily pressure area check due. Focus on heels and sacrum. Report any redness or breakdown to supervisor immediately.',
+    dueAt: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'demo-tracker-8',
+    summary: 'Transfer assistance completed — Jordan Miles morning.',
+    status: 'completed',
+    eventType: 'adl',
+    priority: 'medium',
+    details: 'Bed-to-chair transfer completed using stand-pivot technique. Wheelchair brakes locked. Client reported no pain. Documented.',
+    dueAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'demo-tracker-9',
+    summary: 'Shift handoff note pending — evening DSP.',
+    status: 'pending',
+    eventType: 'documentation',
+    priority: 'medium',
+    details: 'End-of-shift summary required. Include all medication administrations, incidents, and behavioral observations from current shift.',
+    dueAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'demo-tracker-10',
+    summary: 'Supervisor visit note completed — weekly check-in.',
+    status: 'completed',
+    eventType: 'documentation',
+    priority: 'low',
+    details: 'Supervisor Camila James completed weekly visit with all three clients. No critical concerns identified. ISP updates scheduled for next month.',
+    dueAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
   }
 ];
 
@@ -2245,49 +2311,110 @@ function buildDemoAskResponse({ clientId, question, mode = 'general' }) {
   const clientName = selectedClient?.displayName || 'the selected client';
   const prompt = String(question || '').toLowerCase();
 
-  if (mode === 'meal' || /meal|eating|food|nutrition|diet|appetite|swallow|texture/.test(prompt)) {
+  if (mode === 'meal' || /meal|eating|food|nutrition|diet|appetite|swallow|texture|lunch|breakfast|dinner|feeding/.test(prompt)) {
+    const clientCareInfo = DEMO_CLIENT_CARE_INFO[clientId];
+    const dietInfo = clientCareInfo?.nutrition?.[1]?.content || 'Regular diet. Confirm texture and allergy requirements before serving.';
+    const allergyInfo = clientCareInfo?.nutrition?.[2]?.content || clientCareInfo?.nutrition?.[1]?.content || 'Check allergy profile before preparing meals.';
+    const mealTimes = clientCareInfo?.nutrition?.[0]?.content || 'Breakfast 7:30 AM | Lunch 12:00 PM | Dinner 5:30 PM';
     return {
-      answer: `${clientName} meal support demo summary: confirm texture-safe meal setup, verify allergy flags before serving, and use calm one-step prompts with pacing support. Escalate to supervisor if intake drops or swallow concerns appear.`,
+      answer: `For ${clientName}: Meals are at ${mealTimes}. Prepare texture-appropriate foods, verify allergy flags before serving, and use calm one-step prompts. Stay with client during eating and watch for swallowing difficulties. Escalate to supervisor if intake drops below 50% or any choking risk is observed.`,
       grounded: true,
       sources: getDemoAskSources(clientName),
       structured: {
-        diet: 'Texture-modified diet with hydration prompts every 30 to 45 minutes during active shift windows.',
-        allergies: 'Avoid peanut ingredients and citrus concentrates per demo allergy profile.',
-        behavior: 'Use calm redirection if routine changes trigger distress. Keep transitions short and predictable.',
-        protocols: 'Offer hand-over-hand cueing only when verbal prompts fail. Pause and re-approach after 2 minutes if refusal persists.'
+        diet: dietInfo,
+        allergies: allergyInfo,
+        behavior: 'Use calm redirection if routine changes trigger distress during meals. Keep transitions short and predictable. Offer preferred foods when possible.',
+        protocols: 'Offer hand-over-hand cueing only when verbal prompts fail. Ensure client is seated upright. Remain present during entire meal. Document intake percentage in tracker.'
       },
       missingSections: [],
       escalationRequired: false
     };
   }
 
-  if (/bath|shower|hygiene|wash|grooming|soap|towel/.test(prompt)) {
+  if (/bath|shower|hygiene|wash|grooming|soap|towel|adl|personal care/.test(prompt)) {
     return {
-      answer: `${clientName} bathing support demo summary: gather all supplies before entering the bathroom (washcloth, soap, towel, change of clothes), use warm water and test temperature on your wrist first, verbally prepare each step before touching (e.g., "I'm going to wash your arms now"), allow adequate time without rushing, and offer hand-over-hand support only if requested or needed. Maintain dignity throughout by providing privacy, using appropriate draping, and respecting personal preferences.`,
+      answer: `For ${clientName} personal care: gather all supplies before entering the bathroom (washcloth, soap, towel, change of clothes). Test water temperature on your wrist first (95–105°F). Verbally prepare each step before touching — say what you are about to do. Allow adequate time without rushing, maintain dignity throughout, and offer hand-over-hand support only if requested or needed.`,
       grounded: true,
       sources: getDemoAskSources(clientName),
       structured: {
-        setup: 'Prepare all supplies: washcloth, mild soap, warm towel, change of clothes, and optional comfort items (bath salts, music). Check bathroom temperature and water pressure.',
-        safety: 'Test water temperature on your wrist first (aim for 95–105°F). Ensure non-slip surfaces, grab bars, and secure step stool if needed. Never leave the client unattended in the shower.',
-        technique: 'Use gentle, one-step verbal cues. Start with less sensitive areas (arms, legs) before face and genital areas. Minimize water on face unless client prefers a shower over tub bath.',
-        comfort: 'Offer hand-over-hand support for scrubbing if requested. Allow the client to do as much as independently possible. Provide a warm robe immediately after and positive encouragement throughout.'
+        diet: 'Prepare all supplies before entering: washcloth, mild soap, warm towel, change of clothes, and comfort items if needed.',
+        allergies: 'Ensure non-slip surfaces and grab bars are in place. Test water temperature on your wrist (95–105°F). Never leave client unattended.',
+        behavior: 'Use gentle, one-step verbal cues. Start with less sensitive areas (arms, legs) before face. Respect personal preferences and dignity throughout.',
+        protocols: 'Offer hand-over-hand support only if requested. Allow client maximum independence. Provide warm robe immediately after. Give positive encouragement throughout.'
       },
       missingSections: [],
       escalationRequired: false
     };
   }
 
-  if (/morning.*medication|medication schedule|med pass|mar|medicine|what.*med/.test(prompt)) {
+  if (/morning.*medication|medication schedule|med pass|mar|medicine|what.*med|pill|dose|drug/.test(prompt)) {
+    const clientCareInfo = DEMO_CLIENT_CARE_INFO[clientId];
+    const morningMeds = clientCareInfo?.medications?.[0]?.content || 'Verify morning medications per MAR. Confirm client identity before administering.';
+    const afternoonMeds = clientCareInfo?.medications?.[1]?.content || '';
+    const eveningMeds = clientCareInfo?.medications?.[2]?.content || '';
+    const allMedDetail = [morningMeds, afternoonMeds, eveningMeds].filter(Boolean).join(' | ');
     return {
-      answer: `For ${clientName} right now: administer Metformin 500mg with breakfast (8:00-9:00 AM window), Lisinopril 10mg with morning meal, and Vitamin D 1000 IU daily. Always verify client identity and MAR before administration, confirm no new allergies, and document completion or any variances immediately in tracker notes.`,
+      answer: `For ${clientName} — ${morningMeds}${afternoonMeds ? ` Afternoon: ${afternoonMeds}` : ''}${eveningMeds ? ` Evening: ${eveningMeds}` : ''} Always verify client identity and MAR before administration. Document completion or any variances in the tracker immediately.`,
       grounded: true,
       sources: getDemoAskSources(clientName),
       structured: {
-        immediate: 'Metformin 500mg with breakfast - take with food to minimize stomach upset',
-        dosage: 'Lisinopril 10mg once daily - take with morning meal, monitor blood pressure',
-        supplements: 'Vitamin D 1000 IU daily - take with food for better absorption',
-        timing: 'All medications: 8:00-9:00 AM window. Do NOT skip doses.',
-        safety: 'Verify client identity before giving any medication. Check MAR for any last-minute changes or hold orders. Document in tracker immediately.'
+        diet: morningMeds,
+        allergies: afternoonMeds || 'No afternoon medications scheduled.',
+        behavior: eveningMeds || 'No evening medications scheduled.',
+        protocols: 'Verify client identity before every administration. Check MAR for hold orders. Document in tracker immediately. Report missed doses or refusals to supervisor.'
+      },
+      missingSections: [],
+      escalationRequired: false
+    };
+  }
+
+  if (/behavior|escalat|deescalat|crisis|agitat|aggress|meltdown|distress|trigger/.test(prompt)) {
+    const clientCareInfo = DEMO_CLIENT_CARE_INFO[clientId];
+    const triggers = clientCareInfo?.behavior?.[1]?.content || 'Sudden routine changes and loud environments are common triggers.';
+    const deescalation = clientCareInfo?.behavior?.[2]?.content || 'Use calm voice, offer choices, and provide quiet time.';
+    return {
+      answer: `For ${clientName} behavior support: ${deescalation} Step away from the trigger if possible, reduce stimulation, and allow the client time to self-regulate. Do NOT argue, force compliance, or raise your voice. If escalation continues beyond 5 minutes or safety is at risk, call your supervisor immediately.`,
+      grounded: true,
+      sources: getDemoAskSources(clientName),
+      structured: {
+        diet: `Known triggers: ${triggers}`,
+        allergies: `De-escalation steps: ${deescalation}`,
+        behavior: 'Do NOT use physical restraint unless trained and authorized. Maintain a calm tone. Keep other clients away from the area. Document everything.',
+        protocols: 'Step 1: Remove trigger or move client to calm space. Step 2: Use quiet reassurance, offer choices. Step 3: Give 5–10 minutes of quiet time. Step 4: If escalation continues, contact supervisor. Step 5: Complete incident report within 2 hours.'
+      },
+      missingSections: [],
+      escalationRequired: true
+    };
+  }
+
+  if (/safe|fall|risk|wander|emergency|incident|injury|accident/.test(prompt)) {
+    const clientCareInfo = DEMO_CLIENT_CARE_INFO[clientId];
+    const safetyInfo = clientCareInfo?.safety?.[0]?.content || 'Monitor client closely and follow documented safety protocols.';
+    return {
+      answer: `For ${clientName} safety: ${safetyInfo} In any emergency, ensure client safety first, then call 911 if needed, notify your supervisor immediately, and document the incident in the tracker within 2 hours.`,
+      grounded: true,
+      sources: getDemoAskSources(clientName),
+      structured: {
+        diet: safetyInfo,
+        allergies: clientCareInfo?.safety?.[1]?.content || 'Check skin integrity daily. Report any skin changes immediately.',
+        behavior: clientCareInfo?.safety?.[2]?.content || 'Practice hand hygiene before and after care. Use PPE as indicated.',
+        protocols: 'Emergency protocol: 1) Ensure safety. 2) Call 911 if medical emergency. 3) Notify supervisor within 15 minutes. 4) Complete incident report within 2 hours. 5) Do not leave client alone.'
+      },
+      missingSections: [],
+      escalationRequired: false
+    };
+  }
+
+  if (/shift|handoff|handover|report|document|log|note|record/.test(prompt)) {
+    return {
+      answer: `For ${clientName} shift documentation: record all medications administered, any behavioral incidents, ADL completion percentages, meals served (including intake amounts), and any changes in health status. Complete the shift handoff note before leaving and ensure the incoming DSP is verbally briefed on any open or escalated items.`,
+      grounded: true,
+      sources: getDemoAskSources(clientName),
+      structured: {
+        diet: 'Document all meals: what was served, percentage consumed, any difficulties. Note hydration intake.',
+        allergies: 'Document all medications: time given, dose, client reaction. Note any refusals or missed doses.',
+        behavior: 'Document all behavioral observations: baseline, any incidents, triggers identified, de-escalation used.',
+        protocols: 'Complete shift note before leaving. Verbally brief incoming DSP. Flag all pending and escalated items. Sign and submit in tracker.'
       },
       missingSections: [],
       escalationRequired: false
@@ -2295,9 +2422,17 @@ function buildDemoAskResponse({ clientId, question, mode = 'general' }) {
   }
 
   return {
-    answer: `Demo answer for ${clientName}: use current care plan instructions, confirm assignment and safety flags first, perform the task using documented supports, and log outcomes in the tracker before handoff.`,
+    answer: `For ${clientName}: confirm your current assignment and review the care plan before starting. Use documented support strategies, communicate with the client clearly and respectfully, and log all activities and observations in the tracker before your shift ends. Contact your supervisor with any concerns.`,
     grounded: true,
-    sources: getDemoAskSources(clientName)
+    sources: getDemoAskSources(clientName),
+    structured: {
+      diet: 'Review care plan for dietary requirements and meal schedules before each shift.',
+      allergies: 'Confirm allergy and medication list at start of every shift.',
+      behavior: 'Follow documented behavioral support strategies. Know the client\'s triggers and de-escalation preferences.',
+      protocols: 'Log all activities in tracker. Report changes in health, behavior, or safety status to supervisor immediately.'
+    },
+    missingSections: [],
+    escalationRequired: false
   };
 }
 
