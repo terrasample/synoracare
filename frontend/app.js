@@ -1935,7 +1935,7 @@ async function renderHomeSection() {
   }
 
   try {
-    const summaryData = await api('/api/tracker/summary');
+    const summaryData = isDemo() ? DEMO_TRACKER_SUMMARY : await api('/api/tracker/summary');
     const visibleSummary = activeClientsCount === 0 ? { pending: 0, completed: 0, escalated: 0 } : summaryData;
     const homeStats = document.getElementById('homeStats');
     if (homeStats) {
@@ -1954,7 +1954,9 @@ async function renderHomeSection() {
         homeAlerts.innerHTML = `<div class="onboard-hint"><strong>Get started:</strong> Add your first client below, then assign a DSP to begin care tracking.<button type="button" class="quick-action-btn" data-scroll-target="createClientSection" style="margin-left:12px;">Add First Client →</button></div>`;
       } else if ((visibleSummary.escalated || 0) > 0) {
         try {
-          const feedData = await api('/api/tracker?limit=20');
+          const feedData = isDemo()
+            ? { entries: DEMO_TRACKER_ENTRIES }
+            : await api('/api/tracker?limit=20');
           const escalated = (feedData.entries || []).filter((e) => e.status === 'escalated').slice(0, 3);
           if (escalated.length) {
             homeAlerts.innerHTML = `
