@@ -50,6 +50,7 @@ const ROLE_PERMISSION_FALLBACK = {
     'assignments:create',
     'ask:approved_guidance:read',
     'audit:org:read',
+    'reports:export',
     'shifts:handoff:create',
     'shifts:all:read',
     'legal_records:export'
@@ -515,7 +516,7 @@ const DEMO_TRACKER_ENTRIES = [
 const PAGE_ACCESS_RULES = {
   askSection: 'ask:approved_guidance:read',
   careModulesSection: 'tracker:entry:read',
-  reportingSection: 'tracker:entry:read',
+  reportingSection: 'reports:export',
   uploadSection: 'documents:upload',
   assignmentSection: 'assignments:create',
   createClientSection: ['clients:assigned:read', 'clients:all:read'],
@@ -681,38 +682,84 @@ function handlePageNavigation(pageId) {
   }
 
   if (pageId === 'assignmentSection') {
-    renderAssignmentsList();
+    renderAssignmentsList().catch(() => {});
   }
 }
 
-function renderAssignmentsList() {
+async function renderAssignmentsList() {
   const list = document.getElementById('assignmentsList');
   if (!list) return;
 
-  if (!isDemo()) {
-    list.innerHTML = '<p class="empty-state">Assignments are managed via the API in live mode.</p>';
+  if (isDemo()) {
+    const byClient = {};
+    DEMO_ASSIGNMENTS.forEach((a) => {
+      if (!byClient[a.clientName]) byClient[a.clientName] = [];
+      byClient[a.clientName].push(a);
+    });
+
+    list.innerHTML = Object.entries(byClient).map(([clientName, entries]) => {
+      const rows = entries.map((a) => `
+        <div style="display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0;">
+          <span class="tracker-badge" style="background:#e2e8f0;color:#0f172a;font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:999px;">${safeText(a.role.toUpperCase())}</span>
+          <span>${safeText(a.dspName)}</span>
+        </div>`).join('');
+      return `
+        <div class="data-list-item" style="display:block;">
+          <div style="font-weight:600;color:#166534;margin-bottom:0.25rem;">${safeText(clientName)}</div>
+          ${rows}
+        </div>`;
+    }).join('');
     return;
   }
 
-  // Group by client
-  const byClient = {};
-  DEMO_ASSIGNMENTS.forEach((a) => {
-    if (!byClient[a.clientName]) byClient[a.clientName] = [];
-    byClient[a.clientName].push(a);
-  });
+  try {
+    if (!usersCache.length) await refreshUsers();
+    if (!clientsCache.length) await refreshClients();
 
-  list.innerHTML = Object.entries(byClient).map(([clientName, entries]) => {
-    const rows = entries.map((a) => `
-      <div style="display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0;">
-        <span class="tracker-badge" style="background:#e2e8f0;color:#0f172a;font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:999px;">${safeText(a.role.toUpperCase())}</span>
-        <span>${safeText(a.dspName)}</span>
-      </div>`).join('');
-    return `
-      <div class="data-list-item" style="display:block;">
-        <div style="font-weight:600;color:#166534;margin-bottom:0.25rem;">${safeText(clientName)}</div>
-        ${rows}
-      </div>`;
-  }).join('');
+    const data = await api('/api/assignments');
+    const assignments = (data.assignments || []).filter((entry) => {
+      if (!entry.expiresAt) return true;
+      const expiration = new Date(entry.expiresAt);
+      return Number.isNaN(expiration.getTime()) || expiration >= new Date();
+    });
+
+    if (!assignments.length) {
+      list.innerHTML = '<p class="empty-state">No assignments yet.</p>';
+      return;
+    }
+
+    const userById = new Map(usersCache.map((u) => [String(u._id), u]));
+    const clientById = new Map(clientsCache.map((c) => [String(c._id), c]));
+    const byClient = {};
+
+    assignments.forEach((assignment) => {
+      const user = userById.get(String(assignment.userId));
+      const client = clientById.get(String(assignment.clientId));
+      const clientName = client?.displayName || 'Unknown client';
+      const role = user?.role || 'staff';
+      const roleLabel = user?.roleDisplayName || getRoleDisplayLabel(role);
+      const staffName = user?.fullName || 'Unknown staff';
+
+      if (!byClient[clientName]) byClient[clientName] = [];
+      byClient[clientName].push({ role, roleLabel, staffName });
+    });
+
+    list.innerHTML = Object.entries(byClient).map(([clientName, entries]) => {
+      const rows = entries.map((entry) => `
+        <div style="display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0;">
+          <span class="tracker-badge" style="background:#e2e8f0;color:#0f172a;font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:999px;">${safeText(entry.role.toUpperCase())}</span>
+          <span>${safeText(entry.staffName)}</span>
+          <span class="data-item-meta">${safeText(entry.roleLabel)}</span>
+        </div>`).join('');
+      return `
+        <div class="data-list-item" style="display:block;">
+          <div style="font-weight:600;color:#166534;margin-bottom:0.25rem;">${safeText(clientName)}</div>
+          ${rows}
+        </div>`;
+    }).join('');
+  } catch (error) {
+    list.innerHTML = `<p class="empty-state">Could not load assignments: ${safeText(error.message)}</p>`;
+  }
 }
 
 const ROLE_TRAINING = {
@@ -3483,7 +3530,8 @@ document.getElementById('assignmentForm').addEventListener('submit', async (e) =
       setOutput('assignmentOutput', '');
       showToast('Assignment created successfully.', 'success');
       e.target.reset();
-      await refreshClients();
+      await Promise.all([refreshClients(), refreshUsers()]);
+      await renderAssignmentsList();
     } catch (err) {
       setOutput('assignmentOutput', err.message);
     }

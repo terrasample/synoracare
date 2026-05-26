@@ -28,6 +28,7 @@ const ROLE_PERMISSIONS = {
     'assignments:create',
     'ask:approved_guidance:read',
     'audit:org:read',
+    'reports:export',
     'shifts:handoff:create',
     'shifts:all:read',
     'legal_records:export'
