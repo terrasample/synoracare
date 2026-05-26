@@ -116,11 +116,10 @@ const chatSourceRegistry = new Map();
 let demoMode = localStorage.getItem('synoracare_demo_mode') === '1' || new URLSearchParams(window.location.search).get('demo') === '1';
 if (demoMode) localStorage.setItem('synoracare_demo_mode', '1');
 
-// Demo mode only applies when the user is NOT logged in.
-// A logged-in user always uses real API data regardless of the demoMode flag.
+// Demo mode is reserved for authenticated super admins.
 function isDemo() {
   if (!demoMode) return false;
-  if (!currentUser) return true;
+  if (!currentUser) return false;
   return canUseRoleSwitcher();
 }
 
@@ -1170,7 +1169,7 @@ function renderRoleLabelSettings() {
 }
 
 function canToggleDemoMode() {
-  if (!currentUser) return true;
+  if (!currentUser) return false;
   return canUseRoleSwitcher();
 }
 
