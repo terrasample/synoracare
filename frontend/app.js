@@ -116,6 +116,10 @@ const chatSourceRegistry = new Map();
 let demoMode = localStorage.getItem('synoracare_demo_mode') === '1' || new URLSearchParams(window.location.search).get('demo') === '1';
 if (demoMode) localStorage.setItem('synoracare_demo_mode', '1');
 
+// Demo mode only applies when the user is NOT logged in.
+// A logged-in user always uses real API data regardless of the demoMode flag.
+function isDemo() { return demoMode && !currentUser; }
+
 function persistAuthSession() {
   try {
     if (!token || !currentUser) {
@@ -1312,7 +1316,7 @@ async function loadTrackerFeed() {
     const query = trackerStatusFilter ? `?limit=50&status=${encodeURIComponent(trackerStatusFilter)}` : '?limit=50';
     const data = await api(`/api/tracker${query}`);
     const entries = data.entries || [];
-    if (demoMode && entries.length === 0) {
+    if (isDemo() && entries.length === 0) {
       renderTrackerFeed(
         trackerStatusFilter ? DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === trackerStatusFilter) : DEMO_TRACKER_ENTRIES
       );
@@ -1320,7 +1324,7 @@ async function loadTrackerFeed() {
     }
     renderTrackerFeed(entries);
   } catch (error) {
-    if (demoMode) {
+    if (isDemo()) {
       renderTrackerFeed(
         trackerStatusFilter ? DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === trackerStatusFilter) : DEMO_TRACKER_ENTRIES
       );
@@ -1335,7 +1339,7 @@ async function loadTrackerSummary() {
     const data = await api('/api/tracker/summary');
     renderTrackerSummary(data);
   } catch (error) {
-    if (demoMode) {
+    if (isDemo()) {
       renderTrackerSummary(DEMO_TRACKER_SUMMARY);
       return;
     }
@@ -1569,7 +1573,7 @@ async function loadReportingSection(formValues = null) {
     currentReportPayload = payload;
     renderReportPayload(payload);
   } catch (error) {
-    if (demoMode) {
+    if (isDemo()) {
       const payload = buildReportPayload(DEMO_TRACKER_ENTRIES, filters);
       currentReportPayload = payload;
       renderReportPayload(payload);
@@ -1634,7 +1638,7 @@ function syncUserPicker() {
 }
 
 async function refreshClients() {
-  if (demoMode) {
+  if (isDemo()) {
     clientsCache = getDemoClients();
     syncClientPickers();
     renderClientList(clientsCache);
@@ -1659,17 +1663,17 @@ async function refreshUsers() {
   try {
     const data = await api('/api/assignments/users');
     usersCache = data.users || [];
-    if (demoMode && usersCache.length === 0) {
+    if (isDemo() && usersCache.length === 0) {
       usersCache = DEMO_USERS;
     }
     syncUserPicker();
     renderUserList(usersCache);
   } catch (error) {
-    usersCache = demoMode ? DEMO_USERS : [];
+    usersCache = isDemo() ? DEMO_USERS : [];
     syncUserPicker();
     const list = document.getElementById('usersList');
-    if (list && !demoMode) list.innerHTML = `<p class="empty-state">Could not load team: ${safeText(error.message)}</p>`;
-    if (list && demoMode) renderUserList(usersCache);
+    if (list && !isDemo()) list.innerHTML = `<p class="empty-state">Could not load team: ${safeText(error.message)}</p>`;
+    if (list && isDemo()) renderUserList(usersCache);
   }
 }
 
@@ -2296,7 +2300,7 @@ async function requestMealAssistSnapshot() {
     messages.scrollTop = messages.scrollHeight;
   }
 
-  if (demoMode) {
+  if (isDemo()) {
     renderAskAnswer(buildDemoAskResponse({ clientId, question: userQuestion, mode: 'meal' }));
     return;
   }
@@ -2401,7 +2405,7 @@ async function handleClientListAction(action, clientId) {
     const nextExternalId = window.prompt('External ID (optional)', client.externalId || '');
     if (nextExternalId === null) return;
 
-    if (demoMode) {
+    if (isDemo()) {
       clientsCache = clientsCache.map((item) => (
         String(item._id) === String(clientId)
           ? { ...item, displayName: trimmedName, externalId: String(nextExternalId || '').trim() }
@@ -2432,7 +2436,7 @@ async function handleClientListAction(action, clientId) {
     const confirmed = window.confirm(`Archive ${client.displayName}? This removes active access but keeps records.`);
     if (!confirmed) return;
 
-    if (demoMode) {
+    if (isDemo()) {
       clientsCache = clientsCache.map((item) => (
         String(item._id) === String(clientId)
           ? { ...item, status: 'inactive' }
@@ -2461,7 +2465,7 @@ async function handleClientListAction(action, clientId) {
       return;
     }
 
-    if (demoMode) {
+    if (isDemo()) {
       clientsCache = clientsCache.filter((item) => String(item._id) !== String(clientId));
       saveDemoClients(clientsCache);
       syncClientPickers();
@@ -2540,7 +2544,7 @@ function renderPatientTabContent() {
   }
 
   if (selectedPatientTab === 'legal') {
-    if (demoMode) {
+    if (isDemo()) {
       const selectedClient = clientsCache.find((c) => String(c._id) === String(currentPatientWorkspace.clientId));
       const label = selectedClient ? `${selectedClient.displayName} (${selectedClient.externalId || 'n/a'})` : 'Selected client';
       container.innerHTML = `
@@ -2569,7 +2573,7 @@ function renderPatientTabContent() {
   }
 
   // First, try to show client care information if available
-  if (demoMode) {
+  if (isDemo()) {
     const careInfo = getDemoClientCareInfo(currentPatientWorkspace.clientId, selectedPatientTab);
     if (careInfo && careInfo.length > 0) {
       container.innerHTML = `<div class="patient-items">${careInfo.map((item) => `
@@ -2607,7 +2611,7 @@ async function loadPatientWorkspace() {
     return;
   }
 
-  if (demoMode) {
+  if (isDemo()) {
     currentPatientWorkspace = {
       clientId,
       entries: getDemoPatientWorkspaceEntries(clientId)
@@ -3044,7 +3048,7 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
   await withSubmitLock(e.target, async () => {
     const payload = Object.fromEntries(new FormData(e.target).entries());
 
-    if (demoMode) {
+    if (isDemo()) {
       const demoClients = getDemoClients();
       const nextClient = {
         _id: `demo-client-${Date.now()}`,
@@ -3234,8 +3238,7 @@ document.getElementById('assignmentForm').addEventListener('submit', async (e) =
   e.preventDefault();
   await withSubmitLock(e.target, async () => {
     const payload = Object.fromEntries(new FormData(e.target).entries());
-    const isDemo = demoMode || String(payload.userId || '').startsWith('demo-') || String(payload.clientId || '').startsWith('demo-');
-    if (isDemo) {
+    if (isDemo() || String(payload.userId || '').startsWith('demo-') || String(payload.clientId || '').startsWith('demo-')) {
       setOutput('assignmentOutput', { message: 'Assignment saved (demo mode — no real data was changed).' });
       return;
     }
@@ -3311,7 +3314,7 @@ document.getElementById('askForm').addEventListener('submit', async (e) => {
     // Clear input
     if (questionEl) questionEl.value = '';
 
-    if (demoMode) {
+    if (isDemo()) {
       renderAskAnswer(buildDemoAskResponse({ clientId, question }));
       return;
     }
@@ -4127,7 +4130,7 @@ async function renderWhosWorking() {
   } catch (error) {
     console.error('Failed to render Who\'s Working:', error);
     // Only render demo data in demo mode; non-demo mode shows empty state
-    if (demoMode) {
+    if (isDemo()) {
       container.innerHTML = `
         <div class="whos-working-card active">
           <div class="whos-working-dsp-name">👤 Nia Carter</div>
@@ -4199,7 +4202,7 @@ async function loadShiftMonitor() {
   } catch (error) {
     console.error('Failed to load shift monitor:', error);
     // Only render demo data in demo mode; non-demo mode shows empty state
-    if (demoMode) {
+    if (isDemo()) {
       document.getElementById('activeShiftCount').textContent = '2';
       document.getElementById('endedShiftCount').textContent = '3';
       document.getElementById('totalEntriesCount').textContent = '24';
