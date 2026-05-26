@@ -1167,8 +1167,7 @@ function renderRoleLabelSettings() {
 
 function canToggleDemoMode() {
   if (!currentUser) return true;
-  if (canUseRoleSwitcher()) return true;
-  return DEMO_TOGGLE_ALLOWED_EMAILS.has(String(currentUser.email || '').toLowerCase());
+  return canUseRoleSwitcher();
 }
 
 function syncDemoToggle() {
@@ -3249,16 +3248,19 @@ document.getElementById('assignmentForm').addEventListener('submit', async (e) =
   await withSubmitLock(e.target, async () => {
     const payload = Object.fromEntries(new FormData(e.target).entries());
     if (isDemo() || String(payload.userId || '').startsWith('demo-') || String(payload.clientId || '').startsWith('demo-')) {
-      setOutput('assignmentOutput', { message: 'Assignment saved (demo mode — no real data was changed).' });
+      setOutput('assignmentOutput', '');
+      showToast('Assignment saved (demo mode — no real data was changed).', 'success');
       return;
     }
     try {
-      const data = await api('/api/assignments', {
+      await api('/api/assignments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      setOutput('assignmentOutput', data);
+      setOutput('assignmentOutput', '');
+      showToast('Assignment created successfully.', 'success');
+      e.target.reset();
       await refreshClients();
     } catch (err) {
       setOutput('assignmentOutput', err.message);
