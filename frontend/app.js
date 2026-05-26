@@ -179,11 +179,35 @@ const OFFLINE_ENTRIES_KEY = 'synoracare_offline_entries';
 const CURRENT_SHIFT_KEY = 'synoracare_current_shift';
 
 const DEMO_CLIENTS = [
-  { _id: 'demo-client-1', displayName: 'Jordan Miles', externalId: 'SC-1001' },
-  { _id: 'demo-client-2', displayName: 'Avery Brooks', externalId: 'SC-1002' },
-  { _id: 'demo-client-3', displayName: 'Taylor Reed', externalId: 'SC-1003' }
+  { _id: 'demo-client-1', displayName: 'Jordan Miles', externalId: 'SC-1001', locationId: 'demo-home-1', status: 'active' },
+  { _id: 'demo-client-2', displayName: 'Avery Brooks', externalId: 'SC-1002', locationId: 'demo-home-1', status: 'active' },
+  { _id: 'demo-client-3', displayName: 'Taylor Reed', externalId: 'SC-1003', locationId: 'demo-home-2', status: 'active' }
 ];
 const DEMO_CLIENTS_STORAGE_KEY = 'synoracare_demo_clients';
+
+const DEMO_HOMES = [
+  { _id: 'demo-home-1', name: 'Sunrise Home', displayName: 'Sunrise Home', address: '123 Oak Street', phoneNumber: '555-0101', maxClients: 4, status: 'active' },
+  { _id: 'demo-home-2', name: 'Peaceful Haven', displayName: 'Peaceful Haven', address: '456 Elm Avenue', phoneNumber: '555-0102', maxClients: 4, status: 'active' },
+  { _id: 'demo-home-3', name: 'Community Living', displayName: 'Community Living', address: '789 Maple Drive', phoneNumber: '555-0103', maxClients: 4, status: 'active' }
+];
+
+const DEMO_TRANSFERS = [
+  {
+    _id: 'demo-transfer-1',
+    clientId: 'demo-client-1',
+    fromLocationId: null,
+    toLocationId: 'demo-home-1',
+    transferredBy: { fullName: 'Sarah Adams', email: 'sarah@example.com' },
+    reason: 'Initial placement',
+    isTemporary: false,
+    scheduledReturnDate: null,
+    actualReturnDate: null,
+    status: 'active',
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    fromLocationId_data: null,
+    toLocationId_data: { displayName: 'Sunrise Home', name: 'Sunrise Home' }
+  }
+];
 
 const DEMO_CLIENT_CARE_INFO = {
   'demo-client-1': {
@@ -2844,8 +2868,20 @@ async function openTransferClientModal(clientId) {
 
 async function loadTransferHistory(clientId) {
   try {
-    const data = await api(`/api/clients/${encodeURIComponent(clientId)}/transfers`);
-    const transfers = data.transfers || [];
+    let transfers = [];
+
+    if (isDemo()) {
+      transfers = DEMO_TRANSFERS.filter((t) => String(t.clientId) === String(clientId))
+        .map((t) => ({
+          ...t,
+          fromLocationId: t.fromLocationId_data,
+          toLocationId: t.toLocationId_data
+        }));
+    } else {
+      const data = await api(`/api/clients/${encodeURIComponent(clientId)}/transfers`);
+      transfers = data.transfers || [];
+    }
+
     const list = document.getElementById('transferHistoryList');
 
     if (!transfers.length) {
@@ -3268,6 +3304,28 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const payload = Object.fromEntries(new FormData(e.target).entries());
 
+  if (demoMode) {
+    // Demo login - create mock session
+    const demoUser = {
+      _id: 'demo-user-admin',
+      fullName: 'Demo Admin',
+      email: 'demo@synoracare.com',
+      role: 'admin',
+      orgId: 'demo-org',
+      status: 'active',
+      locationIds: ['demo-home-1', 'demo-home-2', 'demo-home-3']
+    };
+
+    token = 'demo-token-' + Date.now();
+    currentUser = demoUser;
+    roleViewOverride = null;
+    applyAuthUserContext(demoUser);
+    updateSession();
+    await refreshAllPickers();
+    showToast('Demo mode activated. Sample data loaded.', 'success');
+    return;
+  }
+
   try {
     const data = await api('/api/auth/login', {
       method: 'POST',
@@ -3437,6 +3495,13 @@ function initializeGuestEntryFromUrl() {
 // ── Homes Management ───────────────────────────────────────────
 async function refreshHomes() {
   try {
+    if (isDemo()) {
+      homesCache = DEMO_HOMES;
+      syncHomeLocationPicker();
+      renderHomesList(homesCache);
+      return;
+    }
+
     const data = await api('/api/locations');
     homesCache = data.locations || [];
     syncHomeLocationPicker();
@@ -3595,6 +3660,53 @@ document.getElementById('transferForm')?.addEventListener('submit', async (e) =>
       return;
     }
 
+    if (isDemo()) {
+      // Demo mode: update client location and add transfer record
+      const client = clientsCache.find((c) => String(c._id) === String(clientId));
+      if (!client) {
+        showToast('Client not found.', 'error');
+        return;
+      }
+
+      const targetHome = homesCache.find((h) => String(h._id) === String(toLocationId));
+      if (!targetHome) {
+        showToast('Target home not found.', 'error');
+        return;
+      }
+
+      // Create transfer record
+      const newTransfer = {
+        _id: `demo-transfer-${Date.now()}`,
+        clientId,
+        fromLocationId: client.locationId || null,
+        toLocationId,
+        transferredBy: { fullName: currentUser.fullName, email: currentUser.email },
+        reason,
+        isTemporary,
+        scheduledReturnDate: isTemporary ? scheduledReturnDate : null,
+        actualReturnDate: null,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        fromLocationId_data: client.locationId ? homesCache.find((h) => String(h._id) === String(client.locationId)) : null,
+        toLocationId_data: targetHome
+      };
+
+      DEMO_TRANSFERS.unshift(newTransfer);
+
+      // Update client location
+      client.locationId = toLocationId;
+      saveDemoClients(clientsCache);
+
+      const msg = isTemporary
+        ? `Demo: ${client.displayName} transferred temporarily to ${targetHome.displayName} until ${formatDate(scheduledReturnDate)}.`
+        : `Demo: ${client.displayName} transferred to ${targetHome.displayName}.`;
+      showToast(msg, 'success');
+      
+      document.getElementById('transferClientModal').style.display = 'none';
+      await refreshClients();
+      return;
+    }
+
     try {
       const result = await api(`/api/clients/${encodeURIComponent(clientId)}/transfer`, {
         method: 'POST',
@@ -3633,7 +3745,9 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
       const nextClient = {
         _id: `demo-client-${Date.now()}`,
         displayName: String(payload.displayName || '').trim() || 'Demo Client',
-        externalId: String(payload.externalId || '').trim() || `SC-DEMO-${demoClients.length + 1001}`
+        externalId: String(payload.externalId || '').trim() || `SC-DEMO-${demoClients.length + 1001}`,
+        locationId: String(payload.clientLocationId || '').trim() || null,
+        status: 'active'
       };
       demoClients.unshift(nextClient);
       saveDemoClients(demoClients);
@@ -3668,6 +3782,8 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
       if (currentUser) {
         renderHomeSection().catch(() => {});
       }
+      return;
+    }
       return;
     }
 
