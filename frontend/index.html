@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SynoraCare</title>
-  <link rel="stylesheet" href="styles.css?v=20260525e" />
+  <link rel="stylesheet" href="styles.css?v=20260525f" />
 </head>
 <body class="guest-mode role-guest">
 <div class="app-shell">
@@ -298,6 +298,7 @@
             <p class="ask-prompt-help">Choose a phase, open a category, then tap a prompt.</p>
           </div>
           <div class="ask-prompt-controls">
+            <input id="askPromptSearch" class="ask-prompt-search" type="search" placeholder="Find a prompt..." aria-label="Find a prompt" />
             <div id="askPromptPhaseTabs" class="ask-prompt-phase-tabs" role="tablist" aria-label="Prompt shift phase">
               <button type="button" class="ask-phase-btn is-active" data-ask-phase="pre_shift">Pre-Shift</button>
               <button type="button" class="ask-phase-btn" data-ask-phase="documentation">Documentation</button>
@@ -315,13 +316,16 @@
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
           </div>
           <p>Select a client above, then ask a care question.</p>
-          <div class="chat-starters">
-            <button type="button" class="chat-starter-btn" data-question="What is the morning medication schedule?">Morning meds schedule</button>
-            <button type="button" class="chat-starter-btn" data-question="How should I assist with bathing and personal care?">Bathing assistance</button>
-            <button type="button" class="chat-starter-btn" data-question="What are the escalation steps for this client?">Escalation steps</button>
-            <button type="button" class="chat-starter-btn" data-question="What dietary restrictions or preferences does this client have?">Dietary needs</button>
-            <button type="button" class="chat-starter-btn chat-starter-btn-feature" data-quick-assist="meal">Meal assist snapshot</button>
-          </div>
+          <details class="chat-starter-details">
+            <summary>Need quick question ideas?</summary>
+            <div class="chat-starters">
+              <button type="button" class="chat-starter-btn" data-question="What is the morning medication schedule?">Morning meds schedule</button>
+              <button type="button" class="chat-starter-btn" data-question="How should I assist with bathing and personal care?">Bathing assistance</button>
+              <button type="button" class="chat-starter-btn" data-question="What are the escalation steps for this client?">Escalation steps</button>
+              <button type="button" class="chat-starter-btn" data-question="What dietary restrictions or preferences does this client have?">Dietary needs</button>
+              <button type="button" class="chat-starter-btn chat-starter-btn-feature" data-quick-assist="meal">Meal assist snapshot</button>
+            </div>
+          </details>
         </div>
       </div>
       <form id="askForm" class="chat-input-bar">
@@ -1043,6 +1047,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=20260525e"></script>
+  <script src="app.js?v=20260525f"></script>
 </body>
 </html>

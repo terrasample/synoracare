@@ -597,6 +597,13 @@ body.guest-mode #bootstrapSection {
   align-items: center;
   flex-wrap: wrap;
 }
+.ask-prompt-search {
+  min-width: 180px;
+  max-width: 240px;
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 12px;
+}
 .ask-prompt-phase-tabs {
   display: flex;
   gap: 6px;
@@ -685,6 +692,24 @@ body.guest-mode #bootstrapSection {
 }
 .ask-prompt-library.is-collapsed .ask-prompt-groups {
   display: none;
+}
+.chat-starter-details {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px 10px;
+}
+.chat-starter-details summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.chat-starter-details[open] summary {
+  color: var(--accent-dark);
+  margin-bottom: 8px;
 }
 .typing-dots { display: flex; gap: 4px; align-items: center; padding: 2px 4px; }
 .typing-dots span { width: 7px; height: 7px; background: var(--muted); border-radius: 50%; animation: blink 1.2s infinite; }
@@ -2831,6 +2856,11 @@ body.guest-mode #loginSection {
     width: 100%;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .ask-prompt-search {
+    max-width: none;
+    width: 100%;
   }
 
   .ask-prompt-phase-tabs {

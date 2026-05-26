@@ -104,6 +104,7 @@ let selectedTrainingContext = 'pre_shift';
 let selectedAskPromptPhase = 'pre_shift';
 let selectedAskPromptGroup = '';
 let isAskPromptLibraryCollapsed = false;
+let askPromptSearchTerm = '';
 let legalExportPayload = null;
 let currentReportPayload = null;
 let selectedPatientTab = 'care';
@@ -807,7 +808,11 @@ function renderAskPromptLibrary() {
 
   const library = getPromptLibraryForRole(role);
   const phase = library[selectedAskPromptPhase] ? selectedAskPromptPhase : 'pre_shift';
-  const prompts = library[phase] || [];
+  const prompts = (library[phase] || []).filter((item) => {
+    if (!askPromptSearchTerm) return true;
+    const haystack = `${item.category || ''} ${item.label || ''} ${item.question || ''}`.toLowerCase();
+    return haystack.includes(askPromptSearchTerm.toLowerCase());
+  });
 
   libraryWrap.classList.toggle('is-collapsed', isAskPromptLibraryCollapsed);
   toggleBtn.textContent = isAskPromptLibraryCollapsed ? 'Expand' : 'Collapse';
@@ -819,7 +824,7 @@ function renderAskPromptLibrary() {
   });
 
   if (!prompts.length) {
-    groups.innerHTML = '<p class="empty-state">No prompts available for this role and phase yet.</p>';
+    groups.innerHTML = '<p class="empty-state">No matching prompts. Try a different search or phase.</p>';
     return;
   }
 
@@ -3192,6 +3197,12 @@ document.getElementById('askPromptPhaseTabs')?.addEventListener('click', (e) => 
   if (!button) return;
 
   selectedAskPromptPhase = button.dataset.askPhase || 'pre_shift';
+  selectedAskPromptGroup = '';
+  renderAskPromptLibrary();
+});
+
+document.getElementById('askPromptSearch')?.addEventListener('input', (e) => {
+  askPromptSearchTerm = String(e.target.value || '').trim();
   selectedAskPromptGroup = '';
   renderAskPromptLibrary();
 });
