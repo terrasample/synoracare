@@ -397,9 +397,11 @@ function getDemoClientCareInfo(clientId, tab) {
 }
 
 const DEMO_USERS = [
-  { _id: 'demo-user-1', fullName: 'Nia Carter', role: 'dsp' },
-  { _id: 'demo-user-2', fullName: 'Isaiah Moore', role: 'dsp' },
-  { _id: 'demo-user-3', fullName: 'Camila James', role: 'supervisor' }
+  { _id: 'demo-user-1', fullName: 'Nia Carter', role: 'dsp', email: 'nia.carter@synoracare.demo', status: 'active' },
+  { _id: 'demo-user-2', fullName: 'Isaiah Moore', role: 'dsp', email: 'isaiah.moore@synoracare.demo', status: 'active' },
+  { _id: 'demo-user-3', fullName: 'Camila James', role: 'supervisor', email: 'camila.james@synoracare.demo', status: 'active' },
+  { _id: 'demo-user-4', fullName: 'Marcus Webb', role: 'dsp', email: 'marcus.webb@synoracare.demo', status: 'active' },
+  { _id: 'demo-user-5', fullName: 'Priya Nair', role: 'org_admin', email: 'priya.nair@synoracare.demo', status: 'active' }
 ];
 
 const DEMO_ASSIGNMENTS = [
@@ -1781,20 +1783,22 @@ async function refreshClients() {
 }
 
 async function refreshUsers() {
+  if (isDemo()) {
+    usersCache = DEMO_USERS;
+    syncUserPicker();
+    renderUserList(usersCache);
+    return;
+  }
   try {
     const data = await api('/api/assignments/users');
     usersCache = data.users || [];
-    if (isDemo() && usersCache.length === 0) {
-      usersCache = DEMO_USERS;
-    }
     syncUserPicker();
     renderUserList(usersCache);
   } catch (error) {
-    usersCache = isDemo() ? DEMO_USERS : [];
+    usersCache = [];
     syncUserPicker();
     const list = document.getElementById('usersList');
-    if (list && !isDemo()) list.innerHTML = `<p class="empty-state">Could not load team: ${safeText(error.message)}</p>`;
-    if (list && isDemo()) renderUserList(usersCache);
+    if (list) list.innerHTML = `<p class="empty-state">Could not load team: ${safeText(error.message)}</p>`;
   }
 }
 
