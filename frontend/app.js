@@ -2080,7 +2080,7 @@ async function renderHomeSection() {
     { label: 'Log Event', target: 'trackerSection', permission: 'tracker:entry:create' },
     { label: 'Review Tracker', target: 'trackerSection', permission: 'tracker:entry:read' },
     { label: 'Care Modules', target: 'careModulesSection', permission: 'tracker:entry:read' },
-    { label: 'Reporting', target: 'reportingSection', permission: 'tracker:entry:read' },
+    { label: 'Reporting', target: 'reportingSection', permission: 'reports:export' },
     { label: 'Emergency Access', target: 'breakGlassSection' },
     { label: 'My Training', target: 'trainingSection' },
     { label: 'Upload Document', target: 'uploadSection', permission: 'documents:upload' },
