@@ -4,6 +4,7 @@ const Assignment = require('../models/Assignment');
 const TrackerEntry = require('../models/TrackerEntry');
 const CareDocument = require('../models/CareDocument');
 const AuditEvent = require('../models/AuditEvent');
+const ClientTransfer = require('../models/ClientTransfer');
 const { requireAuth } = require('../middleware/auth');
 const { requirePermissions } = require('../middleware/permissions');
 const { canRole } = require('../config/accessControl');
@@ -178,6 +179,171 @@ router.delete('/:id', requireAuth, requirePermissions('clients:delete'), async (
     return res.json({ ok: true });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to delete client' });
+  }
+});
+
+// Transfer a client to a different home
+router.post('/:id/transfer', requireAuth, requirePermissions('clients:update'), async (req, res) => {
+  try {
+    const { toLocationId, reason, isTemporary, scheduledReturnDate } = req.body || {};
+    if (!toLocationId) return res.status(400).json({ error: 'toLocationId required' });
+
+    const client = await Client.findOne({ _id: req.params.id, orgId: req.user.orgId });
+    if (!client) return res.status(404).json({ error: 'Client not found' });
+
+    // Verify target location exists and is active
+    const Location = require('../models/Location');
+    const targetLocation = await Location.findOne({ _id: toLocationId, orgId: req.user.orgId, status: 'active' });
+    if (!targetLocation) return res.status(404).json({ error: 'Target home not found or inactive' });
+
+    // If same location, return error
+    if (String(client.locationId) === String(toLocationId)) {
+      return res.status(400).json({ error: 'Client is already in this home' });
+    }
+
+    const now = new Date();
+    const fromLocationId = client.locationId || null;
+
+    // Expire all current active assignments for this client
+    const expiredAssignments = await Assignment.find({
+      orgId: req.user.orgId,
+      clientId: client._id,
+      startsAt: { $lte: now },
+      $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }]
+    }).select('_id').lean();
+
+    const expiredIds = expiredAssignments.map((a) => a._id);
+
+    if (expiredIds.length > 0) {
+      await Assignment.updateMany(
+        { _id: { $in: expiredIds } },
+        { $set: { expiresAt: now } }
+      );
+    }
+
+    // Create transfer record
+    const transfer = await ClientTransfer.create({
+      orgId: req.user.orgId,
+      clientId: client._id,
+      fromLocationId,
+      toLocationId,
+      transferredBy: req.user._id,
+      reason: String(reason || '').trim(),
+      isTemporary: Boolean(isTemporary),
+      scheduledReturnDate: isTemporary && scheduledReturnDate ? new Date(scheduledReturnDate) : null,
+      expiredAssignments: expiredIds,
+      status: 'active'
+    });
+
+    // Update client location
+    client.locationId = toLocationId;
+    await client.save();
+
+    // Audit log
+    await AuditEvent.create({
+      orgId: req.user.orgId,
+      userId: req.user._id,
+      clientId: client._id,
+      eventType: 'security_alert',
+      payload: {
+        action: 'client_transferred',
+        clientName: client.displayName,
+        fromLocationId: String(fromLocationId || 'none'),
+        toLocationId: String(toLocationId),
+        isTemporary,
+        scheduledReturnDate: transfer.scheduledReturnDate || null,
+        expiredAssignmentCount: expiredIds.length
+      }
+    });
+
+    return res.status(201).json({ client, transfer });
+  } catch (error) {
+    console.error('Error transferring client:', error);
+    return res.status(500).json({ error: 'Failed to transfer client' });
+  }
+});
+
+// Get transfer history for a client
+router.get('/:id/transfers', requireAuth, async (req, res) => {
+  try {
+    const client = await Client.findOne({ _id: req.params.id, orgId: req.user.orgId });
+    if (!client) return res.status(404).json({ error: 'Client not found' });
+
+    const transfers = await ClientTransfer.find({
+      orgId: req.user.orgId,
+      clientId: client._id
+    })
+      .sort({ createdAt: -1 })
+      .populate('fromLocationId', 'name displayName')
+      .populate('toLocationId', 'name displayName')
+      .populate('transferredBy', 'fullName email')
+      .lean();
+
+    return res.json({ transfers });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to fetch transfer history' });
+  }
+});
+
+// Complete a temporary transfer (return to original home)
+router.post('/:id/transfers/:transferId/return', requireAuth, requirePermissions('clients:update'), async (req, res) => {
+  try {
+    const transfer = await ClientTransfer.findOne({
+      _id: req.params.transferId,
+      clientId: req.params.id,
+      orgId: req.user.orgId
+    });
+    if (!transfer) return res.status(404).json({ error: 'Transfer record not found' });
+
+    if (transfer.status !== 'active') {
+      return res.status(400).json({ error: 'Transfer is no longer active' });
+    }
+
+    if (!transfer.isTemporary || !transfer.fromLocationId) {
+      return res.status(400).json({ error: 'Only temporary transfers can be returned' });
+    }
+
+    const now = new Date();
+    const client = await Client.findOne({ _id: req.params.id, orgId: req.user.orgId });
+    if (!client) return res.status(404).json({ error: 'Client not found' });
+
+    // Expire current assignments
+    await Assignment.updateMany(
+      {
+        orgId: req.user.orgId,
+        clientId: client._id,
+        startsAt: { $lte: now },
+        $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }]
+      },
+      { $set: { expiresAt: now } }
+    );
+
+    // Return to original location
+    client.locationId = transfer.fromLocationId;
+    await client.save();
+
+    // Update transfer record
+    transfer.status = 'returned';
+    transfer.actualReturnDate = now;
+    await transfer.save();
+
+    // Audit log
+    await AuditEvent.create({
+      orgId: req.user.orgId,
+      userId: req.user._id,
+      clientId: client._id,
+      eventType: 'security_alert',
+      payload: {
+        action: 'client_returned_to_home',
+        clientName: client.displayName,
+        returnedToLocationId: String(transfer.fromLocationId)
+      }
+    });
+
+    return res.json({ client, transfer });
+  } catch (error) {
+    console.error('Error returning client:', error);
+    return res.status(500).json({ error: 'Failed to return client to home' });
   }
 });
 

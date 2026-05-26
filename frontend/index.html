@@ -733,6 +733,50 @@
       </div>
     </section>
 
+    <!-- ── MODAL: Transfer Client ───────────────────────────────── -->
+    <div id="transferClientModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;">
+      <div style="background:white;border-radius:12px;padding:2rem;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 25px rgba(0,0,0,0.15);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+          <h3 style="margin:0;">Transfer Client</h3>
+          <button type="button" id="closeTransferModal" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#666;">✕</button>
+        </div>
+        <form id="transferForm" style="display:flex;flex-direction:column;gap:1rem;">
+          <div>
+            <label style="font-size:0.875rem;font-weight:600;color:#475569;display:block;margin-bottom:0.5rem;">Client</label>
+            <span id="transferClientName" style="font-size:1rem;color:#0f172a;font-weight:500;"></span>
+          </div>
+          <div>
+            <label style="font-size:0.875rem;font-weight:600;color:#475569;display:block;margin-bottom:0.5rem;">Current Home</label>
+            <span id="transferFromLocation" style="font-size:1rem;color:#0f172a;font-weight:500;"></span>
+          </div>
+          <div>
+            <label for="transferToLocation" style="font-size:0.875rem;font-weight:600;color:#475569;display:block;margin-bottom:0.5rem;">Transfer To *</label>
+            <select id="transferToLocation" name="toLocationId" required style="width:100%;padding:0.75rem;border:1px solid #cbd5e1;border-radius:6px;font-size:1rem;"></select>
+          </div>
+          <div>
+            <label for="transferReason" style="font-size:0.875rem;font-weight:600;color:#475569;display:block;margin-bottom:0.5rem;">Reason (optional)</label>
+            <textarea id="transferReason" name="reason" placeholder="e.g., Better support for client needs, closer to family..." style="width:100%;padding:0.75rem;border:1px solid #cbd5e1;border-radius:6px;font-size:1rem;resize:vertical;min-height:80px;"></textarea>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <input type="checkbox" id="transferIsTemporary" name="isTemporary" value="true" />
+            <label for="transferIsTemporary" style="font-size:0.875rem;color:#475569;margin:0;cursor:pointer;">Temporary transfer</label>
+          </div>
+          <div id="transferReturnDateGroup" style="display:none;">
+            <label for="transferReturnDate" style="font-size:0.875rem;font-weight:600;color:#475569;display:block;margin-bottom:0.5rem;">Return Date</label>
+            <input type="datetime-local" id="transferReturnDate" name="scheduledReturnDate" style="width:100%;padding:0.75rem;border:1px solid #cbd5e1;border-radius:6px;font-size:1rem;" />
+          </div>
+          <div style="display:flex;gap:0.75rem;margin-top:1rem;">
+            <button type="submit" style="flex:1;padding:0.75rem;background:#15803d;color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:1rem;">Transfer Client</button>
+            <button type="button" id="cancelTransferBtn" style="flex:1;padding:0.75rem;background:#e2e8f0;color:#0f172a;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:1rem;">Cancel</button>
+          </div>
+        </form>
+        <div id="transferHistory" style="margin-top:2rem;border-top:1px solid #e2e8f0;padding-top:1rem;">
+          <h4 style="margin-top:0;margin-bottom:1rem;color:#0f172a;">Transfer History</h4>
+          <div id="transferHistoryList" style="display:flex;flex-direction:column;gap:0.75rem;font-size:0.875rem;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── AUTH: Assignments ────────────────────────────────────────── -->
     <section class="page" id="assignmentSection" style="display:none;">
       <div class="page-header">

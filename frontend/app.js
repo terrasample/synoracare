@@ -1903,6 +1903,9 @@ async function refreshUsers() {
 async function refreshAllPickers() {
   if (!token) return;
   await refreshClients();
+  if (hasPermission('homes:read')) {
+    await refreshHomes();
+  }
   if (hasPermission('users:read')) {
     await refreshUsers();
   }
@@ -2672,6 +2675,7 @@ function renderClientList(clients) {
         <span class="data-item-meta">Status: ${safeText(c.status || 'active')}</span>
       </div>
       <div class="data-item-actions">
+        ${canEdit ? `<button type="button" class="btn-secondary btn-sm" data-client-action="transfer" data-client-id="${safeText(c._id)}">Transfer</button>` : ''}
         ${canEdit ? `<button type="button" class="btn-secondary btn-sm" data-client-action="edit" data-client-id="${safeText(c._id)}">Edit</button>` : ''}
         ${canArchive && c.status !== 'inactive' ? `<button type="button" class="btn-secondary btn-sm" data-client-action="archive" data-client-id="${safeText(c._id)}">Archive</button>` : ''}
         ${canDelete ? `<button type="button" class="btn-danger btn-sm" data-client-action="delete" data-client-id="${safeText(c._id)}">Delete</button>` : ''}
@@ -2791,6 +2795,81 @@ async function handleClientListAction(action, clientId) {
     });
     await refreshClients();
     showToast('Client deleted successfully.', 'success');
+  }
+
+  if (action === 'transfer') {
+    openTransferClientModal(clientId);
+  }
+}
+
+// ── Client Transfer ───────────────────────────────────────────
+async function openTransferClientModal(clientId) {
+  const client = clientsCache.find((c) => String(c._id) === String(clientId));
+  if (!client) {
+    showToast('Client not found.', 'error');
+    return;
+  }
+
+  // Populate modal
+  document.getElementById('transferClientName').textContent = safeText(client.displayName);
+  
+  const currentHome = homesCache.find((h) => String(h._id) === String(client.locationId));
+  document.getElementById('transferFromLocation').textContent = currentHome
+    ? safeText(currentHome.displayName || currentHome.name)
+    : 'Not assigned to a home';
+
+  // Populate destination homes (exclude current)
+  const picker = document.getElementById('transferToLocation');
+  picker.innerHTML = '<option value="">Select a home</option>';
+  homesCache
+    .filter((h) => String(h._id) !== String(client.locationId) && h.status === 'active')
+    .forEach((h) => {
+      picker.innerHTML += `<option value="${h._id}">${safeText(h.displayName || h.name)}</option>`;
+    });
+
+  // Load transfer history
+  await loadTransferHistory(clientId);
+
+  // Reset form
+  document.getElementById('transferForm').reset();
+  document.getElementById('transferIsTemporary').checked = false;
+  document.getElementById('transferReturnDateGroup').style.display = 'none';
+
+  // Store clientId in form for submission
+  document.getElementById('transferForm').dataset.clientId = clientId;
+
+  // Show modal
+  document.getElementById('transferClientModal').style.display = 'flex';
+}
+
+async function loadTransferHistory(clientId) {
+  try {
+    const data = await api(`/api/clients/${encodeURIComponent(clientId)}/transfers`);
+    const transfers = data.transfers || [];
+    const list = document.getElementById('transferHistoryList');
+
+    if (!transfers.length) {
+      list.innerHTML = '<p style="color:#64748b;margin:0;">No transfer history</p>';
+      return;
+    }
+
+    list.innerHTML = transfers
+      .slice(0, 10)
+      .map((t) => {
+        const fromHome = t.fromLocationId?.displayName || t.fromLocationId?.name || 'Not assigned';
+        const toHome = t.toLocationId?.displayName || t.toLocationId?.name || 'Unknown';
+        const date = formatDate(t.createdAt);
+        const badge = t.status === 'active' && t.isTemporary ? '🔄' : t.status === 'returned' ? '✓' : '—';
+        return `<div style="padding:0.75rem;background:#f1f5f9;border-radius:6px;border-left:3px solid #3b82f6;">
+          <div>${badge} <strong>${safeText(fromHome)} → ${safeText(toHome)}</strong></div>
+          <div style="font-size:0.8rem;color:#64748b;">${date}</div>
+          ${t.isTemporary && t.scheduledReturnDate ? `<div style="font-size:0.8rem;color:#d97706;">Return: ${formatDate(t.scheduledReturnDate)}</div>` : ''}
+          ${t.reason ? `<div style="font-size:0.8rem;color:#64748b;margin-top:0.25rem;">${safeText(t.reason)}</div>` : ''}
+        </div>`;
+      })
+      .join('');
+  } catch (err) {
+    document.getElementById('transferHistoryList').innerHTML = `<p style="color:#dc2626;margin:0;">Error loading history: ${safeText(err.message)}</p>`;
   }
 }
 
@@ -3480,6 +3559,67 @@ document.getElementById('homesList')?.addEventListener('click', async (e) => {
   } catch (err) {
     showToast(err.message, 'error');
   }
+});
+
+// ── Transfer Modal Controls ───────────────────────────────────
+document.getElementById('closeTransferModal')?.addEventListener('click', () => {
+  document.getElementById('transferClientModal').style.display = 'none';
+});
+
+document.getElementById('cancelTransferBtn')?.addEventListener('click', () => {
+  document.getElementById('transferClientModal').style.display = 'none';
+});
+
+document.getElementById('transferIsTemporary')?.addEventListener('change', (e) => {
+  const returnDateGroup = document.getElementById('transferReturnDateGroup');
+  returnDateGroup.style.display = e.target.checked ? 'block' : 'none';
+});
+
+document.getElementById('transferForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  await withSubmitLock(e.target, async () => {
+    const clientId = e.target.dataset.clientId;
+    const payload = Object.fromEntries(new FormData(e.target).entries());
+    const toLocationId = String(payload.toLocationId || '').trim();
+    const reason = String(payload.reason || '').trim();
+    const isTemporary = payload.isTemporary === 'true';
+    const scheduledReturnDate = payload.scheduledReturnDate || null;
+
+    if (!toLocationId) {
+      showToast('Please select a home to transfer to.', 'error');
+      return;
+    }
+
+    if (isTemporary && !scheduledReturnDate) {
+      showToast('Please set a return date for temporary transfers.', 'error');
+      return;
+    }
+
+    try {
+      const result = await api(`/api/clients/${encodeURIComponent(clientId)}/transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toLocationId,
+          reason,
+          isTemporary,
+          scheduledReturnDate: isTemporary ? scheduledReturnDate : null
+        })
+      });
+
+      await refreshClients();
+      await refreshHomes();
+      
+      const msg = isTemporary
+        ? `Client transferred temporarily until ${formatDate(scheduledReturnDate)}.`
+        : 'Client transferred successfully.';
+      showToast(msg, 'success');
+      
+      document.getElementById('transferClientModal').style.display = 'none';
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }, 'Transferring...');
 });
 
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
