@@ -1,5 +1,6 @@
 const express = require('express');
 const multer = require('multer');
+const mongoose = require('mongoose');
 const { requireAuth } = require('../middleware/auth');
 const Assignment = require('../models/Assignment');
 const Client = require('../models/Client');
@@ -225,6 +226,10 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid status' });
     }
 
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid entry ID' });
+    }
+
     const entry = await TrackerEntry.findOne({ _id: req.params.id, orgId: req.user.orgId });
     if (!entry) return res.status(404).json({ error: 'Tracker entry not found' });
 
@@ -257,6 +262,7 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
 
     return res.json({ entry });
   } catch (error) {
+    console.error('[tracker] PATCH /:id/status error:', error);
     return res.status(500).json({ error: 'Failed to update tracker status' });
   }
 });

@@ -3234,6 +3234,11 @@ document.getElementById('assignmentForm').addEventListener('submit', async (e) =
   e.preventDefault();
   await withSubmitLock(e.target, async () => {
     const payload = Object.fromEntries(new FormData(e.target).entries());
+    const isDemo = demoMode || String(payload.userId || '').startsWith('demo-') || String(payload.clientId || '').startsWith('demo-');
+    if (isDemo) {
+      setOutput('assignmentOutput', { message: 'Assignment saved (demo mode — no real data was changed).' });
+      return;
+    }
     try {
       const data = await api('/api/assignments', {
         method: 'POST',
@@ -3493,6 +3498,10 @@ document.getElementById('trackerForm').addEventListener('submit', async (e) => {
 document.getElementById('trackerStatusForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const payload = Object.fromEntries(new FormData(e.target).entries());
+  if (demoMode || String(payload.entryId || '').startsWith('demo-')) {
+    showToast('Status updated (demo mode — no real data was changed).', 'success');
+    return;
+  }
   try {
     await updateTrackerStatus(payload.entryId, payload.status);
     await loadTrackerFeed();
@@ -3518,8 +3527,14 @@ document.getElementById('trackerFeed').addEventListener('click', async (e) => {
   const button = e.target.closest('button[data-entry-id][data-status]');
   if (!button) return;
 
+  const entryId = button.dataset.entryId;
+  if (demoMode || String(entryId || '').startsWith('demo-')) {
+    showToast('Status updated (demo mode — no real data was changed).', 'success');
+    return;
+  }
+
   try {
-    await updateTrackerStatus(button.dataset.entryId, button.dataset.status);
+    await updateTrackerStatus(entryId, button.dataset.status);
     await loadTrackerFeed();
     await loadTrackerSummary();
   } catch (err) {

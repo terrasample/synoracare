@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const Assignment = require('../models/Assignment');
 const User = require('../models/User');
 const InviteToken = require('../models/InviteToken');
@@ -60,6 +61,10 @@ router.post('/', requireAuth, requirePermissions('assignments:create'), async (r
     const { userId, clientId, expiresAt } = req.body || {};
     if (!userId || !clientId) return res.status(400).json({ error: 'userId and clientId are required' });
 
+    const { isValidObjectId } = mongoose;
+    if (!isValidObjectId(userId)) return res.status(400).json({ error: 'Invalid userId' });
+    if (!isValidObjectId(clientId)) return res.status(400).json({ error: 'Invalid clientId' });
+
     let expiresAtValue = null;
     if (expiresAt) {
       const parsedDate = new Date(expiresAt);
@@ -86,6 +91,7 @@ router.post('/', requireAuth, requirePermissions('assignments:create'), async (r
 
     return res.status(201).json({ assignment });
   } catch (error) {
+    console.error('[assignments] POST / error:', error);
     return res.status(500).json({ error: 'Failed to create assignment' });
   }
 });
