@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const ClientSchema = new mongoose.Schema(
   {
     orgId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
+    locationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Location', default: null, index: true },
     displayName: { type: String, required: true, trim: true },
     externalId: { type: String, default: '', trim: true },
     status: {

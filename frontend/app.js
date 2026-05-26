@@ -100,6 +100,7 @@ let roleViewOverride = null;
 let orgRoleDisplayLabels = { ...DEFAULT_ROLE_DISPLAY_LABELS };
 let authContextLoadedForToken = '';
 let clientsCache = [];
+let homesCache = [];
 let usersCache = [];
 let selectedTrainingContext = 'pre_shift';
 let selectedAskPromptPhase = 'pre_shift';
@@ -724,6 +725,10 @@ function handlePageNavigation(pageId) {
 
   if (pageId === 'assignmentSection') {
     renderAssignmentsList().catch(() => {});
+  }
+
+  if (pageId === 'homesSection') {
+    renderHomeSection().catch(() => {});
   }
 }
 
@@ -3349,6 +3354,133 @@ function initializeGuestEntryFromUrl() {
   const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash || ''}`;
   window.history.replaceState({}, document.title, nextUrl);
 }
+
+// ── Homes Management ───────────────────────────────────────────
+async function refreshHomes() {
+  try {
+    const data = await api('/api/locations');
+    homesCache = data.locations || [];
+    syncHomeLocationPicker();
+    renderHomesList(homesCache);
+  } catch (err) {
+    const list = document.getElementById('homesList');
+    if (list) list.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
+  }
+}
+
+function syncHomeLocationPicker() {
+  const picker = document.getElementById('clientLocationId');
+  if (!picker) return;
+  const currentValue = picker.value;
+  picker.innerHTML = '<option value="">Select Home (optional)</option>';
+  homesCache.forEach((h) => {
+    if (h.status === 'active') {
+      picker.innerHTML += `<option value="${h._id}">${safeText(h.displayName || h.name)}</option>`;
+    }
+  });
+  picker.value = currentValue;
+}
+
+async function renderHomesList(homes) {
+  const list = document.getElementById('homesList');
+  if (!list) return;
+
+  if (!homes || homes.length === 0) {
+    list.innerHTML = '<p class="empty-state">No homes created yet</p>';
+    return;
+  }
+
+  list.innerHTML = homes
+    .filter((h) => h.status === 'active')
+    .map((h) => `
+      <div class="data-item" role="button" tabindex="0" data-home-id="${h._id}" data-home-action="view">
+        <div class="data-item-stack">
+          <span class="data-item-label">${safeText(h.displayName || h.name)}</span>
+          <span class="data-item-meta">${safeText(h.address || 'No address')} · Max ${h.maxClients} clients</span>
+          ${h.phoneNumber ? `<span class="data-item-meta">Phone: ${safeText(h.phoneNumber)}</span>` : ''}
+        </div>
+        <div class="data-item-actions">
+          <button type="button" class="btn-icon" data-home-id="${h._id}" data-home-action="manage" aria-label="Manage staff">👥</button>
+          <button type="button" class="btn-icon" data-home-id="${h._id}" data-home-action="archive" aria-label="Archive">🗑️</button>
+        </div>
+      </div>
+    `)
+    .join('');
+}
+
+async function renderHomeSection() {
+  const pageId = 'homesSection';
+  if (!currentUser || !hasPermission('homes:read')) {
+    return showPermissionDenied(pageId);
+  }
+
+  document.getElementById('homeDetailsSection').style.display = 'none';
+  await refreshHomes();
+  syncHomeLocationPicker();
+}
+
+document.getElementById('refreshHomesBtn')?.addEventListener('click', async () => {
+  try {
+    await refreshHomes();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
+
+document.getElementById('homeForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  await withSubmitLock(e.target, async () => {
+    const payload = Object.fromEntries(new FormData(e.target).entries());
+    
+    try {
+      const created = await api('/api/locations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      await refreshHomes();
+      e.target.reset();
+      showToast('Home created successfully.', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }, 'Saving...');
+});
+
+document.getElementById('homesList')?.addEventListener('click', async (e) => {
+  const button = e.target.closest('[data-home-action]');
+  if (!button) return;
+
+  const homeId = button.getAttribute('data-home-id');
+  const action = button.getAttribute('data-home-action');
+  if (!homeId || !action) return;
+
+  try {
+    if (action === 'manage') {
+      // Show staff management UI for this home
+      const home = homesCache.find((h) => h._id === homeId);
+      if (home) {
+        document.getElementById('homeDetailsSection').style.display = 'block';
+        const mgmt = document.getElementById('homeStaffManagement');
+        mgmt.innerHTML = `<p class="empty-state">Loading staff for ${safeText(home.displayName || home.name)}...</p>`;
+        
+        const staff = await api(`/api/locations/${homeId}/staff`);
+        mgmt.innerHTML = staff.staff.length > 0
+          ? `<div>${staff.staff.map((s) => `<div class="data-item"><span>${safeText(s.fullName)} (${s.role})</span><button type="button" class="btn-icon" data-remove-staff="${s._id}">✕</button></div>`).join('')}</div>`
+          : '<p class="empty-state">No staff assigned to this home</p>';
+      }
+    } else if (action === 'archive') {
+      if (confirm('Archive this home? Move or archive all clients first.')) {
+        await api(`/api/locations/${homeId}`, { method: 'PATCH' });
+        await refreshHomes();
+        showToast('Home archived.', 'success');
+      }
+    }
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
 
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
   e.preventDefault();

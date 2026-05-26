@@ -38,7 +38,21 @@ async function getAccessibleClientIds(user) {
     .select('clientId')
     .lean();
 
-  return assignments.map((a) => String(a.clientId));
+  const assignedClientIds = assignments.map((a) => String(a.clientId));
+
+  // If user has location assignments, also include clients from those locations
+  if (user.locationIds && user.locationIds.length > 0) {
+    const locationClients = await Client.find({
+      orgId: user.orgId,
+      locationId: { $in: user.locationIds },
+      status: 'active'
+    }).select('_id').lean();
+
+    const locationClientIds = locationClients.map((c) => String(c._id));
+    return [...new Set([...assignedClientIds, ...locationClientIds])];
+  }
+
+  return assignedClientIds;
 }
 
 router.get('/', requireAuth, async (req, res) => {

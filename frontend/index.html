@@ -81,6 +81,10 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           <span class="nav-label">Clients</span>
         </button>
+        <button type="button" class="nav-item nav-role-admin" data-nav-target="homesSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 10l9-9 9 9v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span class="nav-label">Homes</span>
+        </button>
         <button type="button" class="nav-item nav-breakglass" data-nav-target="breakGlassSection">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <span class="nav-label">Break Glass</span>
@@ -681,6 +685,9 @@
             <input type="password" autocomplete="new-password" style="display:none;" aria-hidden="true" tabindex="-1" />
             <input name="displayName" placeholder="Client Name" required autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" />
             <input name="externalId" placeholder="External ID (optional)" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            <select name="locationId" id="clientLocationId">
+              <option value="">Select Home (optional)</option>
+            </select>
             <select name="supervisorUserId" id="clientSupervisorId">
               <option value="">Assign Supervisor (optional)</option>
             </select>
@@ -694,7 +701,39 @@
       </div>
     </section>
 
-    <!-- ── AUTH: Assignments ────────────────────────────────────── -->
+    <!-- ── AUTH: Homes ──────────────────────────────────────────── -->
+    <section class="page" id="homesSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Homes</h2>
+          <p class="page-desc">Manage care homes/locations and assign staff</p>
+        </div>
+        <button id="refreshHomesBtn" type="button" class="btn-secondary">Refresh</button>
+      </div>
+      <div class="two-col-layout">
+        <div class="two-col-left">
+          <h3 class="col-heading">Add Home</h3>
+          <form id="homeForm" autocomplete="off">
+            <input name="name" placeholder="Home Name" required />
+            <input name="displayName" placeholder="Display Name (optional)" />
+            <input name="address" placeholder="Address (optional)" />
+            <input name="phoneNumber" placeholder="Phone (optional)" />
+            <input name="maxClients" type="number" placeholder="Max Clients" min="1" max="10" value="4" />
+            <button type="submit">Add Home</button>
+          </form>
+        </div>
+        <div class="two-col-right">
+          <h3 class="col-heading">Home List</h3>
+          <div id="homesList" class="data-list"></div>
+        </div>
+      </div>
+      <div id="homeDetailsSection" style="margin-top: 2rem; display: none;">
+        <h3 class="col-heading">Manage Staff</h3>
+        <div id="homeStaffManagement"></div>
+      </div>
+    </section>
+
+    <!-- ── AUTH: Assignments ────────────────────────────────────────── -->
     <section class="page" id="assignmentSection" style="display:none;">
       <div class="page-header">
         <div>

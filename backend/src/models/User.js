@@ -11,6 +11,7 @@ const UserSchema = new mongoose.Schema(
       enum: ['super_admin', 'org_admin', 'supervisor', 'dsp'],
       required: true
     },
+    locationIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Location' }],
     status: {
       type: String,
       enum: ['active', 'inactive'],

@@ -13,6 +13,7 @@ const trackerRoutes = require('./routes/tracker');
 const legalRecordsRoutes = require('./routes/legalRecords');
 const contactRoutes = require('./routes/contact');
 const shiftsRoutes = require('./routes/shifts');
+const locationsRoutes = require('./routes/locations');
 
 const app = express();
 
@@ -82,6 +83,7 @@ app.use('/api/tracker', trackerRoutes);
 app.use('/api/legal-records', legalRecordsRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/shifts', shiftsRoutes);
+app.use('/api/locations', locationsRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

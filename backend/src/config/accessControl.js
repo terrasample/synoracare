@@ -49,7 +49,11 @@ const ROLE_PERMISSIONS = {
     'role_labels:update',
     'reports:export',
     'shifts:all:read',
-    'legal_records:export'
+    'legal_records:export',
+    'homes:read',
+    'homes:create',
+    'homes:update',
+    'homes:manage'
   ],
   super_admin: [
     'clients:all:read',
@@ -69,7 +73,12 @@ const ROLE_PERMISSIONS = {
     'role_labels:update',
     'reports:export',
     'shifts:all:read',
-    'legal_records:export'
+    'legal_records:export',
+    'homes:read',
+    'homes:create',
+    'homes:update',
+    'homes:archive',
+    'homes:manage'
   ]
 };
 
