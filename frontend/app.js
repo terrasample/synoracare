@@ -2176,13 +2176,8 @@ async function openSourcePreview(source) {
   const messages = document.getElementById('chatMessages');
   const textarea = document.querySelector('#askForm textarea');
 
-  // Show the question as a user bubble and a typing indicator
+  // Show only the typing indicator (no intermediate question prompt)
   if (messages) {
-    const userBubble = document.createElement('div');
-    userBubble.className = 'chat-message chat-message-user';
-    userBubble.innerHTML = `<div class="chat-bubble"><div class="chat-bubble-text">${safeText(question)}</div></div>`;
-    messages.appendChild(userBubble);
-
     const typing = document.createElement('div');
     typing.className = 'chat-message chat-message-ai chat-typing';
     typing.innerHTML = '<div class="chat-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';

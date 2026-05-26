@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Row Click Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #0a8a68;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #0a8a68;
+            font-size: 16px;
+            margin-top: 0;
+        }
+        .client-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .data-item {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            background: #fafafa;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .data-item:hover {
+            background: #f0f0f0;
+            border-color: #0a8a68;
+            box-shadow: 0 2px 8px rgba(10, 138, 104, 0.1);
+        }
+        .data-item[role="button"]:focus {
+            outline: 2px solid #0a8a68;
+            outline-offset: 2px;
+        }
+        .data-item-label {
+            font-weight: 600;
+            color: #333;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .data-item-meta {
+            font-size: 13px;
+            color: #666;
+            display: block;
+        }
+        .event-log {
+            background: #1e1e1e;
+            color: #0f0;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        .success {
+            color: #0f0;
+        }
+        .timestamp {
+            color: #888;
+        }
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .check {
+            color: #0a8a68;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>✓ Client Row Click Feature Test</h1>
+    
+    <div class="test-section">
+        <h2>What This Tests</h2>
+        <p>This page demonstrates the implemented feature where <strong>clicking a client row</strong> in the Clients list now opens the Patient Workspace for that client.</p>
+        <p><strong>Try it:</strong> Click on any client row below to see the click handler fire and select the client.</p>
+    </div>
+
+    <div class="test-section">
+        <h2>Client List (Click Any Row)</h2>
+        <ul class="client-list" id="clientsList">
+            <li class="data-item" data-client-open-id="client-001" role="button" tabindex="0" aria-label="Open Jordan Miles in patient workspace">
+                <span class="data-item-label">Jordan Miles</span>
+                <span class="data-item-meta">ID: SC-1001</span>
+                <span class="data-item-meta">Status: active</span>
+            </li>
+            <li class="data-item" data-client-open-id="client-002" role="button" tabindex="0" aria-label="Open Avery Brooks in patient workspace">
+                <span class="data-item-label">Avery Brooks</span>
+                <span class="data-item-meta">ID: SC-1002</span>
+                <span class="data-item-meta">Status: active</span>
+            </li>
+            <li class="data-item" data-client-open-id="client-003" role="button" tabindex="0" aria-label="Open Taylor Reed in patient workspace">
+                <span class="data-item-label">Taylor Reed</span>
+                <span class="data-item-meta">ID: SC-1003</span>
+                <span class="data-item-meta">Status: active</span>
+            </li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Event Log</h2>
+        <div class="event-log" id="eventLog">
+            <div class="log-entry"><span class="timestamp">[ready]</span> Test page loaded. Click on a client row.</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Code Implementation</h2>
+        <p>The click handler is identical to what's now in <code>app.js</code>:</p>
+        <ul>
+            <li>Listens for clicks on elements with <code>data-client-open-id</code> attribute</li>
+            <li>Extracts the client ID from the attribute</li>
+            <li>Calls <code>openClientWorkspace(clientId)</code></li>
+            <li>Keyboard support: Enter/Space keys also work</li>
+        </ul>
+    </div>
+
+    <script>
+        const eventLog = document.getElementById('eventLog');
+
+        function addLog(message, isSuccess = false) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry' + (isSuccess ? ' success' : '');
+            const now = new Date();
+            const time = now.toLocaleTimeString();
+            entry.innerHTML = `<span class="timestamp">[${time}]</span> ${message}`;
+            eventLog.appendChild(entry);
+            eventLog.scrollTop = eventLog.scrollHeight;
+        }
+
+        // Click handler - simulating the app.js implementation
+        document.getElementById('clientsList')?.addEventListener('click', (e) => {
+            const clientCard = e.target.closest('[data-client-open-id]');
+            if (!clientCard) return;
+
+            const clientId = clientCard.getAttribute('data-client-open-id');
+            const clientName = clientCard.querySelector('.data-item-label').textContent;
+            
+            if (!clientId) return;
+
+            addLog(`<strong>✓ CLICK DETECTED</strong> on client row: "<strong>${clientName}</strong>"`, true);
+            addLog(`Client ID extracted: <code>${clientId}</code>`, true);
+            addLog(`Would navigate to Patient Workspace for this client`, true);
+            
+            // Highlight the clicked row
+            document.querySelectorAll('.data-item').forEach(item => item.style.background = '#fafafa');
+            clientCard.style.background = '#e8f7f3';
+            clientCard.style.borderColor = '#0a8a68';
+        });
+
+        // Keyboard handler - Enter and Space keys
+        document.getElementById('clientsList')?.addEventListener('keydown', (e) => {
+            if (!(e.key === 'Enter' || e.key === ' ')) return;
+
+            const clientCard = e.target.closest('[data-client-open-id]');
+            if (!clientCard) return;
+
+            e.preventDefault();
+            const clientId = clientCard.getAttribute('data-client-open-id');
+            const clientName = clientCard.querySelector('.data-item-label').textContent;
+            
+            addLog(`<strong>✓ KEYBOARD</strong> (${e.key === ' ' ? 'Space' : 'Enter'}) on: "<strong>${clientName}</strong>"`, true);
+            addLog(`Client ID extracted: <code>${clientId}</code>`, true);
+            
+            document.querySelectorAll('.data-item').forEach(item => item.style.background = '#fafafa');
+            clientCard.style.background = '#e8f7f3';
+            clientCard.style.borderColor = '#0a8a68';
+        });
+
+        addLog('Click handlers registered ✓', true);
+        addLog('Keyboard handlers (Enter/Space) registered ✓', true);
+    </script>
+</body>
+</html>
