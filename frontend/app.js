@@ -982,7 +982,8 @@ const ROLE_HIDDEN_SECTIONS = {
     'assignmentSection',
     'uploadSection',
     'auditSection',
-    'legalRecordsSection'
+    'legalRecordsSection',
+    'reportingSection'
   ],
   supervisor: ['bootstrapSection', 'createUserSection'],
   org_admin: ['bootstrapSection'],
@@ -3445,7 +3446,28 @@ document.getElementById('assignmentForm').addEventListener('submit', async (e) =
     const payload = Object.fromEntries(new FormData(e.target).entries());
     if (isDemo() || String(payload.userId || '').startsWith('demo-') || String(payload.clientId || '').startsWith('demo-')) {
       setOutput('assignmentOutput', '');
-      showToast('Assignment saved (demo mode — no real data was changed).', 'success');
+      // Find display names from current cache
+      const user = usersCache.find((u) => u._id === payload.userId);
+      const client = clientsCache.find((c) => c._id === payload.clientId);
+      if (user && client) {
+        const existing = DEMO_ASSIGNMENTS.findIndex(
+          (a) => a.userId === payload.userId && a.clientId === payload.clientId
+        );
+        if (existing === -1) {
+          DEMO_ASSIGNMENTS.push({
+            _id: `demo-asgn-${Date.now()}`,
+            userId: payload.userId,
+            clientId: payload.clientId,
+            dspName: user.fullName,
+            clientName: client.displayName,
+            role: user.role,
+            expiresAt: payload.expiresAt || null
+          });
+        }
+        renderAssignmentsList();
+      }
+      showToast(`${user ? user.fullName : 'Staff'} assigned to ${client ? client.displayName : 'client'}.`, 'success');
+      e.target.reset();
       return;
     }
     try {
