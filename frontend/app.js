@@ -2277,11 +2277,20 @@ function buildDemoAskResponse({ clientId, question, mode = 'general' }) {
     };
   }
 
-  if (/morning.*medication|medication schedule|med pass|mar/.test(prompt)) {
+  if (/morning.*medication|medication schedule|med pass|mar|medicine|what.*med/.test(prompt)) {
     return {
-      answer: `Demo medication guidance for ${clientName}: complete morning med-pass window between 8:00 AM and 9:00 AM, verify identity and MAR before administration, and document completion or variance immediately in tracker notes.`,
+      answer: `For ${clientName} right now: administer Metformin 500mg with breakfast (8:00-9:00 AM window), Lisinopril 10mg with morning meal, and Vitamin D 1000 IU daily. Always verify client identity and MAR before administration, confirm no new allergies, and document completion or any variances immediately in tracker notes.`,
       grounded: true,
-      sources: getDemoAskSources(clientName)
+      sources: getDemoAskSources(clientName),
+      structured: {
+        immediate: 'Metformin 500mg with breakfast - take with food to minimize stomach upset',
+        dosage: 'Lisinopril 10mg once daily - take with morning meal, monitor blood pressure',
+        supplements: 'Vitamin D 1000 IU daily - take with food for better absorption',
+        timing: 'All medications: 8:00-9:00 AM window. Do NOT skip doses.',
+        safety: 'Verify client identity before giving any medication. Check MAR for any last-minute changes or hold orders. Document in tracker immediately.'
+      },
+      missingSections: [],
+      escalationRequired: false
     };
   }
 
