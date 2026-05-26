@@ -417,8 +417,49 @@ const DEMO_ASSIGNMENTS = [
 const DEMO_TRACKER_SUMMARY = {
   pending: 6,
   escalated: 1,
-  completed: 3
+  completed: 3,
+  total: 10,
+  overdue: 0
 };
+
+const DEMO_SHIFT_MONITOR = {
+  activeCount: 2,
+  endedCount: 3,
+  totalEntries: 24,
+  escalations: 1,
+  activeShifts: [
+    {
+      userId: { fullName: 'Nia Carter' },
+      clientId: { displayName: 'Jordan Miles' },
+      startedAt: new Date(Date.now() - 150 * 60 * 1000).toISOString(),
+      entryCount: 12
+    },
+    {
+      userId: { fullName: 'Isaiah Moore' },
+      clientId: { displayName: 'Avery Brooks' },
+      startedAt: new Date(Date.now() - 72 * 60 * 1000).toISOString(),
+      entryCount: 8
+    }
+  ]
+};
+
+function recalculateDemoTrackerSummary() {
+  const pending = DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === 'pending').length;
+  const completed = DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === 'completed').length;
+  const escalated = DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === 'escalated').length;
+  const now = new Date();
+  const overdue = DEMO_TRACKER_ENTRIES.filter((entry) => {
+    if (entry.status !== 'pending' || !entry.dueAt) return false;
+    const dueDate = new Date(entry.dueAt);
+    return !Number.isNaN(dueDate.getTime()) && dueDate < now;
+  }).length;
+
+  DEMO_TRACKER_SUMMARY.pending = pending;
+  DEMO_TRACKER_SUMMARY.completed = completed;
+  DEMO_TRACKER_SUMMARY.escalated = escalated;
+  DEMO_TRACKER_SUMMARY.overdue = overdue;
+  DEMO_TRACKER_SUMMARY.total = DEMO_TRACKER_ENTRIES.length;
+}
 
 const DEMO_TRACKER_ENTRIES = [
   {
@@ -1473,37 +1514,34 @@ function getDemoPatientWorkspaceEntries(clientId) {
 }
 
 async function loadTrackerFeed() {
+  if (isDemo()) {
+    renderTrackerFeed(
+      trackerStatusFilter ? DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === trackerStatusFilter) : DEMO_TRACKER_ENTRIES
+    );
+    return;
+  }
+
   try {
     const query = trackerStatusFilter ? `?limit=50&status=${encodeURIComponent(trackerStatusFilter)}` : '?limit=50';
     const data = await api(`/api/tracker${query}`);
     const entries = data.entries || [];
-    if (isDemo() && entries.length === 0) {
-      renderTrackerFeed(
-        trackerStatusFilter ? DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === trackerStatusFilter) : DEMO_TRACKER_ENTRIES
-      );
-      return;
-    }
     renderTrackerFeed(entries);
   } catch (error) {
-    if (isDemo()) {
-      renderTrackerFeed(
-        trackerStatusFilter ? DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === trackerStatusFilter) : DEMO_TRACKER_ENTRIES
-      );
-      return;
-    }
     throw error;
   }
 }
 
 async function loadTrackerSummary() {
+  if (isDemo()) {
+    recalculateDemoTrackerSummary();
+    renderTrackerSummary(DEMO_TRACKER_SUMMARY);
+    return;
+  }
+
   try {
     const data = await api('/api/tracker/summary');
     renderTrackerSummary(data);
   } catch (error) {
-    if (isDemo()) {
-      renderTrackerSummary(DEMO_TRACKER_SUMMARY);
-      return;
-    }
     throw error;
   }
 }
@@ -2608,7 +2646,11 @@ function renderClientList(clients) {
   const list = document.getElementById('clientsList');
   if (!list) return;
 
-  if (!clients || !clients.length) {
+  const visibleClients = isDemo()
+    ? (clients || [])
+    : (clients || []).filter((client) => String(client.status || 'active') !== 'inactive');
+
+  if (!visibleClients.length) {
     list.innerHTML = '<p class="empty-state">No clients yet. Add your first client above.</p>';
     return;
   }
@@ -2617,7 +2659,7 @@ function renderClientList(clients) {
   const canArchive = hasPermission('clients:archive');
   const canDelete = hasPermission('clients:delete');
 
-  list.innerHTML = clients.map((c) => `
+  list.innerHTML = visibleClients.map((c) => `
     <div class="data-item" data-client-open-id="${safeText(c._id)}" role="button" tabindex="0" aria-label="Open ${safeText(c.displayName)} in patient workspace">
       <div class="data-item-stack">
         <span class="data-item-label">${safeText(c.displayName)}</span>
@@ -3794,6 +3836,38 @@ document.getElementById('trackerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   await withSubmitLock(e.target, async () => {
     const formData = new FormData(e.target);
+
+    if (isDemo()) {
+      const payload = Object.fromEntries(formData.entries());
+      const clientId = String(payload.clientId || '').trim();
+      const client = clientsCache.find((item) => String(item._id) === clientId);
+      const clientName = client?.displayName || 'Selected client';
+
+      const demoEntry = {
+        _id: `demo-tracker-${Date.now()}`,
+        summary: String(payload.summary || '').trim() || 'New tracker event logged.',
+        status: String(payload.status || 'pending'),
+        eventType: String(payload.eventType || 'note'),
+        priority: String(payload.priority || 'normal'),
+        details: String(payload.details || '').trim(),
+        dueAt: payload.dueAt ? new Date(payload.dueAt).toISOString() : new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        clientId,
+        createdAt: new Date().toISOString(),
+        summaryClient: clientName
+      };
+
+      DEMO_TRACKER_ENTRIES.unshift(demoEntry);
+      if (DEMO_TRACKER_ENTRIES.length > 100) {
+        DEMO_TRACKER_ENTRIES.pop();
+      }
+
+      recalculateDemoTrackerSummary();
+      e.target.reset();
+      await Promise.all([loadTrackerFeed(), loadTrackerSummary(), renderWhosWorking(), loadShiftMonitor()]);
+      showToast(`Entry logged for ${clientName}.`, 'success');
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE}/api/tracker`, {
         method: 'POST',
@@ -4435,6 +4509,26 @@ document.getElementById('copyYesterdayBtn')?.addEventListener('click', (e) => {
 async function renderWhosWorking() {
   const container = document.getElementById('whosWorkingCards');
   if (!container) return;
+
+  if (isDemo()) {
+    container.innerHTML = DEMO_SHIFT_MONITOR.activeShifts.map((shift) => {
+      const dspName = shift.userId?.fullName || 'Unknown DSP';
+      const clientName = shift.clientId?.displayName || 'Unknown Client';
+      const startedAt = new Date(shift.startedAt);
+      const durationMins = Number.isNaN(startedAt.getTime())
+        ? 0
+        : Math.max(1, Math.round((Date.now() - startedAt.getTime()) / 60000));
+      return `
+        <div class="whos-working-card active">
+          <div class="whos-working-dsp-name">👤 ${safeText(dspName)}</div>
+          <div class="whos-working-client">📋 ${safeText(clientName)}</div>
+          <div class="whos-working-time">⏱️ ${durationMins} min</div>
+          <div class="whos-working-entry-count">📝 ${safeText(String(shift.entryCount || 0))} entries logged</div>
+        </div>
+      `;
+    }).join('');
+    return;
+  }
   
   try {
     const data = await api('/api/shifts/summary/today');
@@ -4494,6 +4588,43 @@ let shiftMonitorAutoRefresh = false;
 let shiftMonitorInterval = null;
 
 async function loadShiftMonitor() {
+  if (isDemo()) {
+    document.getElementById('activeShiftCount').textContent = String(DEMO_SHIFT_MONITOR.activeCount || 0);
+    document.getElementById('endedShiftCount').textContent = String(DEMO_SHIFT_MONITOR.endedCount || 0);
+    document.getElementById('totalEntriesCount').textContent = String(DEMO_SHIFT_MONITOR.totalEntries || 0);
+    document.getElementById('escalationCount').textContent = String(DEMO_SHIFT_MONITOR.escalations || 0);
+
+    const container = document.getElementById('activeShiftsContainer');
+    if (container) {
+      container.innerHTML = DEMO_SHIFT_MONITOR.activeShifts.map((shift) => {
+        const dspName = shift.userId?.fullName || 'Unknown';
+        const clientName = shift.clientId?.displayName || 'Unknown';
+        const startTime = new Date(shift.startedAt);
+        const durationHours = Number.isNaN(startTime.getTime())
+          ? '0.0'
+          : ((Date.now() - startTime.getTime()) / (1000 * 60 * 60)).toFixed(1);
+        const hasEscalations = (DEMO_SHIFT_MONITOR.escalations || 0) > 0;
+        return `
+          <div class="active-shift-card ${hasEscalations ? 'has-escalations' : ''}">
+            <div class="shift-card-header">
+              <div>
+                <div class="shift-card-dsp">${safeText(dspName)}</div>
+                <div class="shift-card-client">${safeText(clientName)}</div>
+              </div>
+              <span class="shift-card-badge">ACTIVE</span>
+            </div>
+            <div class="shift-card-time">Started ${safeText(durationHours)}h ago</div>
+            <div class="shift-card-metrics">
+              <span class="shift-card-metric">📝 ${safeText(String(shift.entryCount || 0))} entries</span>
+              ${hasEscalations ? `<span class="shift-card-metric escalated">⚠️ ${safeText(String(DEMO_SHIFT_MONITOR.escalations))} escalations</span>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    return;
+  }
+
   try {
     const data = await api('/api/shifts/summary/today');
     
