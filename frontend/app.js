@@ -1298,7 +1298,7 @@ function syncClientPickers() {
   setSelectOptions('reportingClientId', options, 'All Clients');
 
   const patientSelect = document.getElementById('patientWorkspaceClientId');
-  if (demoMode && patientSelect && !patientSelect.value && options.length) {
+  if (isDemo() && patientSelect && !patientSelect.value && options.length) {
     patientSelect.value = options[0].value;
     loadPatientWorkspace().catch(() => {});
   }
@@ -2641,7 +2641,7 @@ async function loadPatientWorkspace() {
 }
 
 function ensureDemoPatientWorkspaceLoaded() {
-  if (!demoMode) return;
+  if (!isDemo()) return;
   const select = document.getElementById('patientWorkspaceClientId');
   if (!select || !select.value) return;
   loadPatientWorkspace().catch(() => {});
@@ -3516,7 +3516,7 @@ document.getElementById('trackerForm').addEventListener('submit', async (e) => {
 document.getElementById('trackerStatusForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const payload = Object.fromEntries(new FormData(e.target).entries());
-  if (demoMode || String(payload.entryId || '').startsWith('demo-')) {
+  if (isDemo() || String(payload.entryId || '').startsWith('demo-')) {
     showToast('Status updated (demo mode — no real data was changed).', 'success');
     return;
   }
@@ -3546,7 +3546,7 @@ document.getElementById('trackerFeed').addEventListener('click', async (e) => {
   if (!button) return;
 
   const entryId = button.dataset.entryId;
-  if (demoMode || String(entryId || '').startsWith('demo-')) {
+  if (isDemo() || String(entryId || '').startsWith('demo-')) {
     showToast('Status updated (demo mode — no real data was changed).', 'success');
     return;
   }
@@ -3636,7 +3636,7 @@ document.getElementById('loadPatientWorkspaceBtn')?.addEventListener('click', as
 });
 
 document.getElementById('patientWorkspaceClientId')?.addEventListener('change', async () => {
-  if (!demoMode) return;
+  if (!isDemo()) return;
   try {
     await loadPatientWorkspace();
   } catch (err) {
