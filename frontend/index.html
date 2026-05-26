@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SynoraCare</title>
-  <link rel="stylesheet" href="styles.css?v=20260526r" />
+  <link rel="stylesheet" href="styles.css?v=20260526s" />
 </head>
 <body class="guest-mode role-guest">
 <div class="app-shell">
@@ -677,8 +677,13 @@
         <div class="two-col-left">
           <h3 class="col-heading">Add Client</h3>
           <form id="clientForm" autocomplete="off">
-            <input name="displayName" placeholder="Client Name" required autocomplete="off" />
-            <input name="externalId" placeholder="External ID (optional)" autocomplete="off" />
+            <input type="text" autocomplete="false" style="display:none;" aria-hidden="true" tabindex="-1" />
+            <input type="password" autocomplete="new-password" style="display:none;" aria-hidden="true" tabindex="-1" />
+            <input name="displayName" placeholder="Client Name" required autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            <input name="externalId" placeholder="External ID (optional)" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            <select name="supervisorUserId" id="clientSupervisorId">
+              <option value="">Assign Supervisor (optional)</option>
+            </select>
             <button type="submit">Add Client</button>
           </form>
         </div>
@@ -1030,6 +1035,6 @@
   <!-- Source Preview Modal -->
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=20260526r"></script>
+  <script src="app.js?v=20260526s"></script>
 </body>
 </html>

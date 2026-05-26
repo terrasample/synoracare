@@ -1796,6 +1796,14 @@ function syncUserPicker() {
   }));
   setSelectOptions('assignmentUserId', options, 'Select User');
   setSelectOptions('resetPasswordUserId', options, 'Select Team Member');
+
+  const supervisorOptions = usersCache
+    .filter((user) => user.role === 'supervisor')
+    .map((user) => ({
+      value: user._id,
+      label: `${user.fullName} (${user.roleDisplayName || getRoleDisplayLabel(user.role)})`
+    }));
+  setSelectOptions('clientSupervisorId', supervisorOptions, 'Assign Supervisor (optional)');
 }
 
 async function refreshClients() {
@@ -3304,6 +3312,7 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   await withSubmitLock(e.target, async () => {
     const payload = Object.fromEntries(new FormData(e.target).entries());
+    const selectedSupervisorId = String(payload.supervisorUserId || '').trim();
 
     if (isDemo()) {
       const demoClients = getDemoClients();
@@ -3317,8 +3326,31 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
       clientsCache = demoClients;
       syncClientPickers();
       renderClientList(clientsCache);
+
+      if (selectedSupervisorId) {
+        const supervisor = usersCache.find((u) => u._id === selectedSupervisorId && u.role === 'supervisor');
+        if (supervisor) {
+          const exists = DEMO_ASSIGNMENTS.some((a) => a.userId === selectedSupervisorId && a.clientId === nextClient._id);
+          if (!exists) {
+            DEMO_ASSIGNMENTS.push({
+              _id: `demo-asgn-${Date.now()}`,
+              userId: selectedSupervisorId,
+              clientId: nextClient._id,
+              dspName: supervisor.fullName,
+              clientName: nextClient.displayName,
+              role: supervisor.role,
+              expiresAt: null
+            });
+          }
+        }
+      }
+
       e.target.reset();
-      showToast('Demo client added successfully.', 'success');
+      if (selectedSupervisorId) {
+        showToast('Demo client added and supervisor assigned.', 'success');
+      } else {
+        showToast('Demo client added successfully.', 'success');
+      }
       if (currentUser) {
         renderHomeSection().catch(() => {});
       }
@@ -3326,15 +3358,37 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
     }
 
     try {
-      await api('/api/clients', {
+      const created = await api('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+
+      if (selectedSupervisorId && created?.client?._id) {
+        await api('/api/assignments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: selectedSupervisorId,
+            clientId: created.client._id
+          })
+        });
+      }
+
       await refreshClients();
+      if (hasPermission('users:read')) {
+        await refreshUsers();
+      }
+      e.target.reset();
+      if (selectedSupervisorId) {
+        showToast('Client created and supervisor assigned.', 'success');
+      } else {
+        showToast('Client created successfully.', 'success');
+      }
     } catch (err) {
       const list = document.getElementById('clientsList');
       if (list) list.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
+      showToast(err.message, 'error');
     }
   }, 'Saving...');
 });
