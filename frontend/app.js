@@ -2150,43 +2150,53 @@ function getDemoSourceExcerpt(source) {
   return 'Preview not available for this source yet. Open the Documents section for full records.';
 }
 
-function openSourcePreview(source) {
-  const modal = document.getElementById('sourcePreviewModal');
-  const title = document.getElementById('sourcePreviewTitle');
-  const callout = document.getElementById('sourcePreviewCallout');
-  const calloutTitle = document.getElementById('sourcePreviewCalloutTitle');
-  const calloutBody = document.getElementById('sourcePreviewCalloutBody');
-  const meta = document.getElementById('sourcePreviewMeta');
-  const excerpt = document.getElementById('sourcePreviewExcerpt');
-  if (!modal || !title || !meta || !excerpt) return;
-
+async function openSourcePreview(source) {
+  const { clientId, clientName } = getSelectedAskClient();
   const sourceName = formatSourceLabel(source?.sourceFileName || source?.title || source?.docType || 'Document');
-  const sectionHint = String(source?.sectionHint || source?.docType || '').trim();
-  const previewText = getDemoSourceExcerpt(source);
-  const docType = inferSourceDocType(source);
+  const sectionHint = String(source?.sectionHint || '').trim();
 
-  let previewTitle = 'Use This Source First';
-  let previewBody = 'This is the fastest place for the DSP to confirm the documented instruction before proceeding.';
-  if (docType === 'isp') {
-    previewTitle = 'Primary Care Instruction Source';
-    previewBody = 'Use this first for bathing, meals, personal care supports, and day-to-day assistance instructions.';
-  } else if (docType === 'mar') {
-    previewTitle = 'Medication Verification Source';
-    previewBody = 'Use this first when the DSP needs to confirm medication timing, administration status, or med-related caution before care.';
-  } else if (docType === 'behavior') {
-    previewTitle = 'Behavior Response Source';
-    previewBody = 'Use this first when the DSP needs de-escalation steps, behavior triggers, or response guidance during care.';
+  // Build a targeted question so the AI goes straight to that section
+  const question = sectionHint
+    ? `Based on ${sourceName}, what does the "${sectionHint}" section say for ${clientName}?`
+    : `What does ${sourceName} say about care guidance for ${clientName}?`;
+
+  const messages = document.getElementById('chatMessages');
+  const textarea = document.querySelector('#askForm textarea');
+
+  // Show the question as a user bubble and a typing indicator
+  if (messages) {
+    const userBubble = document.createElement('div');
+    userBubble.className = 'chat-message chat-message-user';
+    userBubble.innerHTML = `<div class="chat-bubble"><div class="chat-bubble-text">${safeText(question)}</div></div>`;
+    messages.appendChild(userBubble);
+
+    const typing = document.createElement('div');
+    typing.className = 'chat-message chat-message-ai chat-typing';
+    typing.innerHTML = '<div class="chat-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+    messages.appendChild(typing);
+    messages.scrollTop = messages.scrollHeight;
   }
 
-  title.textContent = sourceName;
-  if (callout && calloutTitle && calloutBody) {
-    callout.style.display = 'block';
-    calloutTitle.textContent = previewTitle;
-    calloutBody.textContent = previewBody;
+  if (isDemo()) {
+    renderAskAnswer(buildDemoAskResponse({ clientId, question }));
+    return;
   }
-  meta.textContent = sectionHint ? `Section: ${sectionHint}` : 'Section: General guidance';
-  excerpt.textContent = previewText;
-  modal.style.display = 'flex';
+
+  if (!clientId) {
+    renderAskAnswer('Please select a client before opening a source.');
+    return;
+  }
+
+  try {
+    const data = await api('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId, question })
+    });
+    renderAskAnswer(data);
+  } catch (err) {
+    renderAskAnswer(err.message);
+  }
 }
 
 function getSelectedAskClient() {
