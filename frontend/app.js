@@ -118,7 +118,11 @@ if (demoMode) localStorage.setItem('synoracare_demo_mode', '1');
 
 // Demo mode only applies when the user is NOT logged in.
 // A logged-in user always uses real API data regardless of the demoMode flag.
-function isDemo() { return demoMode && !currentUser; }
+function isDemo() {
+  if (!demoMode) return false;
+  if (!currentUser) return true;
+  return canUseRoleSwitcher();
+}
 
 function persistAuthSession() {
   try {
