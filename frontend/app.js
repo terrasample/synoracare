@@ -102,6 +102,8 @@ let clientsCache = [];
 let usersCache = [];
 let selectedTrainingContext = 'pre_shift';
 let selectedAskPromptPhase = 'pre_shift';
+let selectedAskPromptGroup = '';
+let isAskPromptLibraryCollapsed = false;
 let legalExportPayload = null;
 let currentReportPayload = null;
 let selectedPatientTab = 'care';
@@ -797,13 +799,18 @@ function getPromptLibraryForRole(role) {
 
 function renderAskPromptLibrary() {
   const role = currentUser ? getActiveRole() : 'guest';
+  const libraryWrap = document.getElementById('askPromptLibrary');
+  const toggleBtn = document.getElementById('askPromptLibraryToggle');
   const roleLabel = document.getElementById('askPromptRoleLabel');
   const groups = document.getElementById('askPromptGroups');
-  if (!roleLabel || !groups) return;
+  if (!libraryWrap || !toggleBtn || !roleLabel || !groups) return;
 
   const library = getPromptLibraryForRole(role);
   const phase = library[selectedAskPromptPhase] ? selectedAskPromptPhase : 'pre_shift';
   const prompts = library[phase] || [];
+
+  libraryWrap.classList.toggle('is-collapsed', isAskPromptLibraryCollapsed);
+  toggleBtn.textContent = isAskPromptLibraryCollapsed ? 'Expand' : 'Collapse';
 
   roleLabel.textContent = `Prompt Library: ${getRoleDisplayLabel(role)} | ${ASK_PROMPT_PHASE_LABELS[phase] || 'Pre-Shift'}`;
 
@@ -823,12 +830,21 @@ function renderAskPromptLibrary() {
     return acc;
   }, {});
 
+  const categories = Object.keys(grouped);
+  if (!categories.includes(selectedAskPromptGroup)) {
+    selectedAskPromptGroup = categories[0] || '';
+  }
+
   groups.innerHTML = Object.entries(grouped)
     .map(([category, items]) => {
+      const isOpen = category === selectedAskPromptGroup;
       return `
         <article class="ask-prompt-group">
-          <h4>${safeText(category)}</h4>
-          <div class="ask-prompt-chip-row">
+          <button type="button" class="ask-prompt-group-toggle" data-ask-group="${safeText(category)}" aria-expanded="${isOpen ? 'true' : 'false'}">
+            <span>${safeText(category)}</span>
+            <span class="ask-prompt-group-toggle-count">${safeText(items.length)} prompts</span>
+          </button>
+          <div class="ask-prompt-chip-row" ${isOpen ? '' : 'hidden'}>
             ${items.map((item) => `<button type="button" class="ask-prompt-chip" data-question="${safeText(item.question)}">${safeText(item.label)}</button>`).join('')}
           </div>
         </article>
@@ -3176,10 +3192,24 @@ document.getElementById('askPromptPhaseTabs')?.addEventListener('click', (e) => 
   if (!button) return;
 
   selectedAskPromptPhase = button.dataset.askPhase || 'pre_shift';
+  selectedAskPromptGroup = '';
+  renderAskPromptLibrary();
+});
+
+document.getElementById('askPromptLibraryToggle')?.addEventListener('click', () => {
+  isAskPromptLibraryCollapsed = !isAskPromptLibraryCollapsed;
   renderAskPromptLibrary();
 });
 
 document.getElementById('askPromptGroups')?.addEventListener('click', (e) => {
+  const groupButton = e.target.closest('button[data-ask-group]');
+  if (groupButton) {
+    const nextGroup = groupButton.dataset.askGroup || '';
+    selectedAskPromptGroup = selectedAskPromptGroup === nextGroup ? '' : nextGroup;
+    renderAskPromptLibrary();
+    return;
+  }
+
   const button = e.target.closest('button.ask-prompt-chip[data-question]');
   if (!button) return;
 
