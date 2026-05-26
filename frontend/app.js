@@ -1644,6 +1644,9 @@ async function refreshClients() {
     clientsCache = getDemoClients();
     syncClientPickers();
     renderClientList(clientsCache);
+    if (currentPage === 'homeSection') {
+      renderHomeSection().catch(() => {});
+    }
     return;
   }
 
@@ -1652,12 +1655,18 @@ async function refreshClients() {
     clientsCache = data.clients || [];
     syncClientPickers();
     renderClientList(clientsCache);
+    if (currentPage === 'homeSection') {
+      renderHomeSection().catch(() => {});
+    }
   } catch (error) {
     console.error('Error loading clients:', error);
     // In non-demo mode, never render demo data.
     clientsCache = [];
     syncClientPickers();
     renderClientList(clientsCache);
+    if (currentPage === 'homeSection') {
+      renderHomeSection().catch(() => {});
+    }
   }
 }
 
