@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SynoraCare</title>
-  <link rel="stylesheet" href="styles.css?v=20260526m" />
+  <link rel="stylesheet" href="styles.css?v=20260526n" />
 </head>
 <body class="guest-mode role-guest">
 <div class="app-shell">
@@ -676,9 +676,9 @@
       <div class="two-col-layout">
         <div class="two-col-left">
           <h3 class="col-heading">Add Client</h3>
-          <form id="clientForm">
-            <input name="displayName" placeholder="Client Name" required />
-            <input name="externalId" placeholder="External ID (optional)" />
+          <form id="clientForm" autocomplete="off">
+            <input name="displayName" placeholder="Client Name" required autocomplete="off" />
+            <input name="externalId" placeholder="External ID (optional)" autocomplete="off" />
             <button type="submit">Add Client</button>
           </form>
         </div>
@@ -714,6 +714,8 @@
         <button type="submit">Create Assignment</button>
       </form>
       <pre id="assignmentOutput" class="output-pre"></pre>
+      <h3 class="col-heading" style="margin-top:1.5rem;">Current Assignments</h3>
+      <div id="assignmentsList" class="data-list"></div>
     </section>
 
     <!-- ── AUTH: Upload Documents ───────────────────────────────── -->
@@ -1028,6 +1030,6 @@
   <!-- Source Preview Modal -->
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="app.js?v=20260526m"></script>
+  <script src="app.js?v=20260526n"></script>
 </body>
 </html>

@@ -402,6 +402,15 @@ const DEMO_USERS = [
   { _id: 'demo-user-3', fullName: 'Camila James', role: 'supervisor' }
 ];
 
+const DEMO_ASSIGNMENTS = [
+  { _id: 'demo-asgn-1', userId: 'demo-user-1', clientId: 'demo-client-1', dspName: 'Nia Carter', clientName: 'Jordan Miles', role: 'dsp', expiresAt: null },
+  { _id: 'demo-asgn-2', userId: 'demo-user-2', clientId: 'demo-client-2', dspName: 'Isaiah Moore', clientName: 'Avery Brooks', role: 'dsp', expiresAt: null },
+  { _id: 'demo-asgn-3', userId: 'demo-user-2', clientId: 'demo-client-3', dspName: 'Isaiah Moore', clientName: 'Taylor Reed', role: 'dsp', expiresAt: null },
+  { _id: 'demo-asgn-4', userId: 'demo-user-3', clientId: 'demo-client-1', dspName: 'Camila James', clientName: 'Jordan Miles', role: 'supervisor', expiresAt: null },
+  { _id: 'demo-asgn-4b', userId: 'demo-user-3', clientId: 'demo-client-2', dspName: 'Camila James', clientName: 'Avery Brooks', role: 'supervisor', expiresAt: null },
+  { _id: 'demo-asgn-4c', userId: 'demo-user-3', clientId: 'demo-client-3', dspName: 'Camila James', clientName: 'Taylor Reed', role: 'supervisor', expiresAt: null }
+];
+
 const DEMO_TRACKER_SUMMARY = {
   pending: 6,
   escalated: 1,
@@ -668,6 +677,40 @@ function handlePageNavigation(pageId) {
   if (pageId === 'reportingSection') {
     loadReportingSection().catch(() => {});
   }
+
+  if (pageId === 'assignmentSection') {
+    renderAssignmentsList();
+  }
+}
+
+function renderAssignmentsList() {
+  const list = document.getElementById('assignmentsList');
+  if (!list) return;
+
+  if (!isDemo()) {
+    list.innerHTML = '<p class="empty-state">Assignments are managed via the API in live mode.</p>';
+    return;
+  }
+
+  // Group by client
+  const byClient = {};
+  DEMO_ASSIGNMENTS.forEach((a) => {
+    if (!byClient[a.clientName]) byClient[a.clientName] = [];
+    byClient[a.clientName].push(a);
+  });
+
+  list.innerHTML = Object.entries(byClient).map(([clientName, entries]) => {
+    const rows = entries.map((a) => `
+      <div style="display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0;">
+        <span class="tracker-badge" style="background:#e2e8f0;color:#0f172a;font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:999px;">${safeText(a.role.toUpperCase())}</span>
+        <span>${safeText(a.dspName)}</span>
+      </div>`).join('');
+    return `
+      <div class="data-list-item" style="display:block;">
+        <div style="font-weight:600;color:#166534;margin-bottom:0.25rem;">${safeText(clientName)}</div>
+        ${rows}
+      </div>`;
+  }).join('');
 }
 
 const ROLE_TRAINING = {
