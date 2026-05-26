@@ -71,7 +71,11 @@ const ROLE_PERMISSION_FALLBACK = {
     'role_labels:update',
     'reports:export',
     'shifts:all:read',
-    'legal_records:export'
+    'legal_records:export',
+    'homes:read',
+    'homes:create',
+    'homes:update',
+    'homes:manage'
   ],
   super_admin: [
     'clients:all:read',
@@ -91,7 +95,12 @@ const ROLE_PERMISSION_FALLBACK = {
     'role_labels:update',
     'reports:export',
     'shifts:all:read',
-    'legal_records:export'
+    'legal_records:export',
+    'homes:read',
+    'homes:create',
+    'homes:update',
+    'homes:archive',
+    'homes:manage'
   ]
 };
 let token = '';
@@ -3310,7 +3319,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
       _id: 'demo-user-admin',
       fullName: 'Demo Admin',
       email: 'demo@synoracare.com',
-      role: 'admin',
+      role: 'super_admin',
       orgId: 'demo-org',
       status: 'active',
       locationIds: ['demo-home-1', 'demo-home-2', 'demo-home-3']
@@ -3552,10 +3561,12 @@ async function renderHomesList(homes) {
     .join('');
 }
 
-async function renderHomeSection() {
+async function renderHomesSection() {
   const pageId = 'homesSection';
   if (!currentUser || !hasPermission('homes:read')) {
-    return showPermissionDenied(pageId);
+    const list = document.getElementById('homesList');
+    if (list) list.innerHTML = '<p class="empty-state">You do not have access to homes management.</p>';
+    return;
   }
 
   document.getElementById('homeDetailsSection').style.display = 'none';
@@ -3780,10 +3791,8 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
         showToast('Demo client added successfully.', 'success');
       }
       if (currentUser) {
-        renderHomeSection().catch(() => {});
+        renderHomesSection().catch(() => {});
       }
-      return;
-    }
       return;
     }
 
