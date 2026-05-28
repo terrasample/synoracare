@@ -2213,7 +2213,52 @@ async function renderHomeSection() {
 
   const welcomeTitle = document.getElementById('homeWelcomeTitle');
   const welcomeRole = document.getElementById('homeWelcomeRole');
-  if (welcomeTitle) welcomeTitle.textContent = `Welcome back, ${currentUser.fullName}`;
+  const displayName = currentUser.fullName || currentUser.email || 'Admin';
+  if (welcomeTitle) welcomeTitle.textContent = `Welcome back, ${displayName}`;
+
+  // Super admin gets a dedicated dashboard view
+  if (role === 'super_admin') {
+    if (welcomeRole) welcomeRole.textContent = getRoleDisplayLabel('super_admin');
+
+    const homeActions = document.getElementById('homeActions');
+    if (homeActions) {
+      homeActions.innerHTML = [
+        { label: '🏢 View Organizations', target: 'superAdminOrganizationsSection' },
+        { label: '👥 Create User', target: 'createUserSection' },
+        { label: '📋 Audit Log', target: 'auditSection' },
+        { label: '📄 Legal Records', target: 'legalRecordsSection' },
+        { label: '🎓 Training', target: 'trainingSection' }
+      ].map((a) => `<button type="button" class="quick-action-btn" data-nav-target="${safeText(a.target)}">${safeText(a.label)}</button>`).join('');
+    }
+
+    const homeStats = document.getElementById('homeStats');
+    if (homeStats) {
+      const orgs = isDemo() ? DEMO_ORGANIZATIONS : (organizationsCache || []);
+      const totalOrgs = orgs.length;
+      const totalHomes = orgs.reduce((sum, o) => sum + (o.totalHomes || 0), 0);
+      const totalUsers = orgs.reduce((sum, o) => sum + (o.totalUsers || 0), 0);
+      homeStats.innerHTML = `
+        <button type="button" class="stat-chip stat-clickable" data-nav-target="superAdminOrganizationsSection" aria-label="View organizations">
+          <span class="stat-value stat-value-home" style="color:#0f172a;">${totalOrgs}</span>
+          <span class="stat-label">Organizations</span>
+        </button>
+        <button type="button" class="stat-chip stat-ok stat-clickable" data-nav-target="superAdminOrganizationsSection" aria-label="View homes">
+          <span class="stat-value stat-value-home stat-value-ok" style="color:#166534;">${totalHomes}</span>
+          <span class="stat-label">Total Homes</span>
+        </button>
+        <button type="button" class="stat-chip stat-clickable" data-nav-target="superAdminOrganizationsSection" aria-label="View users">
+          <span class="stat-value stat-value-home" style="color:#1d4ed8;">${totalUsers}</span>
+          <span class="stat-label">Total Users</span>
+        </button>
+      `;
+    }
+
+    const homeAlerts = document.getElementById('homeAlerts');
+    if (homeAlerts) {
+      homeAlerts.innerHTML = `<div class="onboard-hint"><strong>Super Admin:</strong> You have full access to all organizations. Click <strong>Organizations</strong> in the sidebar to manage them.</div>`;
+    }
+    return;
+  }
 
   const roleLabels = {
     dsp: getRoleDisplayLabel('dsp'),
