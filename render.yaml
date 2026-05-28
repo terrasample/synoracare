@@ -18,7 +18,7 @@ services:
       - key: APP_VERSION
         value: 1.0.0
       - key: BUILD_DATE
-        value: "2026-05-22"
+        value: "2026-05-28"
       - key: CORS_ORIGIN
         value: http://localhost:8080,https://synoracare.com,https://www.synoracare.com,https://synoracare-frontend.onrender.com
 
