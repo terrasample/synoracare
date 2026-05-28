@@ -202,6 +202,55 @@ const DEMO_HOMES = [
   { _id: 'demo-home-3', name: 'Community Living', displayName: 'Community Living', address: '789 Maple Drive', phoneNumber: '555-0103', maxClients: 4, status: 'active' }
 ];
 
+function buildDemoOrgHomes(prefix, count, city) {
+  return Array.from({ length: count }).map((_, index) => {
+    const sequence = index + 1;
+    const activeClients = sequence % 5;
+    return {
+      _id: `${prefix}-home-${sequence}`,
+      orgId: `${prefix}-org`,
+      name: `Home ${sequence}`,
+      displayName: `${city} Home ${sequence}`,
+      address: `${100 + sequence} ${city} Care Lane`,
+      phoneNumber: `555-${String(1000 + sequence).slice(-4)}`,
+      maxClients: 4,
+      status: 'active',
+      activeClients,
+      availableCapacity: Math.max(0, 4 - activeClients)
+    };
+  });
+}
+
+const DEMO_ORGANIZATION_HOMES = {
+  'threshold-org': buildDemoOrgHomes('threshold', 22, 'Threshold'),
+  'unity-org': buildDemoOrgHomes('unity', 19, 'Unity')
+};
+
+const DEMO_ORGANIZATIONS = [
+  {
+    id: 'threshold-org',
+    name: 'Threshold Residential Services',
+    slug: 'threshold-residential-services',
+    stateCode: 'FL',
+    createdAt: '2026-05-01T00:00:00.000Z',
+    totalHomes: DEMO_ORGANIZATION_HOMES['threshold-org'].length,
+    activeHomes: DEMO_ORGANIZATION_HOMES['threshold-org'].length,
+    inactiveHomes: 0,
+    totalUsers: 41
+  },
+  {
+    id: 'unity-org',
+    name: 'Unity Residence',
+    slug: 'unity-residence',
+    stateCode: 'FL',
+    createdAt: '2026-05-02T00:00:00.000Z',
+    totalHomes: DEMO_ORGANIZATION_HOMES['unity-org'].length,
+    activeHomes: DEMO_ORGANIZATION_HOMES['unity-org'].length,
+    inactiveHomes: 0,
+    totalUsers: 36
+  }
+];
+
 const DEMO_TRANSFERS = [
   {
     _id: 'demo-transfer-1',
@@ -3640,12 +3689,25 @@ function renderOrganizationHomes(organization, homes) {
 }
 
 async function refreshOrganizations() {
+  if (isDemo()) {
+    organizationsCache = DEMO_ORGANIZATIONS.map((org) => ({ ...org }));
+    renderOrganizationsList(organizationsCache);
+    return;
+  }
+
   const data = await api('/api/admin/organizations');
   organizationsCache = data.organizations || [];
   renderOrganizationsList(organizationsCache);
 }
 
 async function loadOrganizationHomes(orgId) {
+  if (isDemo()) {
+    const organization = organizationsCache.find((org) => String(org.id) === String(orgId)) || null;
+    const homes = (DEMO_ORGANIZATION_HOMES[String(orgId)] || []).map((home) => ({ ...home }));
+    renderOrganizationHomes(organization, homes);
+    return;
+  }
+
   const data = await api(`/api/admin/organizations/${encodeURIComponent(orgId)}/homes`);
   renderOrganizationHomes(data.organization || null, data.homes || []);
 }
