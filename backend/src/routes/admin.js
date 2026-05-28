@@ -1,0 +1,125 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const { requireAuth } = require('../middleware/auth');
+const { requireRoles } = require('../middleware/rbac');
+const Organization = require('../models/Organization');
+const Location = require('../models/Location');
+const User = require('../models/User');
+const Client = require('../models/Client');
+
+const router = express.Router();
+
+router.use(requireAuth, requireRoles('super_admin'));
+
+// Super admin: list every organization with summary counts.
+router.get('/organizations', async (_req, res) => {
+  try {
+    const organizations = await Organization.find({})
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const orgIds = organizations.map((org) => org._id);
+
+    const [homeCounts, activeHomeCounts, userCounts] = await Promise.all([
+      Location.aggregate([
+        { $match: { orgId: { $in: orgIds } } },
+        { $group: { _id: '$orgId', count: { $sum: 1 } } }
+      ]),
+      Location.aggregate([
+        { $match: { orgId: { $in: orgIds }, status: 'active' } },
+        { $group: { _id: '$orgId', count: { $sum: 1 } } }
+      ]),
+      User.aggregate([
+        { $match: { orgId: { $in: orgIds } } },
+        { $group: { _id: '$orgId', count: { $sum: 1 } } }
+      ])
+    ]);
+
+    const homeCountByOrg = new Map(homeCounts.map((item) => [String(item._id), item.count]));
+    const activeHomeCountByOrg = new Map(activeHomeCounts.map((item) => [String(item._id), item.count]));
+    const userCountByOrg = new Map(userCounts.map((item) => [String(item._id), item.count]));
+
+    const data = organizations.map((org) => {
+      const orgId = String(org._id);
+      const totalHomes = homeCountByOrg.get(orgId) || 0;
+      const activeHomes = activeHomeCountByOrg.get(orgId) || 0;
+      return {
+        id: org._id,
+        name: org.name,
+        slug: org.slug,
+        stateCode: org.stateCode || null,
+        createdAt: org.createdAt,
+        totalHomes,
+        activeHomes,
+        inactiveHomes: Math.max(0, totalHomes - activeHomes),
+        totalUsers: userCountByOrg.get(orgId) || 0
+      };
+    });
+
+    return res.json({ organizations: data });
+  } catch (error) {
+    console.error('Error listing organizations for super admin:', error);
+    return res.status(500).json({ error: 'Failed to list organizations' });
+  }
+});
+
+// Super admin: list homes under one organization with active client counts.
+router.get('/organizations/:orgId/homes', async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(orgId)) {
+      return res.status(400).json({ error: 'Invalid organization id' });
+    }
+
+    const organization = await Organization.findById(orgId).lean();
+    if (!organization) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const homes = await Location.find({ orgId: organization._id })
+      .sort({ status: 1, name: 1 })
+      .lean();
+
+    const locationIds = homes.map((home) => home._id);
+    const clientCounts = await Client.aggregate([
+      {
+        $match: {
+          locationId: { $in: locationIds },
+          status: 'active'
+        }
+      },
+      {
+        $group: {
+          _id: '$locationId',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const activeClientCountByHome = new Map(clientCounts.map((item) => [String(item._id), item.count]));
+
+    const data = homes.map((home) => {
+      const activeClients = activeClientCountByHome.get(String(home._id)) || 0;
+      return {
+        ...home,
+        activeClients,
+        availableCapacity: Math.max(0, Number(home.maxClients || 0) - activeClients)
+      };
+    });
+
+    return res.json({
+      organization: {
+        id: organization._id,
+        name: organization.name,
+        slug: organization.slug,
+        stateCode: organization.stateCode || null
+      },
+      homes: data
+    });
+  } catch (error) {
+    console.error('Error listing organization homes for super admin:', error);
+    return res.status(500).json({ error: 'Failed to list organization homes' });
+  }
+});
+
+module.exports = router;
