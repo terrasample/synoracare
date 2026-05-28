@@ -85,6 +85,10 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 10l9-9 9 9v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           <span class="nav-label">Homes</span>
         </button>
+        <button type="button" class="nav-item nav-role-superadmin" data-nav-target="superAdminOrganizationsSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10"/><path d="M7 12h6"/><path d="M7 16h4"/></svg>
+          <span class="nav-label">Organizations</span>
+        </button>
         <button type="button" class="nav-item nav-breakglass" data-nav-target="breakGlassSection">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <span class="nav-label">Break Glass</span>
@@ -730,6 +734,28 @@
       <div id="homeDetailsSection" style="margin-top: 2rem; display: none;">
         <h3 class="col-heading">Manage Staff</h3>
         <div id="homeStaffManagement"></div>
+      </div>
+    </section>
+
+    <section class="page" id="superAdminOrganizationsSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Organizations</h2>
+          <p class="page-desc">Super admin view of all organizations and their homes</p>
+        </div>
+        <button id="refreshOrganizationsBtn" type="button" class="btn-secondary">Refresh</button>
+      </div>
+      <div class="two-col-layout">
+        <div class="two-col-left">
+          <h3 class="col-heading">All Organizations</h3>
+          <div id="organizationsList" class="data-list"></div>
+        </div>
+        <div class="two-col-right">
+          <h3 class="col-heading" id="organizationHomesTitle">Organization Homes</h3>
+          <div id="organizationHomesList" class="data-list">
+            <p class="empty-state">Select an organization to view homes.</p>
+          </div>
+        </div>
       </div>
     </section>
 

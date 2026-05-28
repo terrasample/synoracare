@@ -111,6 +111,8 @@ let authContextLoadedForToken = '';
 let clientsCache = [];
 let homesCache = [];
 let usersCache = [];
+let organizationsCache = [];
+let selectedOrganizationId = '';
 let selectedTrainingContext = 'pre_shift';
 let selectedAskPromptPhase = 'pre_shift';
 let selectedAskPromptGroup = '';
@@ -596,6 +598,7 @@ const PAGE_ACCESS_RULES = {
   assignmentSection: 'assignments:create',
   createClientSection: ['clients:assigned:read', 'clients:all:read'],
   createUserSection: 'users:invite',
+  superAdminOrganizationsSection: 'super_admin_only',
   legalRecordsSection: 'legal_records:export',
   auditSection: 'audit:org:read'
 };
@@ -609,6 +612,10 @@ function canAccessPage(pageId) {
 
   const requiredPermission = PAGE_ACCESS_RULES[pageId];
   if (!requiredPermission) return true;
+
+  if (requiredPermission === 'super_admin_only') {
+    return String(currentUser?.role || '').trim() === 'super_admin';
+  }
 
   if (Array.isArray(requiredPermission)) {
     return requiredPermission.some((permission) => hasPermission(permission));
@@ -762,6 +769,11 @@ function handlePageNavigation(pageId) {
 
   if (pageId === 'homesSection') {
     renderHomeSection().catch(() => {});
+    return;
+  }
+
+  if (pageId === 'superAdminOrganizationsSection') {
+    renderSuperAdminOrganizationsSection().catch(() => {});
   }
 }
 
@@ -3574,6 +3586,95 @@ async function renderHomesSection() {
   syncHomeLocationPicker();
 }
 
+// ── Super Admin Organizations ──────────────────────────────────
+function renderOrganizationsList(organizations) {
+  const list = document.getElementById('organizationsList');
+  if (!list) return;
+
+  if (!organizations || organizations.length === 0) {
+    list.innerHTML = '<p class="empty-state">No organizations found.</p>';
+    return;
+  }
+
+  list.innerHTML = organizations.map((org) => {
+    const isSelected = String(org.id) === String(selectedOrganizationId);
+    return `
+      <div class="data-item" role="button" tabindex="0" data-org-id="${safeText(String(org.id))}" data-org-action="select" style="${isSelected ? 'border-color:#16a34a;background:#f0fdf4;' : ''}">
+        <div class="data-item-stack">
+          <span class="data-item-label">${safeText(org.name || 'Unnamed Organization')}</span>
+          <span class="data-item-meta">Slug: ${safeText(org.slug || 'n/a')} · State: ${safeText(org.stateCode || 'n/a')}</span>
+          <span class="data-item-meta">Homes: ${safeText(String(org.totalHomes || 0))} (Active ${safeText(String(org.activeHomes || 0))}) · Users: ${safeText(String(org.totalUsers || 0))}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderOrganizationHomes(organization, homes) {
+  const title = document.getElementById('organizationHomesTitle');
+  const list = document.getElementById('organizationHomesList');
+  if (!title || !list) return;
+
+  if (!organization) {
+    title.textContent = 'Organization Homes';
+    list.innerHTML = '<p class="empty-state">Select an organization to view homes.</p>';
+    return;
+  }
+
+  title.textContent = `${organization.name} Homes`;
+
+  if (!homes || homes.length === 0) {
+    list.innerHTML = '<p class="empty-state">This organization has no homes yet.</p>';
+    return;
+  }
+
+  list.innerHTML = homes.map((home) => `
+    <div class="data-item" style="cursor:default;">
+      <div class="data-item-stack">
+        <span class="data-item-label">${safeText(home.displayName || home.name || 'Unnamed Home')}</span>
+        <span class="data-item-meta">${safeText(home.address || 'No address')} · Status: ${safeText(home.status || 'unknown')}</span>
+        <span class="data-item-meta">Capacity: ${safeText(String(home.maxClients || 0))} · Active Clients: ${safeText(String(home.activeClients || 0))} · Available: ${safeText(String(home.availableCapacity || 0))}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function refreshOrganizations() {
+  const data = await api('/api/admin/organizations');
+  organizationsCache = data.organizations || [];
+  renderOrganizationsList(organizationsCache);
+}
+
+async function loadOrganizationHomes(orgId) {
+  const data = await api(`/api/admin/organizations/${encodeURIComponent(orgId)}/homes`);
+  renderOrganizationHomes(data.organization || null, data.homes || []);
+}
+
+async function renderSuperAdminOrganizationsSection() {
+  const list = document.getElementById('organizationsList');
+  const homesList = document.getElementById('organizationHomesList');
+
+  if (String(currentUser?.role || '').trim() !== 'super_admin') {
+    if (list) list.innerHTML = '<p class="empty-state">Only super admins can access organization-wide data.</p>';
+    if (homesList) homesList.innerHTML = '<p class="empty-state">Access denied.</p>';
+    return;
+  }
+
+  await refreshOrganizations();
+
+  if (!selectedOrganizationId && organizationsCache.length) {
+    selectedOrganizationId = String(organizationsCache[0].id);
+  }
+
+  renderOrganizationsList(organizationsCache);
+
+  if (selectedOrganizationId) {
+    await loadOrganizationHomes(selectedOrganizationId);
+  } else {
+    renderOrganizationHomes(null, []);
+  }
+}
+
 document.getElementById('refreshHomesBtn')?.addEventListener('click', async () => {
   try {
     await refreshHomes();
@@ -3632,6 +3733,32 @@ document.getElementById('homesList')?.addEventListener('click', async (e) => {
         showToast('Home archived.', 'success');
       }
     }
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
+
+document.getElementById('refreshOrganizationsBtn')?.addEventListener('click', async () => {
+  try {
+    await renderSuperAdminOrganizationsSection();
+    showToast('Organizations refreshed.', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
+
+document.getElementById('organizationsList')?.addEventListener('click', async (e) => {
+  const target = e.target.closest('[data-org-action="select"]');
+  if (!target) return;
+
+  const orgId = String(target.getAttribute('data-org-id') || '').trim();
+  if (!orgId) return;
+
+  selectedOrganizationId = orgId;
+  renderOrganizationsList(organizationsCache);
+
+  try {
+    await loadOrganizationHomes(orgId);
   } catch (err) {
     showToast(err.message, 'error');
   }
