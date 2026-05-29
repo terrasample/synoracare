@@ -9,10 +9,27 @@ const { canRole } = require('../config/accessControl');
 
 const router = express.Router();
 
+function getSupervisorLocationIds(user) {
+  return Array.isArray(user?.locationIds) ? user.locationIds.map((id) => String(id)) : [];
+}
+
+function supervisorCanAccessLocation(user, locationId) {
+  if (String(user?.role || '') !== 'supervisor') return true;
+  const allowed = getSupervisorLocationIds(user);
+  return allowed.includes(String(locationId));
+}
+
 // List all homes for the organization
 router.get('/', requireAuth, requirePermissions('homes:read'), async (req, res) => {
   try {
-    const locations = await Location.find({ orgId: req.user.orgId })
+    const query = { orgId: req.user.orgId };
+    if (String(req.user.role || '') === 'supervisor') {
+      const allowedLocationIds = getSupervisorLocationIds(req.user);
+      if (!allowedLocationIds.length) return res.json({ locations: [] });
+      query._id = { $in: allowedLocationIds };
+    }
+
+    const locations = await Location.find(query)
       .sort({ status: 1, name: 1 })
       .lean();
     return res.json({ locations });
@@ -25,6 +42,10 @@ router.get('/', requireAuth, requirePermissions('homes:read'), async (req, res) 
 // Get a specific home with client count
 router.get('/:id', requireAuth, requirePermissions('homes:read'), async (req, res) => {
   try {
+    if (!supervisorCanAccessLocation(req.user, req.params.id)) {
+      return res.status(404).json({ error: 'Home not found' });
+    }
+
     const location = await Location.findOne({ _id: req.params.id, orgId: req.user.orgId });
     if (!location) return res.status(404).json({ error: 'Home not found' });
 
@@ -47,6 +68,10 @@ router.get('/:id', requireAuth, requirePermissions('homes:read'), async (req, re
 // List active clients assigned to a specific home
 router.get('/:id/clients', requireAuth, requirePermissions('homes:read'), async (req, res) => {
   try {
+    if (!supervisorCanAccessLocation(req.user, req.params.id)) {
+      return res.status(404).json({ error: 'Home not found' });
+    }
+
     const location = await Location.findOne({ _id: req.params.id, orgId: req.user.orgId }).lean();
     if (!location) return res.status(404).json({ error: 'Home not found' });
 
@@ -256,6 +281,10 @@ router.delete('/:id/staff/:userId', requireAuth, requirePermissions('homes:manag
 // Get staff assigned to a home
 router.get('/:id/staff', requireAuth, requirePermissions('homes:read'), async (req, res) => {
   try {
+    if (!supervisorCanAccessLocation(req.user, req.params.id)) {
+      return res.status(404).json({ error: 'Home not found' });
+    }
+
     const location = await Location.findOne({ _id: req.params.id, orgId: req.user.orgId });
     if (!location) return res.status(404).json({ error: 'Home not found' });
 

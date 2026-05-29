@@ -1,5 +1,7 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Client = require('../models/Client');
+const Location = require('../models/Location');
 const Assignment = require('../models/Assignment');
 const TrackerEntry = require('../models/TrackerEntry');
 const CareDocument = require('../models/CareDocument');
@@ -58,12 +60,37 @@ router.post('/', requireAuth, requirePermissions('clients:create'), async (req, 
     const { displayName, externalId, notes, locationId } = req.body || {};
     if (!displayName) return res.status(400).json({ error: 'displayName required' });
 
+    const normalizedLocationId = String(locationId || '').trim() || null;
+
+    if (req.user.role === 'supervisor') {
+      if (!normalizedLocationId) {
+        return res.status(400).json({ error: 'Supervisors must assign a home when creating a client' });
+      }
+
+      const supervisorLocationIds = Array.isArray(req.user.locationIds) ? req.user.locationIds : [];
+      const canUseLocation = supervisorLocationIds.some((id) => String(id) === normalizedLocationId);
+      if (!canUseLocation) {
+        return res.status(403).json({ error: 'Supervisors can only create clients in their assigned homes' });
+      }
+    }
+
+    if (normalizedLocationId) {
+      if (!mongoose.Types.ObjectId.isValid(normalizedLocationId)) {
+        return res.status(400).json({ error: 'Invalid locationId' });
+      }
+
+      const location = await Location.findOne({ _id: normalizedLocationId, orgId: req.user.orgId, status: 'active' }).lean();
+      if (!location) {
+        return res.status(404).json({ error: 'Home not found or inactive' });
+      }
+    }
+
     const client = await Client.create({
       orgId: req.user.orgId,
       displayName,
       externalId: externalId || '',
       notes: notes || '',
-      locationId: locationId || null
+      locationId: normalizedLocationId
     });
 
     return res.status(201).json({ client });
@@ -193,7 +220,6 @@ router.post('/:id/transfer', requireAuth, requirePermissions('clients:update'), 
     if (!client) return res.status(404).json({ error: 'Client not found' });
 
     // Verify target location exists and is active
-    const Location = require('../models/Location');
     const targetLocation = await Location.findOne({ _id: toLocationId, orgId: req.user.orgId, status: 'active' });
     if (!targetLocation) return res.status(404).json({ error: 'Target home not found or inactive' });
 

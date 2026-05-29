@@ -122,7 +122,7 @@ let askPromptSearchTerm = '';
 let legalExportPayload = null;
 let currentReportPayload = null;
 let selectedPatientTab = 'care';
-let currentPatientWorkspace = { clientId: '', entries: [] };
+let currentPatientWorkspace = { clientId: '', orgId: '', entries: [] };
 let currentPage = '';
 let currentTrackerFeed = [];
 let trackerStatusFilter = '';
@@ -2871,7 +2871,7 @@ function renderClientList(clients) {
   list.innerHTML = html || '<p class="empty-state">No clients found.</p>';
 }
 
-async function openClientWorkspace(clientId, clientName = '') {
+async function openClientWorkspace(clientId, clientName = '', options = {}) {
   const patientClientSelect = document.getElementById('patientWorkspaceClientId');
   if (!patientClientSelect) {
     showToast('Patient workspace is not available right now.', 'error');
@@ -2889,6 +2889,7 @@ async function openClientWorkspace(clientId, clientName = '') {
   }
 
   patientClientSelect.value = String(clientId);
+  currentPatientWorkspace.orgId = String(options.orgId || '').trim();
   selectedPatientTab = 'care';
   navigateTo('patientWorkspaceSection');
   await loadPatientWorkspace();
@@ -3201,7 +3202,7 @@ async function loadPatientWorkspace() {
   const select = document.getElementById('patientWorkspaceClientId');
   const clientId = select ? select.value : '';
   if (!clientId) {
-    currentPatientWorkspace = { clientId: '', entries: [] };
+    currentPatientWorkspace = { clientId: '', orgId: '', entries: [] };
     renderPatientTabContent();
     return;
   }
@@ -3209,15 +3210,23 @@ async function loadPatientWorkspace() {
   if (isDemo()) {
     currentPatientWorkspace = {
       clientId,
+      orgId: currentPatientWorkspace.orgId || '',
       entries: getDemoPatientWorkspaceEntries(clientId)
     };
     renderPatientTabContent();
     return;
   }
 
-  const data = await api(`/api/tracker?clientId=${encodeURIComponent(clientId)}&limit=200`);
+  let data;
+  if (getActiveRole() === 'super_admin' && currentPatientWorkspace.orgId) {
+    data = await api(`/api/admin/organizations/${encodeURIComponent(currentPatientWorkspace.orgId)}/clients/${encodeURIComponent(clientId)}/tracker?limit=200`);
+  } else {
+    data = await api(`/api/tracker?clientId=${encodeURIComponent(clientId)}&limit=200`);
+  }
+
   currentPatientWorkspace = {
     clientId,
+    orgId: currentPatientWorkspace.orgId || '',
     entries: data.entries || []
   };
   renderPatientTabContent();
@@ -3877,14 +3886,14 @@ async function loadOrgHomeClients(homeId, panel, orgId) {
       row.addEventListener('click', () => {
         const clientId = row.getAttribute('data-org-client-id');
         const clientName = row.querySelector('.org-client-row-name')?.textContent || '';
-        openClientWorkspace(clientId, clientName);
+        openClientWorkspace(clientId, clientName, { orgId });
       });
       row.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           const clientId = row.getAttribute('data-org-client-id');
           const clientName = row.querySelector('.org-client-row-name')?.textContent || '';
-          openClientWorkspace(clientId, clientName);
+          openClientWorkspace(clientId, clientName, { orgId });
         }
       });
     });
@@ -4865,7 +4874,7 @@ document.getElementById('logoutBtn')?.addEventListener('click', () => {
   clientsCache = [];
   usersCache = [];
   legalExportPayload = null;
-  currentPatientWorkspace = { clientId: '', entries: [] };
+  currentPatientWorkspace = { clientId: '', orgId: '', entries: [] };
   selectedPatientTab = 'care';
   const downloadBtn = document.getElementById('downloadLegalExportBtn');
   if (downloadBtn) downloadBtn.disabled = true;

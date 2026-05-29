@@ -51,21 +51,7 @@ async function getAccessibleClientIds(user) {
     .select('clientId')
     .lean();
 
-  const assignedClientIds = assignments.map((a) => String(a.clientId));
-
-  // DSP fallback: include clients from assigned locations
-  if (user.locationIds && user.locationIds.length > 0) {
-    const locationClients = await Client.find({
-      orgId: user.orgId,
-      locationId: { $in: user.locationIds },
-      status: 'active'
-    }).select('_id').lean();
-
-    const locationClientIds = locationClients.map((c) => String(c._id));
-    return [...new Set([...assignedClientIds, ...locationClientIds])];
-  }
-
-  return assignedClientIds;
+  return assignments.map((a) => String(a.clientId));
 }
 
 router.get('/', requireAuth, async (req, res) => {

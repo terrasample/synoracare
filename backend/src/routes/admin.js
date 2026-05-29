@@ -6,6 +6,7 @@ const Organization = require('../models/Organization');
 const Location = require('../models/Location');
 const User = require('../models/User');
 const Client = require('../models/Client');
+const TrackerEntry = require('../models/TrackerEntry');
 
 const router = express.Router();
 
@@ -193,6 +194,51 @@ router.get('/organizations/:orgId/homes/:homeId/clients', async (req, res) => {
   } catch (error) {
     console.error('Error listing organization home clients for super admin:', error);
     return res.status(500).json({ error: 'Failed to list organization home clients' });
+  }
+});
+
+// Super admin: fetch tracker entries for a specific client inside a selected organization context.
+router.get('/organizations/:orgId/clients/:clientId/tracker', async (req, res) => {
+  try {
+    const { orgId, clientId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(orgId) || !mongoose.Types.ObjectId.isValid(clientId)) {
+      return res.status(400).json({ error: 'Invalid organization or client id' });
+    }
+
+    const organization = await Organization.findById(orgId).lean();
+    if (!organization) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const client = await Client.findOne({ _id: clientId, orgId: organization._id }).lean();
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found for this organization' });
+    }
+
+    const safeLimit = Math.min(Math.max(Number(req.query.limit || 200), 1), 500);
+    const entries = await TrackerEntry.find({ orgId: organization._id, clientId: client._id })
+      .select('-photo.data')
+      .sort({ createdAt: -1 })
+      .limit(safeLimit)
+      .lean();
+
+    return res.json({
+      organization: {
+        id: organization._id,
+        name: organization.name,
+        slug: organization.slug,
+        stateCode: organization.stateCode || null
+      },
+      client: {
+        id: client._id,
+        displayName: client.displayName,
+        externalId: client.externalId || ''
+      },
+      entries
+    });
+  } catch (error) {
+    console.error('Error loading org client tracker for super admin:', error);
+    return res.status(500).json({ error: 'Failed to load client tracker entries' });
   }
 });
 
