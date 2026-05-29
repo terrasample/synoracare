@@ -199,19 +199,49 @@ const DEMO_CLIENTS = [
 ];
 const DEMO_CLIENTS_STORAGE_KEY = 'synoracare_demo_clients';
 
+// Supervisors assigned per org — each covers a span of homes
+const DEMO_ORG_SUPERVISORS = {
+  'threshold-org': [
+    { name: 'Camila James',   homesFrom: 1, homesTo: 4  },
+    { name: 'Marcus Reid',   homesFrom: 5, homesTo: 8  },
+    { name: 'Destiny Brown', homesFrom: 9, homesTo: 12 },
+    { name: 'Jalen Price',   homesFrom: 13, homesTo: 16 },
+    { name: 'Olivia Chen',   homesFrom: 17, homesTo: 19 },
+    { name: 'Noah Turner',   homesFrom: 20, homesTo: 22 }
+  ],
+  'unity-org': [
+    { name: 'Fatima Owens',  homesFrom: 1, homesTo: 4  },
+    { name: 'Connor Silva',  homesFrom: 5, homesTo: 8  },
+    { name: 'Yolanda Parks', homesFrom: 9, homesTo: 12 },
+    { name: 'Derek Santos',  homesFrom: 13, homesTo: 16 },
+    { name: 'Aisha Grant',   homesFrom: 17, homesTo: 19 }
+  ]
+};
+
+function getDemoHomeSupervisor(homeId, orgId) {
+  const pool = DEMO_ORG_SUPERVISORS[String(orgId || '')] || [];
+  const seqMatch = String(homeId || '').match(/(\d+)$/);
+  const seq = seqMatch ? Number(seqMatch[1]) : null;
+  if (seq === null) return null;
+  const supervisor = pool.find((s) => seq >= s.homesFrom && seq <= s.homesTo);
+  return supervisor ? supervisor.name : pool[pool.length - 1]?.name || null;
+}
+
 const DEMO_HOMES = [
-  { _id: 'demo-home-1', name: 'Sunrise Home', displayName: 'Sunrise Home', address: '123 Oak Street', phoneNumber: '555-0101', maxClients: 4, status: 'active' },
-  { _id: 'demo-home-2', name: 'Peaceful Haven', displayName: 'Peaceful Haven', address: '456 Elm Avenue', phoneNumber: '555-0102', maxClients: 4, status: 'active' },
-  { _id: 'demo-home-3', name: 'Community Living', displayName: 'Community Living', address: '789 Maple Drive', phoneNumber: '555-0103', maxClients: 4, status: 'active' }
+  { _id: 'demo-home-1', name: 'Sunrise Home',    displayName: 'Sunrise Home',    address: '123 Oak Street',    phoneNumber: '555-0101', maxClients: 4, status: 'active', supervisorName: 'Camila James' },
+  { _id: 'demo-home-2', name: 'Peaceful Haven',  displayName: 'Peaceful Haven',  address: '456 Elm Avenue',    phoneNumber: '555-0102', maxClients: 4, status: 'active', supervisorName: 'Camila James' },
+  { _id: 'demo-home-3', name: 'Community Living',displayName: 'Community Living',address: '789 Maple Drive',   phoneNumber: '555-0103', maxClients: 4, status: 'active', supervisorName: 'Camila James' }
 ];
 
 function buildDemoOrgHomes(prefix, count, city) {
+  const orgId = `${prefix}-org`;
   return Array.from({ length: count }).map((_, index) => {
     const sequence = index + 1;
     const activeClients = sequence % 5;
+    const homeId = `${prefix}-home-${sequence}`;
     return {
-      _id: `${prefix}-home-${sequence}`,
-      orgId: `${prefix}-org`,
+      _id: homeId,
+      orgId,
       name: `Home ${sequence}`,
       displayName: `${city} Home ${sequence}`,
       address: `${100 + sequence} ${city} Care Lane`,
@@ -219,7 +249,8 @@ function buildDemoOrgHomes(prefix, count, city) {
       maxClients: 4,
       status: 'active',
       activeClients,
-      availableCapacity: Math.max(0, 4 - activeClients)
+      availableCapacity: Math.max(0, 4 - activeClients),
+      supervisorName: getDemoHomeSupervisor(homeId, orgId)
     };
   });
 }
@@ -3988,6 +4019,7 @@ async function renderHomesList(homes) {
           <span class="data-item-label">${safeText(h.displayName || h.name)}</span>
           <span class="data-item-meta">${safeText(h.address || 'No address')} · Max ${h.maxClients} clients</span>
           ${h.phoneNumber ? `<span class="data-item-meta">Phone: ${safeText(h.phoneNumber)}</span>` : ''}
+          ${h.supervisorName ? `<span class="data-item-meta">Supervisor: ${safeText(h.supervisorName)}</span>` : ''}
         </div>
         <div class="data-item-actions">
           ${canUpdateHomes ? `<button type="button" class="btn-icon" data-home-id="${h._id}" data-home-action="edit-address" aria-label="Edit address">✏️</button>` : ''}
@@ -4066,6 +4098,7 @@ function renderOrganizationHomes(organization, homes) {
         <div>
           <div class="org-home-card-title">🏠 ${safeText(home.displayName || home.name || 'Unnamed Home')}</div>
           <div class="org-home-card-meta">${safeText(home.address || 'No address')} · Capacity: ${safeText(String(home.maxClients || 0))}</div>
+          ${home.supervisorName ? `<div class="org-home-card-meta" style="color:#166534;">👤 Supervisor: ${safeText(home.supervisorName)}</div>` : ''}
         </div>
         <span class="org-home-card-badge">${safeText(String(home.activeClients || 0))} clients ▾</span>
       </div>
