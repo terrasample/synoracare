@@ -1728,9 +1728,15 @@ async function withSubmitLock(form, run, pendingLabel) {
 function getDemoPersonaForRole(role) {
   const normalizedRole = String(role || '').trim();
   if (!normalizedRole) return null;
-  // For supervisor, respect the active persona selection
+  // For supervisor, DSP, org_admin, respect the active persona selection
   if (normalizedRole === 'supervisor') {
     return DEMO_BASE_USERS.find((u) => u._id === supervisorPersonaId) || DEMO_BASE_USERS.find((u) => u.role === 'supervisor') || null;
+  }
+  if (normalizedRole === 'dsp') {
+    return DEMO_BASE_USERS.find((u) => u._id === window.dspPersonaId) || DEMO_BASE_USERS.find((u) => u.role === 'dsp') || null;
+  }
+  if (normalizedRole === 'org_admin') {
+    return DEMO_BASE_USERS.find((u) => u._id === window.orgAdminPersonaId) || DEMO_BASE_USERS.find((u) => u.role === 'org_admin') || null;
   }
   return DEMO_BASE_USERS.find((user) => String(user.role || '').trim() === normalizedRole) || null;
 }
@@ -1777,15 +1783,28 @@ function updateSession() {
     }
   }
 
-  // Supervisor persona picker — visible when viewing as supervisor
+  // Persona picker — visible when viewing as supervisor, dsp, or org_admin
   const personaSwitcher = document.getElementById('demoPersonaSwitcher');
   if (personaSwitcher) {
-    if (canUseRoleSwitcher() && isDemo() && activeRole === 'supervisor') {
-      const supervisorPersonas = DEMO_BASE_USERS.filter((u) => u.role === 'supervisor' && u.orgId === 'threshold-org');
-      personaSwitcher.innerHTML = supervisorPersonas.map((u) =>
+    let personas = [];
+    let currentId = '';
+    if (canUseRoleSwitcher() && isDemo()) {
+      if (activeRole === 'supervisor') {
+        personas = DEMO_BASE_USERS.filter((u) => u.role === 'supervisor' && u.orgId === 'threshold-org');
+        currentId = supervisorPersonaId;
+      } else if (activeRole === 'dsp') {
+        personas = DEMO_BASE_USERS.filter((u) => u.role === 'dsp' && u.orgId === 'threshold-org');
+        currentId = window.dspPersonaId || personas[0]?._id || '';
+      } else if (activeRole === 'org_admin') {
+        personas = DEMO_BASE_USERS.filter((u) => u.role === 'org_admin' && u.orgId === 'threshold-org');
+        currentId = window.orgAdminPersonaId || personas[0]?._id || '';
+      }
+    }
+    if (personas.length) {
+      personaSwitcher.innerHTML = personas.map((u) =>
         `<option value="${u._id}">${safeText(u.fullName)}</option>`
       ).join('');
-      personaSwitcher.value = supervisorPersonaId;
+      personaSwitcher.value = currentId;
       personaSwitcher.style.display = '';
     } else {
       personaSwitcher.style.display = 'none';
@@ -6421,13 +6440,20 @@ document.getElementById('demoPersonaSwitcher')?.addEventListener('change', async
   if (!currentUser || !canUseRoleSwitcher()) return;
   const newPersonaId = e.target.value;
   if (!newPersonaId) return;
-  supervisorPersonaId = newPersonaId;
+  const activeRole = getActiveRole();
+  if (activeRole === 'supervisor') {
+    supervisorPersonaId = newPersonaId;
+  } else if (activeRole === 'dsp') {
+    window.dspPersonaId = newPersonaId;
+  } else if (activeRole === 'org_admin') {
+    window.orgAdminPersonaId = newPersonaId;
+  }
   selectedDashboardHomeId = '';
-  const persona = getDemoPersonaForRole('supervisor');
+  const persona = getDemoPersonaForRole(activeRole);
   updateSession();
   await refreshAllPickers();
   renderHomeSection();
-  showToast(`Viewing as ${persona?.fullName || 'Supervisor'}`, 'success');
+  showToast(`Viewing as ${persona?.fullName || getRoleDisplayLabel(activeRole)}`, 'success');
 });
 
 document.getElementById('roleLabelsForm')?.addEventListener('submit', async (e) => {
