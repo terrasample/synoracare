@@ -5,6 +5,7 @@ const { connectDb } = require('./config/db');
 
 const authRoutes = require('./routes/auth');
 const clientRoutes = require('./routes/clients');
+const { processDueTemporaryTransferReturns } = require('./routes/clients');
 const assignmentRoutes = require('./routes/assignments');
 const documentRoutes = require('./routes/documents');
 const askRoutes = require('./routes/ask');
@@ -94,6 +95,22 @@ app.use((err, _req, res, _next) => {
 
 async function start() {
   await connectDb();
+
+  // Auto-complete due temporary transfers every 5 minutes.
+  const runAutoReturnSweep = async () => {
+    try {
+      const processed = await processDueTemporaryTransferReturns();
+      if (processed > 0) {
+        console.log(`[transfers] auto-returned ${processed} client(s)`);
+      }
+    } catch (error) {
+      console.error('[transfers] auto-return sweep failed:', error.message);
+    }
+  };
+
+  await runAutoReturnSweep();
+  setInterval(runAutoReturnSweep, 5 * 60 * 1000);
+
   app.listen(env.port, () => {
     console.log(`SynoraCare backend listening on ${env.port}`);
   });

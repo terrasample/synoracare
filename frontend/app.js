@@ -198,6 +198,7 @@ const DEMO_CLIENTS = [
   { _id: 'demo-client-3', displayName: 'Taylor Reed', externalId: 'SC-1003', locationId: 'demo-home-2', status: 'active' }
 ];
 const DEMO_CLIENTS_STORAGE_KEY = 'synoracare_demo_clients';
+const DEMO_TRANSFERS_STORAGE_KEY = 'synoracare_demo_transfers';
 
 // Supervisors assigned per org — each covers a span of homes
 const DEMO_ORG_SUPERVISORS = {
@@ -350,6 +351,34 @@ const DEMO_TRANSFERS = [
     toLocationId_data: { displayName: 'Sunrise Home', name: 'Sunrise Home' }
   }
 ];
+
+function getPersistedDemoTransfers() {
+  try {
+    const raw = localStorage.getItem(DEMO_TRANSFERS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveDemoTransfers(transfers) {
+  try {
+    localStorage.setItem(DEMO_TRANSFERS_STORAGE_KEY, JSON.stringify(transfers || []));
+  } catch {
+    // Ignore storage failures in private/incognito contexts.
+  }
+}
+
+// Hydrate demo transfer history from localStorage when available.
+{
+  const persistedTransfers = getPersistedDemoTransfers();
+  if (Array.isArray(persistedTransfers)) {
+    DEMO_TRANSFERS.splice(0, DEMO_TRANSFERS.length, ...persistedTransfers);
+  }
+}
 
 const DEMO_CLIENT_CARE_INFO = {
   'demo-client-1': {
@@ -1058,19 +1087,32 @@ const DEMO_PATIENT_WORKSPACE_ENTRIES = [
 ];
 
 function getDemoClients() {
+  let sourceClients = DEMO_CLIENTS;
+  try {
+    const raw = localStorage.getItem(DEMO_CLIENTS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length) {
+        sourceClients = parsed;
+      }
+    }
+  } catch {
+    // Fall back to seeded demo clients if localStorage is unavailable.
+  }
+
   const role = getActiveRole();
   if (role === 'dsp') {
     // DSP persona: Nia Carter (demo-user-1) — sees only her assigned clients
     const assigned = new Set(DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-1').map((a) => a.clientId));
-    return DEMO_CLIENTS.filter((c) => assigned.has(c._id)).map((c) => ({ ...c }));
+    return sourceClients.filter((c) => assigned.has(c._id)).map((c) => ({ ...c }));
   }
   if (role === 'supervisor') {
     // Supervisor persona: Camila James (demo-user-3) — sees clients assigned to her
     const assigned = new Set(DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-3').map((a) => a.clientId));
-    return DEMO_CLIENTS.filter((c) => assigned.has(c._id)).map((c) => ({ ...c }));
+    return sourceClients.filter((c) => assigned.has(c._id)).map((c) => ({ ...c }));
   }
   // org_admin and super_admin see all demo clients
-  return DEMO_CLIENTS.map((c) => ({ ...c }));
+  return sourceClients.map((c) => ({ ...c }));
 }
 
 function saveDemoClients(clients) {
@@ -3386,8 +3428,8 @@ async function loadTransferHistory(clientId) {
       transfers = DEMO_TRANSFERS.filter((t) => String(t.clientId) === String(clientId))
         .map((t) => ({
           ...t,
-          fromLocationId: t.fromLocationId_data,
-          toLocationId: t.toLocationId_data
+          fromLocationId: t.fromLocationId_data || homesCache.find((h) => String(h._id) === String(t.fromLocationId)) || null,
+          toLocationId: t.toLocationId_data || homesCache.find((h) => String(h._id) === String(t.toLocationId)) || null
         }));
     } else {
       const data = await api(`/api/clients/${encodeURIComponent(clientId)}/transfers`);
@@ -4596,6 +4638,7 @@ document.getElementById('transferForm')?.addEventListener('submit', async (e) =>
       };
 
       DEMO_TRANSFERS.unshift(newTransfer);
+      saveDemoTransfers(DEMO_TRANSFERS);
 
       // Update client location
       client.locationId = toLocationId;

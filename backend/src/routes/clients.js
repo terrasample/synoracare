@@ -13,6 +13,48 @@ const { canRole } = require('../config/accessControl');
 
 const router = express.Router();
 
+async function processDueTemporaryTransferReturns() {
+  const now = new Date();
+  const dueTransfers = await ClientTransfer.find({
+    status: 'active',
+    isTemporary: true,
+    fromLocationId: { $ne: null },
+    scheduledReturnDate: { $lte: now }
+  })
+    .select('_id orgId clientId fromLocationId scheduledReturnDate')
+    .lean();
+
+  let processed = 0;
+
+  for (const transfer of dueTransfers) {
+    const client = await Client.findOne({ _id: transfer.clientId, orgId: transfer.orgId });
+    if (!client) continue;
+
+    // Expire any current active assignments before returning client to original home.
+    await Assignment.updateMany(
+      {
+        orgId: transfer.orgId,
+        clientId: transfer.clientId,
+        startsAt: { $lte: now },
+        $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }]
+      },
+      { $set: { expiresAt: now } }
+    );
+
+    client.locationId = transfer.fromLocationId;
+    await client.save();
+
+    await ClientTransfer.updateOne(
+      { _id: transfer._id, status: 'active' },
+      { $set: { status: 'returned', actualReturnDate: now } }
+    );
+
+    processed += 1;
+  }
+
+  return processed;
+}
+
 router.get('/', requireAuth, async (req, res) => {
   try {
     if (req.user.role === 'supervisor') {
@@ -440,3 +482,4 @@ router.post('/:id/transfers/:transferId/return', requireAuth, requirePermissions
 });
 
 module.exports = router;
+module.exports.processDueTemporaryTransferReturns = processDueTemporaryTransferReturns;
