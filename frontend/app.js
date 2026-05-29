@@ -727,7 +727,7 @@ function canAccessPage(pageId) {
   if (!requiredPermission) return true;
 
   if (requiredPermission === 'super_admin_only') {
-    return String(currentUser?.role || '').trim() === 'super_admin';
+    return String(getActiveRole() || '').trim() === 'super_admin';
   }
 
   if (Array.isArray(requiredPermission)) {
@@ -1237,11 +1237,12 @@ const ROLE_HIDDEN_SECTIONS = {
     'assignmentSection',
     'uploadSection',
     'auditSection',
+    'superAdminOrganizationsSection',
     'legalRecordsSection',
     'reportingSection'
   ],
-  supervisor: ['bootstrapSection', 'createUserSection'],
-  org_admin: ['bootstrapSection'],
+  supervisor: ['bootstrapSection', 'createUserSection', 'superAdminOrganizationsSection'],
+  org_admin: ['bootstrapSection', 'superAdminOrganizationsSection'],
   super_admin: []
 };
 
