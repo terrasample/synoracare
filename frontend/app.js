@@ -129,6 +129,7 @@ let currentPage = '';
 let currentTrackerFeed = [];
 let trackerStatusFilter = '';
 let selectedDashboardHomeId = '';
+let selectedDashboardOrgId = '';
 const chatSourceRegistry = new Map();
 let demoMode = localStorage.getItem('synoracare_demo_mode') === '1' || new URLSearchParams(window.location.search).get('demo') === '1';
 if (demoMode) localStorage.setItem('synoracare_demo_mode', '1');
@@ -2735,6 +2736,72 @@ async function renderHomeSection() {
               <div>${clientsMarkup}</div>
             </div>
             <button type="button" class="quick-action-btn" data-nav-target="homesSection" style="margin-top:8px;">Open My Homes</button>
+          </div>
+        `;
+      }
+
+      if (role === 'org_admin') {
+        const orgPersona = isDemo() ? DEMO_BASE_USERS.find((u) => u._id === 'demo-user-5') : null;
+        const orgId = isDemo()
+          ? String(orgPersona?.orgId || '')
+          : String(currentUser?.orgId || '');
+        const orgName = isDemo()
+          ? (DEMO_ORGANIZATIONS.find((org) => String(org.id) === orgId)?.name || orgPersona?.orgName || 'Your Organization')
+          : String(currentUser?.orgName || 'Your Organization');
+
+        const scopedHomes = (homesCache || []).filter((home) => String(home.status || 'active') === 'active');
+        const selectedOrgId = selectedDashboardOrgId || orgId;
+        const orgExpanded = selectedOrgId === orgId;
+
+        const hasSelectedHome = scopedHomes.some((home) => String(home._id) === String(selectedDashboardHomeId));
+        const activeHomeId = hasSelectedHome
+          ? String(selectedDashboardHomeId)
+          : (scopedHomes[0]?._id ? String(scopedHomes[0]._id) : '');
+        selectedDashboardHomeId = activeHomeId;
+
+        const homesMarkup = scopedHomes.length
+          ? scopedHomes.map((home) => {
+              const homeName = home.displayName || home.name || 'Home';
+              const homeId = String(home._id || '');
+              const isActive = homeId && homeId === activeHomeId;
+              return `<button type="button" class="home-pill" data-dashboard-home-id="${safeText(homeId)}" style="cursor:pointer;${isActive ? 'background:#dcfce7;border-color:#16a34a;color:#14532d;' : ''}">${safeText(homeName)}</button>`;
+            }).join('')
+          : '<span class="home-pill">No homes available</span>';
+
+        let clientsForSelectedHome = activeHomeId
+          ? (clientsCache || []).filter((client) => String(client.locationId || '') === activeHomeId && String(client.status || 'active') !== 'inactive')
+          : [];
+
+        // In demo mode, show realistic synthetic residents for homes that have no seeded clients.
+        if (isDemo() && activeHomeId && !clientsForSelectedHome.length) {
+          const selectedHome = scopedHomes.find((home) => String(home._id) === activeHomeId) || null;
+          const syntheticCount = Math.max(0, Number(selectedHome?.activeClients || 0));
+          if (syntheticCount > 0) {
+            clientsForSelectedHome = buildDemoOrgHomeClients(orgId || 'threshold-org', activeHomeId, syntheticCount);
+          }
+        }
+
+        const clientsMarkup = clientsForSelectedHome.length
+          ? clientsForSelectedHome.map((client) => `
+              <button type="button" class="btn-secondary btn-sm" data-dashboard-client-id="${safeText(client._id)}" data-dashboard-client-name="${safeText(client.displayName || '')}" style="margin:4px 6px 0 0;">
+                ${safeText(client.displayName || 'Client')} ${client.externalId ? `(${safeText(client.externalId)})` : ''}
+              </button>
+            `).join('')
+          : '<p class="empty-state" style="font-size:12px;margin-top:8px;">No active clients in this home.</p>';
+
+        alertsHtml += `
+          <div class="assigned-homes-card">
+            <p class="assigned-homes-title">Organization</p>
+            <button type="button" class="quick-action-btn" data-dashboard-org-id="${safeText(orgId)}" style="margin-top:4px;">${safeText(orgName)}</button>
+            ${orgExpanded ? `
+              <div class="assigned-home-clients" style="margin-top:10px;">
+                <p class="assigned-homes-title" style="font-size:12px;color:#475569;margin:4px 0;">Homes (${scopedHomes.length})</p>
+                <div class="assigned-homes-pills">${homesMarkup}</div>
+                <p class="assigned-homes-title" style="font-size:12px;color:#475569;margin:10px 0 4px;">Clients in selected home</p>
+                <div>${clientsMarkup}</div>
+              </div>
+            ` : ''}
+            <button type="button" class="quick-action-btn" data-nav-target="homesSection" style="margin-top:10px;">Open My Homes</button>
           </div>
         `;
       }
@@ -5565,6 +5632,13 @@ document.addEventListener('click', (e) => {
   const dashboardHomeBtn = e.target.closest('[data-dashboard-home-id]');
   if (dashboardHomeBtn) {
     selectedDashboardHomeId = String(dashboardHomeBtn.dataset.dashboardHomeId || '').trim();
+    renderHomeSection().catch(() => {});
+    return;
+  }
+
+  const dashboardOrgBtn = e.target.closest('[data-dashboard-org-id]');
+  if (dashboardOrgBtn) {
+    selectedDashboardOrgId = String(dashboardOrgBtn.dataset.dashboardOrgId || '').trim();
     renderHomeSection().catch(() => {});
     return;
   }
