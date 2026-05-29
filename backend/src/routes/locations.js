@@ -131,6 +131,10 @@ router.post('/', requireAuth, requirePermissions('homes:create'), async (req, re
 router.put('/:id', requireAuth, requirePermissions('homes:update'), async (req, res) => {
   try {
     const { name, displayName, address, phoneNumber, maxClients, notes } = req.body || {};
+
+    if (!supervisorCanAccessLocation(req.user, req.params.id)) {
+      return res.status(404).json({ error: 'Home not found' });
+    }
     
     const location = await Location.findOne({ _id: req.params.id, orgId: req.user.orgId });
     if (!location) return res.status(404).json({ error: 'Home not found' });

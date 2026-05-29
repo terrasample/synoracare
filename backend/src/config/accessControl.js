@@ -19,6 +19,7 @@ const ROLE_PERMISSIONS = {
   supervisor: [
     'clients:assigned:read',
     'clients:create',
+    'clients:update',
     'users:read',
     'assignments:read',
     'tracker:entry:create',
@@ -32,7 +33,8 @@ const ROLE_PERMISSIONS = {
     'shifts:handoff:create',
     'shifts:all:read',
     'legal_records:export',
-    'homes:read'
+    'homes:read',
+    'homes:update'
   ],
   org_admin: [
     'clients:all:read',

@@ -41,23 +41,19 @@ async function requireAuth(req, res, next) {
     }
 
     const user = await User.findById(decoded.userId).lean();
-    if (user && user.status !== 'active') {
-      console.warn(`[auth] user_inactive_bypass path=${requestPath} userId=${decoded.userId}`);
+    if (!user) {
+      console.warn(`[auth] user_not_found path=${requestPath} userId=${decoded.userId}`);
+      res.set('x-auth-reason', 'user_not_found');
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    if (user) {
-      req.user = user;
-      return next();
+    if (String(user.status || '') !== 'active') {
+      console.warn(`[auth] user_inactive path=${requestPath} userId=${decoded.userId}`);
+      res.set('x-auth-reason', 'user_inactive');
+      return res.status(403).json({ error: 'Account inactive' });
     }
 
-    // Fallback for transient user lookup issues: trust signed JWT claims.
-    req.user = {
-      _id: decoded.userId,
-      orgId: decoded.orgId,
-      role: decoded.role,
-      status: 'active'
-    };
-    console.warn(`[auth] user_lookup_fallback path=${requestPath} userId=${decoded.userId}`);
+    req.user = user;
     return next();
   } catch (err) {
     console.warn(`[auth] verify_failed path=${requestPath} reason=${err?.name || 'unknown'}`);

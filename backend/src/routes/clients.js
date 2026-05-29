@@ -109,6 +109,14 @@ router.put('/:id', requireAuth, requirePermissions('clients:update'), async (req
     const client = await Client.findOne({ _id: req.params.id, orgId: req.user.orgId });
     if (!client) return res.status(404).json({ error: 'Client not found' });
 
+    if (req.user.role === 'supervisor') {
+      const supervisorLocationIds = Array.isArray(req.user.locationIds) ? req.user.locationIds : [];
+      const canManageClient = supervisorLocationIds.some((id) => String(id) === String(client.locationId || ''));
+      if (!canManageClient) {
+        return res.status(403).json({ error: 'Supervisors can only edit clients in their assigned homes' });
+      }
+    }
+
     client.displayName = String(displayName).trim();
     client.externalId = String(externalId || '').trim();
     client.notes = String(notes || '').trim();
@@ -216,8 +224,32 @@ router.post('/:id/transfer', requireAuth, requirePermissions('clients:update'), 
     const { toLocationId, reason, isTemporary, scheduledReturnDate } = req.body || {};
     if (!toLocationId) return res.status(400).json({ error: 'toLocationId required' });
 
+    const temporaryTransfer = Boolean(isTemporary);
+    let parsedReturnDate = null;
+    if (temporaryTransfer) {
+      if (!scheduledReturnDate) {
+        return res.status(400).json({ error: 'scheduledReturnDate required for temporary transfer' });
+      }
+      parsedReturnDate = new Date(scheduledReturnDate);
+      if (Number.isNaN(parsedReturnDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid scheduledReturnDate' });
+      }
+      if (parsedReturnDate.getTime() <= Date.now()) {
+        return res.status(400).json({ error: 'scheduledReturnDate must be in the future' });
+      }
+    }
+
     const client = await Client.findOne({ _id: req.params.id, orgId: req.user.orgId });
     if (!client) return res.status(404).json({ error: 'Client not found' });
+
+    if (req.user.role === 'supervisor') {
+      const supervisorLocationIds = Array.isArray(req.user.locationIds) ? req.user.locationIds : [];
+      const canManageSource = supervisorLocationIds.some((id) => String(id) === String(client.locationId || ''));
+      const canManageTarget = supervisorLocationIds.some((id) => String(id) === String(toLocationId || ''));
+      if (!canManageSource || !canManageTarget) {
+        return res.status(403).json({ error: 'Supervisors can only transfer clients between their assigned homes' });
+      }
+    }
 
     // Verify target location exists and is active
     const targetLocation = await Location.findOne({ _id: toLocationId, orgId: req.user.orgId, status: 'active' });
@@ -256,8 +288,8 @@ router.post('/:id/transfer', requireAuth, requirePermissions('clients:update'), 
       toLocationId,
       transferredBy: req.user._id,
       reason: String(reason || '').trim(),
-      isTemporary: Boolean(isTemporary),
-      scheduledReturnDate: isTemporary && scheduledReturnDate ? new Date(scheduledReturnDate) : null,
+      isTemporary: temporaryTransfer,
+      scheduledReturnDate: parsedReturnDate,
       expiredAssignments: expiredIds,
       status: 'active'
     });
@@ -291,10 +323,34 @@ router.post('/:id/transfer', requireAuth, requirePermissions('clients:update'), 
 });
 
 // Get transfer history for a client
-router.get('/:id/transfers', requireAuth, async (req, res) => {
+router.get('/:id/transfers', requireAuth, requirePermissions('clients:assigned:read'), async (req, res) => {
   try {
     const client = await Client.findOne({ _id: req.params.id, orgId: req.user.orgId });
     if (!client) return res.status(404).json({ error: 'Client not found' });
+
+    if (!canRole(req.user.role, 'clients:all:read')) {
+      const now = new Date();
+      const assignment = await Assignment.findOne({
+        orgId: req.user.orgId,
+        userId: req.user._id,
+        clientId: client._id,
+        startsAt: { $lte: now },
+        $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }]
+      })
+        .select('_id')
+        .lean();
+      if (!assignment && req.user.role !== 'supervisor') {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    if (req.user.role === 'supervisor') {
+      const supervisorLocationIds = Array.isArray(req.user.locationIds) ? req.user.locationIds : [];
+      const canViewClient = supervisorLocationIds.some((id) => String(id) === String(client.locationId || ''));
+      if (!canViewClient) {
+        return res.status(403).json({ error: 'Supervisors can only view transfer history for clients in their assigned homes' });
+      }
+    }
 
     const transfers = await ClientTransfer.find({
       orgId: req.user.orgId,
@@ -333,6 +389,15 @@ router.post('/:id/transfers/:transferId/return', requireAuth, requirePermissions
     const now = new Date();
     const client = await Client.findOne({ _id: req.params.id, orgId: req.user.orgId });
     if (!client) return res.status(404).json({ error: 'Client not found' });
+
+    if (req.user.role === 'supervisor') {
+      const supervisorLocationIds = Array.isArray(req.user.locationIds) ? req.user.locationIds : [];
+      const canManageSource = supervisorLocationIds.some((id) => String(id) === String(client.locationId || ''));
+      const canManageReturnTarget = supervisorLocationIds.some((id) => String(id) === String(transfer.fromLocationId || ''));
+      if (!canManageSource || !canManageReturnTarget) {
+        return res.status(403).json({ error: 'Supervisors can only return clients within their assigned homes' });
+      }
+    }
 
     // Expire current assignments
     await Assignment.updateMany(

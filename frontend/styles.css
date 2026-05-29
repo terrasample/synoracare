@@ -135,6 +135,19 @@ body:not(.role-super_admin) .nav-role-superadmin { display: none; }
   padding: 14px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
+.care-module-card-clickable {
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+.care-module-card-clickable:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent-border);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+.care-module-card-clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .care-module-card h3 {
   font-size: 0.98rem;
   margin-bottom: 6px;
@@ -2293,6 +2306,34 @@ body.guest-mode #loginSection {
   border-color: var(--accent);
   background: var(--accent-bg);
 }
+.assigned-homes-card {
+  border: 1px solid var(--line);
+  background: #ffffff;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.assigned-homes-title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+.assigned-homes-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.home-pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 3px 8px;
 
 .whos-working-dsp-name {
   font-weight: 600;

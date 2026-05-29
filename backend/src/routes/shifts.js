@@ -2,11 +2,28 @@ const express = require('express');
 const Shift = require('../models/Shift');
 const TrackerEntry = require('../models/TrackerEntry');
 const Assignment = require('../models/Assignment');
+const Client = require('../models/Client');
 const { requireAuth } = require('../middleware/auth');
 const { requirePermissions } = require('../middleware/permissions');
 const { canRole } = require('../config/accessControl');
 
 const router = express.Router();
+
+async function getSupervisorClientIds(user) {
+  if (String(user?.role || '') !== 'supervisor') return null;
+
+  const locationIds = Array.isArray(user.locationIds) ? user.locationIds : [];
+  if (!locationIds.length) return [];
+
+  const clients = await Client.find({
+    orgId: user.orgId,
+    locationId: { $in: locationIds }
+  })
+    .select('_id')
+    .lean();
+
+  return clients.map((client) => client._id);
+}
 
 // Start a new shift
 router.post('/', requireAuth, async (req, res) => {
@@ -82,6 +99,18 @@ router.get('/:shiftId', requireAuth, async (req, res) => {
     if (shift.userId.toString() !== req.user._id.toString() &&
         !canRole(req.user.role, 'shifts:all:read')) {
       return res.status(403).json({ error: 'No access to this shift' });
+    }
+
+    if (req.user.role === 'supervisor' && shift.userId.toString() !== req.user._id.toString()) {
+      const supervisorClientIds = await getSupervisorClientIds(req.user);
+      if (!supervisorClientIds.length) {
+        return res.status(403).json({ error: 'No access to this shift' });
+      }
+
+      const hasClientAccess = supervisorClientIds.some((clientId) => String(clientId) === String(shift.clientId));
+      if (!hasClientAccess) {
+        return res.status(403).json({ error: 'No access to this shift' });
+      }
     }
 
     return res.json({ shift });
@@ -173,6 +202,14 @@ router.get('/', requireAuth, requirePermissions('shifts:all:read'), async (req, 
     if (userId) query.userId = userId;
     if (status && ['active', 'ended', 'cancelled'].includes(status)) query.status = status;
 
+    if (req.user.role === 'supervisor') {
+      const supervisorClientIds = await getSupervisorClientIds(req.user);
+      if (!supervisorClientIds.length) {
+        return res.json({ shifts: [], total: 0 });
+      }
+      query.clientId = { $in: supervisorClientIds };
+    }
+
     const shifts = await Shift.find(query)
       .sort({ startedAt: -1 })
       .limit(safeLimit)
@@ -197,38 +234,90 @@ router.get('/summary/today', requireAuth, requirePermissions('shifts:all:read'),
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
+    const supervisorClientIds = req.user.role === 'supervisor'
+      ? await getSupervisorClientIds(req.user)
+      : null;
+    if (req.user.role === 'supervisor' && !supervisorClientIds.length) {
+      return res.json({
+        activeCount: 0,
+        endedCount: 0,
+        totalEntries: 0,
+        escalations: 0,
+        activeShifts: []
+      });
+    }
+
+    const shiftClientFilter = supervisorClientIds ? { clientId: { $in: supervisorClientIds } } : {};
+    const trackerClientFilter = supervisorClientIds ? { clientId: { $in: supervisorClientIds } } : {};
+
     const activeShifts = await Shift.find({
       orgId: req.user.orgId,
       status: 'active',
-      startedAt: { $gte: today, $lt: tomorrow }
+      startedAt: { $gte: today, $lt: tomorrow },
+      ...shiftClientFilter
     })
       .populate('userId', 'fullName')
       .populate('clientId', 'displayName')
       .lean();
 
+    const activeShiftIds = activeShifts.map((shift) => shift._id);
+    const activeShiftMetrics = activeShiftIds.length
+      ? await TrackerEntry.aggregate([
+          {
+            $match: {
+              orgId: req.user.orgId,
+              shiftId: { $in: activeShiftIds }
+            }
+          },
+          {
+            $group: {
+              _id: '$shiftId',
+              entriesLogged: { $sum: 1 },
+              escalationsCount: {
+                $sum: {
+                  $cond: [{ $eq: ['$status', 'escalated'] }, 1, 0]
+                }
+              }
+            }
+          }
+        ])
+      : [];
+    const metricsByShiftId = new Map(activeShiftMetrics.map((item) => [String(item._id), item]));
+    const activeShiftsWithMetrics = activeShifts.map((shift) => {
+      const metrics = metricsByShiftId.get(String(shift._id)) || {};
+      return {
+        ...shift,
+        entriesLogged: Number(metrics.entriesLogged || shift.entriesLogged || 0),
+        escalationsCount: Number(metrics.escalationsCount || shift.escalationsCount || 0)
+      };
+    });
+
     const endedShifts = await Shift.countDocuments({
       orgId: req.user.orgId,
       status: 'ended',
-      endedAt: { $gte: today, $lt: tomorrow }
+      endedAt: { $gte: today, $lt: tomorrow },
+      ...shiftClientFilter
     });
 
     const totalEntries = await TrackerEntry.countDocuments({
       orgId: req.user.orgId,
-      createdAt: { $gte: today, $lt: tomorrow }
+      createdAt: { $gte: today, $lt: tomorrow },
+      ...trackerClientFilter
     });
 
     const escalations = await TrackerEntry.countDocuments({
       orgId: req.user.orgId,
       status: 'escalated',
-      createdAt: { $gte: today, $lt: tomorrow }
+      createdAt: { $gte: today, $lt: tomorrow },
+      ...trackerClientFilter
     });
 
     return res.json({
-      activeCount: activeShifts.length,
+      activeCount: activeShiftsWithMetrics.length,
       endedCount: endedShifts,
       totalEntries,
       escalations,
-      activeShifts
+      activeShifts: activeShiftsWithMetrics
     });
   } catch (error) {
     console.error('Failed to get shift summary:', error);

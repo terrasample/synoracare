@@ -38,7 +38,25 @@ async function getOrgRoleDisplayLabels(orgId) {
 
 router.get('/', requireAuth, requirePermissions('assignments:read'), async (req, res) => {
   try {
-    const assignments = await Assignment.find({ orgId: req.user.orgId }).lean();
+    const query = { orgId: req.user.orgId };
+
+    if (req.user.role === 'supervisor') {
+      const locationIds = Array.isArray(req.user.locationIds) ? req.user.locationIds : [];
+      if (!locationIds.length) return res.json({ assignments: [] });
+
+      const clients = await Client.find({
+        orgId: req.user.orgId,
+        locationId: { $in: locationIds }
+      })
+        .select('_id')
+        .lean();
+
+      const clientIds = clients.map((client) => client._id);
+      if (!clientIds.length) return res.json({ assignments: [] });
+      query.clientId = { $in: clientIds };
+    }
+
+    const assignments = await Assignment.find(query).lean();
     return res.json({ assignments });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to list assignments' });
@@ -119,7 +137,7 @@ router.post('/', requireAuth, requirePermissions('assignments:create'), async (r
   }
 });
 
-router.post('/break-glass', requireAuth, async (req, res) => {
+router.post('/break-glass', requireAuth, requirePermissions('clients:assigned:read'), async (req, res) => {
   try {
     const { clientId, reason, durationMinutes, userId } = req.body || {};
     if (!clientId) return res.status(400).json({ error: 'clientId required' });
@@ -145,6 +163,40 @@ router.post('/break-glass', requireAuth, async (req, res) => {
 
     if (req.user.role === 'supervisor' && !userCanAccessClientByHome(req.user, client)) {
       return res.status(403).json({ error: 'Supervisors can only create break-glass for clients within their homes' });
+    }
+
+    if (req.user.role === 'dsp') {
+      // DSP break-glass is limited to clients in homes where they already have active assignment coverage.
+      const activeAssignments = await Assignment.find({
+        orgId: req.user.orgId,
+        userId: req.user._id,
+        startsAt: { $lte: now },
+        $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }]
+      })
+        .select('clientId')
+        .lean();
+
+      const assignedClientIds = activeAssignments.map((a) => a.clientId).filter(Boolean);
+      if (!assignedClientIds.length) {
+        return res.status(403).json({ error: 'DSP break-glass requires active assignment coverage in at least one home' });
+      }
+
+      const assignedClients = await Client.find({
+        orgId: req.user.orgId,
+        _id: { $in: assignedClientIds }
+      })
+        .select('locationId')
+        .lean();
+
+      const coveredHomeIds = new Set(
+        assignedClients
+          .map((c) => (c?.locationId ? String(c.locationId) : ''))
+          .filter(Boolean)
+      );
+
+      if (!client?.locationId || !coveredHomeIds.has(String(client.locationId))) {
+        return res.status(403).json({ error: 'DSPs can only create break-glass for clients within their covered homes' });
+      }
     }
 
     if (targetUser.role === 'supervisor' && !userCanAccessClientByHome(targetUser, client)) {

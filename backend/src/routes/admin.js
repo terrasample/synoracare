@@ -123,6 +123,51 @@ router.get('/organizations/:orgId/homes', async (req, res) => {
   }
 });
 
+// Super admin: update home details under one organization (address-first use case).
+router.put('/organizations/:orgId/homes/:homeId', async (req, res) => {
+  try {
+    const { orgId, homeId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(orgId) || !mongoose.Types.ObjectId.isValid(homeId)) {
+      return res.status(400).json({ error: 'Invalid organization or home id' });
+    }
+
+    const organization = await Organization.findById(orgId).lean();
+    if (!organization) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const home = await Location.findOne({ _id: homeId, orgId: organization._id });
+    if (!home) {
+      return res.status(404).json({ error: 'Home not found for this organization' });
+    }
+
+    const { address } = req.body || {};
+    if (address === undefined) {
+      return res.status(400).json({ error: 'address is required' });
+    }
+
+    home.address = String(address).trim();
+    await home.save();
+
+    return res.json({
+      home: {
+        _id: home._id,
+        orgId: home.orgId,
+        name: home.name,
+        displayName: home.displayName,
+        address: home.address,
+        phoneNumber: home.phoneNumber,
+        maxClients: home.maxClients,
+        status: home.status,
+        notes: home.notes
+      }
+    });
+  } catch (error) {
+    console.error('Error updating organization home for super admin:', error);
+    return res.status(500).json({ error: 'Failed to update organization home' });
+  }
+});
+
 // Super admin: list active clients across one organization.
 router.get('/organizations/:orgId/clients', async (req, res) => {
   try {

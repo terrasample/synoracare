@@ -41,6 +41,7 @@ const ROLE_PERMISSION_FALLBACK = {
   supervisor: [
     'clients:assigned:read',
     'clients:create',
+    'clients:update',
     'users:read',
     'assignments:read',
     'tracker:entry:create',
@@ -54,7 +55,8 @@ const ROLE_PERMISSION_FALLBACK = {
     'shifts:handoff:create',
     'shifts:all:read',
     'legal_records:export',
-    'homes:read'
+    'homes:read',
+    'homes:update'
   ],
   org_admin: [
     'clients:all:read',
@@ -246,12 +248,19 @@ function demoHash(value) {
 function buildDemoOrgHomeClients(orgId, homeId, count) {
   const total = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
   const orgPrefix = String(orgId || 'org').split('-')[0].toUpperCase();
+  const orgHomes = DEMO_ORGANIZATION_HOMES[String(orgId)] || [];
+  const homeSequenceFromList = orgHomes.findIndex((home) => String(home._id) === String(homeId));
   const homeSeqMatch = String(homeId || '').match(/(\d+)$/);
-  const homeSequence = homeSeqMatch ? Math.max(0, Number(homeSeqMatch[1]) - 1) : 0;
+  const homeSequenceFromId = homeSeqMatch ? Math.max(0, Number(homeSeqMatch[1]) - 1) : -1;
+  const homeSequence = homeSequenceFromList >= 0
+    ? homeSequenceFromList
+    : (homeSequenceFromId >= 0 ? homeSequenceFromId : (demoHash(`${orgId}:${homeId}`) % 500));
   const orgOffset = demoHash(orgId) % (DEMO_FIRST_NAMES.length * DEMO_LAST_NAMES.length);
+  const poolSize = DEMO_FIRST_NAMES.length * DEMO_LAST_NAMES.length;
 
   return Array.from({ length: total }).map((_, idx) => {
-    const residentIndex = orgOffset + (homeSequence * 4) + idx;
+    const residentOrdinal = (homeSequence * 4) + idx;
+    const residentIndex = (orgOffset + residentOrdinal) % poolSize;
     const first = DEMO_FIRST_NAMES[residentIndex % DEMO_FIRST_NAMES.length];
     const last = DEMO_LAST_NAMES[Math.floor(residentIndex / DEMO_FIRST_NAMES.length) % DEMO_LAST_NAMES.length];
     const seed = demoHash(`${orgId}:${homeId}:${residentIndex}`);
@@ -560,19 +569,21 @@ const DEMO_SHIFT_MONITOR = {
   activeCount: 2,
   endedCount: 3,
   totalEntries: 24,
-  escalations: 1,
+  escalations: 2,
   activeShifts: [
     {
       userId: { fullName: 'Nia Carter' },
       clientId: { displayName: 'Jordan Miles' },
       startedAt: new Date(Date.now() - 150 * 60 * 1000).toISOString(),
-      entryCount: 12
+      entryCount: 12,
+      escalationsCount: 1
     },
     {
       userId: { fullName: 'Isaiah Moore' },
       clientId: { displayName: 'Avery Brooks' },
       startedAt: new Date(Date.now() - 72 * 60 * 1000).toISOString(),
-      entryCount: 8
+      entryCount: 8,
+      escalationsCount: 1
     }
   ]
 };
@@ -690,11 +701,15 @@ const DEMO_TRACKER_ENTRIES = [
 
 const PAGE_ACCESS_RULES = {
   askSection: 'ask:approved_guidance:read',
+  patientWorkspaceSection: ['clients:assigned:read', 'clients:all:read'],
   careModulesSection: 'tracker:entry:read',
+  homesSection: 'homes:read',
   reportingSection: 'reports:export',
   uploadSection: 'documents:upload',
   assignmentSection: 'assignments:create',
-  createClientSection: ['clients:assigned:read', 'clients:all:read'],
+  breakGlassSection: 'clients:assigned:read',
+  shiftMonitorSection: 'shifts:all:read',
+  createClientSection: 'clients:create',
   createUserSection: 'users:invite',
   superAdminOrganizationsSection: 'super_admin_only',
   legalRecordsSection: 'legal_records:export',
@@ -1574,6 +1589,14 @@ function applyRoleMode(role) {
   }
 
   document.body.classList.add('auth-mode', `role-${role}`);
+
+  // Keep role-specific sections out of view even if directly targeted by stale UI state.
+  const hiddenSections = ROLE_HIDDEN_SECTIONS[role] || [];
+  hiddenSections.forEach((sectionId) => {
+    const section = document.getElementById(sectionId);
+    if (section) section.style.display = 'none';
+  });
+
   navigateTo('homeSection');
 }
 
@@ -1777,31 +1800,43 @@ function renderCareModulesSection() {
       title: 'Medication Safety',
       description: 'Track med passes, pending verifications, and escalation patterns by client.',
       metricLabel: 'Pending medication workflows',
-      metricValue: pending
+      metricValue: pending,
+      navTarget: 'trackerSection',
+      trackerStatus: 'pending',
+      ariaLabel: 'Open tracker with pending medication workflows'
     },
     {
       title: 'Behavior & Incident',
       description: 'Review behavior events, crisis notes, and immediate incident follow-ups.',
       metricLabel: 'Incident-related events',
-      metricValue: incidents
+      metricValue: incidents,
+      navTarget: 'trackerSection',
+      trackerStatus: '',
+      ariaLabel: 'Open tracker for behavior and incident review'
     },
     {
       title: 'Daily Living & ADL',
       description: 'Monitor ADL completion, routine adherence, and support continuity.',
       metricLabel: 'Active clients in care',
-      metricValue: activeClients
+      metricValue: activeClients,
+      navTarget: 'trackerSection',
+      trackerStatus: 'completed',
+      ariaLabel: 'Open tracker with completed ADL-related entries'
     },
     {
       title: 'Risk & Escalation',
       description: 'Prioritize high-risk entries with supervisor-ready escalation visibility.',
       metricLabel: 'Escalated items',
-      metricValue: escalated
+      metricValue: escalated,
+      navTarget: 'trackerSection',
+      trackerStatus: 'escalated',
+      ariaLabel: 'Open tracker with escalated entries'
     }
   ];
 
   grid.innerHTML = modules
     .map((module) => `
-      <article class="care-module-card">
+      <article class="care-module-card care-module-card-clickable" role="button" tabindex="0" aria-label="${safeText(module.ariaLabel)}" data-nav-target="${safeText(module.navTarget)}" data-tracker-status="${safeText(module.trackerStatus)}">
         <h3>${safeText(module.title)}</h3>
         <p>${safeText(module.description)}</p>
         <div class="care-module-metric">
@@ -2323,6 +2358,7 @@ async function renderHomeSection() {
     { label: 'Ask Assistant', target: 'askSection', permission: 'ask:approved_guidance:read' },
     { label: 'Log Event', target: 'trackerSection', permission: 'tracker:entry:create' },
     { label: 'Review Tracker', target: 'trackerSection', permission: 'tracker:entry:read' },
+    { label: 'My Homes', target: 'homesSection', permission: 'homes:read' },
     { label: 'Care Modules', target: 'careModulesSection', permission: 'tracker:entry:read' },
     { label: 'Reporting', target: 'reportingSection', permission: 'reports:export' },
     { label: 'Emergency Access', target: 'breakGlassSection' },
@@ -2351,9 +2387,12 @@ async function renderHomeSection() {
   try {
     const summaryData = isDemo() ? DEMO_TRACKER_SUMMARY : await api('/api/tracker/summary');
     const visibleSummary = activeClientsCount === 0 ? { pending: 0, completed: 0, escalated: 0 } : summaryData;
+    const assignedHomes = (homesCache || []).filter((home) => String(home.status || 'active') === 'active');
     const homeStats = document.getElementById('homeStats');
     if (homeStats) {
-      const clientsTarget = canAccessPage('createClientSection') ? 'createClientSection' : 'trackerSection';
+      const clientsTarget = role === 'dsp'
+        ? 'trackerSection'
+        : (canAccessPage('createClientSection') ? 'createClientSection' : 'trackerSection');
       homeStats.innerHTML = `
         <button type="button" class="stat-chip stat-clickable" data-nav-target="${safeText(clientsTarget)}" aria-label="View clients"><span class="stat-value stat-value-home" style="color:#0f172a;">${activeClientsCount}</span><span class="stat-label">Clients</span></button>
         <button type="button" class="stat-chip stat-warn stat-clickable" data-nav-target="trackerSection" data-tracker-status="pending" aria-label="View pending tracker entries"><span class="stat-value stat-value-home stat-value-warn" style="color:#92400e;">${visibleSummary.pending || 0}</span><span class="stat-label">Pending</span></button>
@@ -2364,6 +2403,25 @@ async function renderHomeSection() {
 
     const homeAlerts = document.getElementById('homeAlerts');
     if (homeAlerts) {
+      let alertsHtml = '';
+
+      if (role === 'supervisor') {
+        const homesMarkup = assignedHomes.length
+          ? assignedHomes.slice(0, 4).map((home) => {
+              const name = home.displayName || home.name || 'Home';
+              return `<span class="home-pill">${safeText(name)}</span>`;
+            }).join('')
+          : '<span class="home-pill">No assigned homes</span>';
+        const extraCount = Math.max(0, assignedHomes.length - 4);
+        alertsHtml += `
+          <div class="assigned-homes-card">
+            <p class="assigned-homes-title">Assigned Homes (${assignedHomes.length})</p>
+            <div class="assigned-homes-pills">${homesMarkup}${extraCount > 0 ? `<span class="home-pill">+${extraCount} more</span>` : ''}</div>
+            <button type="button" class="quick-action-btn" data-nav-target="homesSection" style="margin-top:8px;">Open My Homes</button>
+          </div>
+        `;
+      }
+
       if (activeClientsCount === 0 && hasPermission('clients:create')) {
         homeAlerts.innerHTML = `<div class="onboard-hint"><strong>Get started:</strong> Add your first client below, then assign a DSP to begin care tracking.<button type="button" class="quick-action-btn" data-scroll-target="createClientSection" style="margin-left:12px;">Add First Client →</button></div>`;
       } else if ((visibleSummary.escalated || 0) > 0) {
@@ -2373,7 +2431,7 @@ async function renderHomeSection() {
             : await api('/api/tracker?limit=20');
           const escalated = (feedData.entries || []).filter((e) => e.status === 'escalated').slice(0, 3);
           if (escalated.length) {
-            homeAlerts.innerHTML = `
+            homeAlerts.innerHTML = `${alertsHtml}
               <p class="alerts-heading">Escalated Items Requiring Attention</p>
               ${escalated.map((e) => `
                 <div class="alert-item">
@@ -2383,10 +2441,12 @@ async function renderHomeSection() {
                 </div>
               `).join('')}
             `;
+          } else {
+            homeAlerts.innerHTML = alertsHtml;
           }
         } catch (_e) {}
       } else {
-        homeAlerts.innerHTML = '';
+        homeAlerts.innerHTML = alertsHtml;
       }
     }
   } catch (_e) {
@@ -3761,6 +3821,7 @@ async function renderHomesList(homes) {
 
   const canManageHomes = hasPermission('homes:manage');
   const canArchiveHomes = hasPermission('homes:archive');
+  const canUpdateHomes = hasPermission('homes:update');
 
   list.innerHTML = homes
     .filter((h) => h.status === 'active')
@@ -3772,6 +3833,7 @@ async function renderHomesList(homes) {
           ${h.phoneNumber ? `<span class="data-item-meta">Phone: ${safeText(h.phoneNumber)}</span>` : ''}
         </div>
         <div class="data-item-actions">
+          ${canUpdateHomes ? `<button type="button" class="btn-icon" data-home-id="${h._id}" data-home-action="edit-address" aria-label="Edit address">✏️</button>` : ''}
           ${canManageHomes ? `<button type="button" class="btn-icon" data-home-id="${h._id}" data-home-action="manage" aria-label="Manage staff">👥</button>` : ''}
           ${canArchiveHomes ? `<button type="button" class="btn-icon" data-home-id="${h._id}" data-home-action="archive" aria-label="Archive">🗑️</button>` : ''}
         </div>
@@ -3852,6 +3914,7 @@ function renderOrganizationHomes(organization, homes) {
       </div>
       <div style="padding:0 14px 10px;">
         <button type="button" class="btn-secondary btn-sm" data-org-home-toggle="${safeText(String(home._id || home.id || ''))}">View Clients</button>
+        ${hasPermission('homes:update') ? `<button type="button" class="btn-secondary btn-sm" style="margin-left:8px;" data-org-home-action="edit-address" data-org-id="${safeText(String(organization?.id || organization?._id || ''))}" data-home-id="${safeText(String(home._id || home.id || ''))}">Edit Address</button>` : ''}
       </div>
       <div class="org-home-card-clients" id="org-home-clients-${safeText(String(home._id || home.id || ''))}" style="display:none;">
         <p class="empty-state" style="font-size:12px;padding:6px 0;">Loading clients...</p>
@@ -3881,6 +3944,18 @@ function renderOrganizationHomes(organization, homes) {
 
   // Delegated handlers are more reliable than per-node bindings if cards rerender often.
   list.onclick = (e) => {
+    const editTarget = e.target.closest('[data-org-home-action="edit-address"]');
+    if (editTarget) {
+      const homeId = String(editTarget.getAttribute('data-home-id') || '').trim();
+      const orgId = String(editTarget.getAttribute('data-org-id') || '').trim();
+      if (homeId && orgId) {
+        promptAndUpdateOrganizationHomeAddress(orgId, homeId).catch((err) => {
+          showToast(err.message || 'Failed to update address.', 'error');
+        });
+      }
+      return;
+    }
+
     const toggleTarget = e.target.closest('[data-org-home-toggle]');
     if (!toggleTarget) return;
     const homeId = toggleTarget.getAttribute('data-org-home-toggle');
@@ -3895,6 +3970,39 @@ function renderOrganizationHomes(organization, homes) {
     const homeId = toggleTarget.getAttribute('data-org-home-toggle');
     toggleHomeClients(homeId);
   };
+}
+
+async function promptAndUpdateOrganizationHomeAddress(orgId, homeId) {
+  if (!hasPermission('homes:update')) {
+    showToast('You do not have permission to update homes.', 'error');
+    return;
+  }
+
+  const orgHomes = isDemo() ? (DEMO_ORGANIZATION_HOMES[String(orgId)] || []) : [];
+  const currentHome = orgHomes.find((home) => String(home._id || home.id) === String(homeId));
+  const currentAddress = String(currentHome?.address || '');
+  const nextAddress = prompt('Edit home address', currentAddress);
+  if (nextAddress === null) return;
+
+  const trimmedAddress = String(nextAddress).trim();
+
+  if (isDemo()) {
+    const targetHome = orgHomes.find((home) => String(home._id || home.id) === String(homeId));
+    if (!targetHome) throw new Error('Home not found.');
+    targetHome.address = trimmedAddress;
+    await loadOrganizationHomes(orgId);
+    showToast('Home address updated.', 'success');
+    return;
+  }
+
+  await api(`/api/admin/organizations/${encodeURIComponent(orgId)}/homes/${encodeURIComponent(homeId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ address: trimmedAddress })
+  });
+
+  await loadOrganizationHomes(orgId);
+  showToast('Home address updated.', 'success');
 }
 
 async function loadOrgHomeClients(homeId, panel, orgId) {
@@ -4057,7 +4165,37 @@ document.getElementById('homesList')?.addEventListener('click', async (e) => {
   if (!homeId || !action) return;
 
   try {
-    if (action === 'manage') {
+    if (action === 'edit-address') {
+      if (!hasPermission('homes:update')) {
+        showToast('You do not have permission to update homes.', 'error');
+        return;
+      }
+
+      const home = homesCache.find((h) => String(h._id) === String(homeId));
+      if (!home) {
+        showToast('Home not found.', 'error');
+        return;
+      }
+
+      const currentAddress = String(home.address || '');
+      const nextAddress = prompt('Edit home address', currentAddress);
+      if (nextAddress === null) return;
+      const trimmedAddress = String(nextAddress).trim();
+
+      if (isDemo()) {
+        const demoHome = DEMO_HOMES.find((h) => String(h._id) === String(homeId));
+        if (demoHome) demoHome.address = trimmedAddress;
+      } else {
+        await api(`/api/locations/${encodeURIComponent(homeId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: trimmedAddress })
+        });
+      }
+
+      await refreshHomes();
+      showToast('Home address updated.', 'success');
+    } else if (action === 'manage') {
       if (!hasPermission('homes:manage')) {
         showToast('You do not have permission to manage home staff.', 'error');
         return;
@@ -4668,6 +4806,14 @@ document.getElementById('refreshCareModulesBtn')?.addEventListener('click', asyn
   }
 });
 
+document.getElementById('careModulesGrid')?.addEventListener('keydown', (e) => {
+  if (!(e.key === 'Enter' || e.key === ' ')) return;
+  const moduleCard = e.target.closest('.care-module-card-clickable[data-nav-target]');
+  if (!moduleCard) return;
+  e.preventDefault();
+  moduleCard.click();
+});
+
 document.getElementById('reportingForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = new FormData(e.target);
@@ -5030,6 +5176,19 @@ document.getElementById('resetPasswordForm')?.addEventListener('submit', async (
 });
 
 document.addEventListener('click', (e) => {
+  const moduleCard = e.target.closest('.care-module-card-clickable[data-nav-target]');
+  if (moduleCard) {
+    const trackerStatus = moduleCard.dataset.trackerStatus || '';
+    if (trackerStatus) {
+      setTrackerStatusFilter(trackerStatus).catch(() => {});
+    } else {
+      setTrackerStatusFilter('').catch(() => {});
+    }
+    const didNavigate = navigateTo(moduleCard.dataset.navTarget);
+    if (didNavigate && window.innerWidth <= 900) document.body.classList.remove('sidebar-open');
+    return;
+  }
+
   const navBtn = e.target.closest('[data-nav-target]');
   if (navBtn) {
     const trackerStatus = navBtn.dataset.trackerStatus || '';
@@ -5475,21 +5634,24 @@ let shiftMonitorInterval = null;
 
 async function loadShiftMonitor() {
   if (isDemo()) {
+    const demoShifts = Array.isArray(DEMO_SHIFT_MONITOR.activeShifts) ? DEMO_SHIFT_MONITOR.activeShifts : [];
+    const demoTotalEscalations = demoShifts.reduce((sum, shift) => sum + Number(shift.escalationsCount || 0), 0);
     document.getElementById('activeShiftCount').textContent = String(DEMO_SHIFT_MONITOR.activeCount || 0);
     document.getElementById('endedShiftCount').textContent = String(DEMO_SHIFT_MONITOR.endedCount || 0);
     document.getElementById('totalEntriesCount').textContent = String(DEMO_SHIFT_MONITOR.totalEntries || 0);
-    document.getElementById('escalationCount').textContent = String(DEMO_SHIFT_MONITOR.escalations || 0);
+    document.getElementById('escalationCount').textContent = String(demoTotalEscalations);
 
     const container = document.getElementById('activeShiftsContainer');
     if (container) {
-      container.innerHTML = DEMO_SHIFT_MONITOR.activeShifts.map((shift) => {
+      container.innerHTML = demoShifts.map((shift) => {
         const dspName = shift.userId?.fullName || 'Unknown';
         const clientName = shift.clientId?.displayName || 'Unknown';
         const startTime = new Date(shift.startedAt);
         const durationHours = Number.isNaN(startTime.getTime())
           ? '0.0'
           : ((Date.now() - startTime.getTime()) / (1000 * 60 * 60)).toFixed(1);
-        const hasEscalations = (DEMO_SHIFT_MONITOR.escalations || 0) > 0;
+        const shiftEscalations = Number(shift.escalationsCount || 0);
+        const hasEscalations = shiftEscalations > 0;
         return `
           <div class="active-shift-card ${hasEscalations ? 'has-escalations' : ''}">
             <div class="shift-card-header">
@@ -5502,7 +5664,7 @@ async function loadShiftMonitor() {
             <div class="shift-card-time">Started ${safeText(durationHours)}h ago</div>
             <div class="shift-card-metrics">
               <span class="shift-card-metric">📝 ${safeText(String(shift.entryCount || 0))} entries</span>
-              ${hasEscalations ? `<span class="shift-card-metric escalated">⚠️ ${safeText(String(DEMO_SHIFT_MONITOR.escalations))} escalations</span>` : ''}
+              ${hasEscalations ? `<span class="shift-card-metric escalated">⚠️ ${safeText(String(shiftEscalations))} escalations</span>` : ''}
             </div>
           </div>
         `;
@@ -5535,7 +5697,8 @@ async function loadShiftMonitor() {
       const now = new Date();
       const durationHours = ((now - startTime) / (1000 * 60 * 60)).toFixed(1);
       
-      const hasEscalations = (data.escalations || 0) > 0;
+      const shiftEscalations = Number(shift.escalationsCount || 0);
+      const hasEscalations = shiftEscalations > 0;
       html += `
         <div class="active-shift-card ${hasEscalations ? 'has-escalations' : ''}">
           <div class="shift-card-header">
@@ -5547,8 +5710,8 @@ async function loadShiftMonitor() {
           </div>
           <div class="shift-card-time">Started ${durationHours}h ago</div>
           <div class="shift-card-metrics">
-            <span class="shift-card-metric">📝 ${data.totalEntries} entries</span>
-            ${hasEscalations ? `<span class="shift-card-metric escalated">⚠️ ${data.escalations} escalations</span>` : ''}
+            <span class="shift-card-metric">📝 ${Number(shift.entriesLogged || 0)} entries</span>
+            ${hasEscalations ? `<span class="shift-card-metric escalated">⚠️ ${shiftEscalations} escalations</span>` : ''}
           </div>
         </div>
       `;
