@@ -40,6 +40,11 @@ router.get('/', requireAuth, requirePermissions('assignments:read'), async (req,
   try {
     const query = { orgId: req.user.orgId };
 
+    // DSPs can only read their own assignment records.
+    if (req.user.role === 'dsp') {
+      query.userId = req.user._id;
+    }
+
     if (req.user.role === 'supervisor') {
       const locationIds = Array.isArray(req.user.locationIds) ? req.user.locationIds : [];
       if (!locationIds.length) return res.json({ assignments: [] });
