@@ -1640,6 +1640,12 @@ async function withSubmitLock(form, run, pendingLabel) {
   }
 }
 
+function getDemoPersonaForRole(role) {
+  const normalizedRole = String(role || '').trim();
+  if (!normalizedRole) return null;
+  return DEMO_BASE_USERS.find((user) => String(user.role || '').trim() === normalizedRole) || null;
+}
+
 function updateSession() {
   const info = document.getElementById('sessionInfo');
   const logoutBtn = document.getElementById('logoutBtn');
@@ -1661,9 +1667,15 @@ function updateSession() {
     return;
   }
 
-  info.textContent = roleViewOverride
-    ? `${currentUser.fullName} | ${getRoleDisplayLabel(currentUser.role)} (viewing as ${getRoleDisplayLabel(activeRole)})`
-    : `${currentUser.fullName} | ${getRoleDisplayLabel(currentUser.role)}`;
+  if (roleViewOverride) {
+    const persona = isDemo() ? getDemoPersonaForRole(activeRole) : null;
+    const personaSuffix = activeRole === 'supervisor' && persona?.fullName
+      ? `: ${persona.fullName}`
+      : '';
+    info.textContent = `${currentUser.fullName} | ${getRoleDisplayLabel(currentUser.role)} (viewing as ${getRoleDisplayLabel(activeRole)}${personaSuffix})`;
+  } else {
+    info.textContent = `${currentUser.fullName} | ${getRoleDisplayLabel(currentUser.role)}`;
+  }
   if (logoutBtn) logoutBtn.style.display = '';
 
   if (roleSwitcher) {
@@ -4079,10 +4091,15 @@ async function refreshHomes() {
         const persona = DEMO_BASE_USERS.find((u) => u._id === 'demo-user-3');
         const supervisorHomes = new Set(persona?.assignedHomes || []);
         homes = DEMO_HOMES.filter((h) => supervisorHomes.has(h._id));
+      } else if (role === 'org_admin') {
+        // Org admin persona: sees all homes in their organization
+        const persona = DEMO_BASE_USERS.find((u) => u._id === 'demo-user-5');
+        const orgId = String(persona?.orgId || 'threshold-org');
+        homes = (DEMO_ORGANIZATION_HOMES[orgId] || []).map((home) => ({ ...home }));
       } else if (role === 'dsp') {
         // DSP persona: Nia Carter (demo-user-1) — only homes where her clients live
         const assigned = DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-1').map((a) => a.clientId);
-        const homeIds = new Set(DEMO_CLIENTS.filter((c) => assigned.includes(c._id)).map((c) => c.locationId));
+        const homeIds = new Set(getDemoClients().filter((c) => assigned.includes(c._id)).map((c) => c.locationId));
         homes = DEMO_HOMES.filter((h) => homeIds.has(h._id));
       } else {
         homes = DEMO_HOMES;
