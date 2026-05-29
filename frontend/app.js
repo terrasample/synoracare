@@ -2680,15 +2680,49 @@ async function renderHomeSection() {
     const assignedHomes = (homesCache || []).filter((home) => String(home.status || 'active') === 'active');
     const homeStats = document.getElementById('homeStats');
     if (homeStats) {
-      const clientsTarget = role === 'dsp'
-        ? 'trackerSection'
-        : (canAccessPage('createClientSection') ? 'createClientSection' : 'trackerSection');
-      homeStats.innerHTML = `
-        <button type="button" class="stat-chip stat-clickable" data-nav-target="${safeText(clientsTarget)}" aria-label="View clients"><span class="stat-value stat-value-home" style="color:#0f172a;">${activeClientsCount}</span><span class="stat-label">Clients</span></button>
-        <button type="button" class="stat-chip stat-warn stat-clickable" data-nav-target="trackerSection" data-tracker-status="pending" aria-label="View pending tracker entries"><span class="stat-value stat-value-home stat-value-warn" style="color:#92400e;">${visibleSummary.pending || 0}</span><span class="stat-label">Pending</span></button>
-        <button type="button" class="stat-chip stat-danger stat-clickable" data-nav-target="trackerSection" data-tracker-status="escalated" aria-label="View escalated tracker entries"><span class="stat-value stat-value-home stat-value-danger" style="color:#b91c1c;">${visibleSummary.escalated || 0}</span><span class="stat-label">Escalated</span></button>
-        <button type="button" class="stat-chip stat-ok stat-clickable" data-nav-target="trackerSection" data-tracker-status="completed" aria-label="View completed tracker entries"><span class="stat-value stat-value-home stat-value-ok" style="color:#166534;">${visibleSummary.completed || 0}</span><span class="stat-label">Completed</span></button>
-      `;
+      if (role === 'org_admin') {
+        // Show org name card only — no stat chips
+        const orgPersonaForStats = isDemo() ? DEMO_BASE_USERS.find((u) => u._id === 'demo-user-5') : null;
+        const orgIdForStats = isDemo() ? String(orgPersonaForStats?.orgId || '') : String(currentUser?.orgId || '');
+        const orgNameForStats = isDemo()
+          ? (DEMO_ORGANIZATIONS.find((org) => String(org.id) === orgIdForStats)?.name || orgPersonaForStats?.orgName || 'Your Organization')
+          : String(currentUser?.orgName || 'Your Organization');
+        homeStats.innerHTML = `
+          <button type="button" class="stat-chip stat-clickable" data-dashboard-org-id="${safeText(orgIdForStats)}" aria-label="View organization homes" style="min-width:160px;flex-direction:column;gap:4px;">
+            <span style="font-size:22px;">🏢</span>
+            <span class="stat-label" style="font-weight:700;font-size:13px;white-space:normal;text-align:center;">${safeText(orgNameForStats)}</span>
+          </button>
+        `;
+      } else if (role === 'supervisor') {
+        // Show one card per assigned home
+        if (assignedHomes.length) {
+          // Ensure a home is pre-selected
+          const hasSelected = assignedHomes.some((h) => String(h._id) === String(selectedDashboardHomeId));
+          if (!hasSelected && assignedHomes[0]?._id) selectedDashboardHomeId = String(assignedHomes[0]._id);
+          homeStats.innerHTML = assignedHomes.map((home) => {
+            const name = home.displayName || home.name || 'Home';
+            const homeId = String(home._id || '');
+            const isActive = homeId && homeId === selectedDashboardHomeId;
+            return `<button type="button" class="stat-chip stat-clickable${isActive ? ' stat-ok' : ''}" data-dashboard-home-id="${safeText(homeId)}" aria-label="View clients in ${safeText(name)}" style="min-width:120px;flex-direction:column;gap:4px;">
+              <span style="font-size:20px;">🏠</span>
+              <span class="stat-label" style="font-weight:700;font-size:12px;white-space:normal;text-align:center;">${safeText(name)}</span>
+            </button>`;
+          }).join('');
+        } else {
+          homeStats.innerHTML = `<span class="stat-chip">No assigned homes</span>`;
+        }
+      } else {
+        // DSP and fallback: show standard 4 stat chips
+        const clientsTarget = role === 'dsp'
+          ? 'trackerSection'
+          : (canAccessPage('createClientSection') ? 'createClientSection' : 'trackerSection');
+        homeStats.innerHTML = `
+          <button type="button" class="stat-chip stat-clickable" data-nav-target="${safeText(clientsTarget)}" aria-label="View clients"><span class="stat-value stat-value-home" style="color:#0f172a;">${activeClientsCount}</span><span class="stat-label">Clients</span></button>
+          <button type="button" class="stat-chip stat-warn stat-clickable" data-nav-target="trackerSection" data-tracker-status="pending" aria-label="View pending tracker entries"><span class="stat-value stat-value-home stat-value-warn" style="color:#92400e;">${visibleSummary.pending || 0}</span><span class="stat-label">Pending</span></button>
+          <button type="button" class="stat-chip stat-danger stat-clickable" data-nav-target="trackerSection" data-tracker-status="escalated" aria-label="View escalated tracker entries"><span class="stat-value stat-value-home stat-value-danger" style="color:#b91c1c;">${visibleSummary.escalated || 0}</span><span class="stat-label">Escalated</span></button>
+          <button type="button" class="stat-chip stat-ok stat-clickable" data-nav-target="trackerSection" data-tracker-status="completed" aria-label="View completed tracker entries"><span class="stat-value stat-value-home stat-value-ok" style="color:#166534;">${visibleSummary.completed || 0}</span><span class="stat-label">Completed</span></button>
+        `;
+      }
     }
 
     const homeAlerts = document.getElementById('homeAlerts');
@@ -2702,15 +2736,6 @@ async function renderHomeSection() {
           ? String(selectedDashboardHomeId)
           : (selectableHomes[0]?._id ? String(selectableHomes[0]._id) : '');
         selectedDashboardHomeId = activeHomeId;
-
-        const homesMarkup = selectableHomes.length
-          ? selectableHomes.map((home) => {
-              const name = home.displayName || home.name || 'Home';
-              const homeId = String(home._id || '');
-              const isActive = homeId && homeId === activeHomeId;
-              return `<button type="button" class="home-pill" data-dashboard-home-id="${safeText(homeId)}" style="cursor:pointer;${isActive ? 'background:#dcfce7;border-color:#16a34a;color:#14532d;' : ''}">${safeText(name)}</button>`;
-            }).join('')
-          : '<span class="home-pill">No assigned homes</span>';
 
         const selectedHome = selectableHomes.find((home) => String(home._id) === activeHomeId) || null;
         const clientsForSelectedHome = activeHomeId
@@ -2728,12 +2753,8 @@ async function renderHomeSection() {
 
         alertsHtml += `
           <div class="assigned-homes-card">
-            <p class="assigned-homes-title">Assigned Homes (${assignedHomes.length})</p>
-            <div class="assigned-homes-pills">${homesMarkup}</div>
-            <div class="assigned-home-clients" style="margin-top:8px;">
-              <p class="assigned-homes-title" style="font-size:12px;color:#475569;margin:4px 0;">${selectedHome ? `Clients in ${safeText(selectedHome.displayName || selectedHome.name || 'selected home')}` : 'Clients in selected home'}</p>
-              <div>${clientsMarkup}</div>
-            </div>
+            <p class="assigned-homes-title">${selectedHome ? `Clients in ${safeText(selectedHome.displayName || selectedHome.name || 'selected home')}` : 'Select a home above to view clients'}</p>
+            <div>${clientsMarkup}</div>
             <button type="button" class="quick-action-btn" data-nav-target="homesSection" style="margin-top:8px;">Open My Homes</button>
           </div>
         `;
@@ -2749,8 +2770,8 @@ async function renderHomeSection() {
           : String(currentUser?.orgName || 'Your Organization');
 
         const scopedHomes = (homesCache || []).filter((home) => String(home.status || 'active') === 'active');
-        const selectedOrgId = selectedDashboardOrgId || orgId;
-        const orgExpanded = selectedOrgId === orgId;
+        // Always keep drilldown expanded — org card is in homeStats, homeAlerts shows homes+clients
+        if (!selectedDashboardOrgId) selectedDashboardOrgId = orgId;
 
         const hasSelectedHome = scopedHomes.some((home) => String(home._id) === String(selectedDashboardHomeId));
         const activeHomeId = hasSelectedHome
@@ -2790,22 +2811,16 @@ async function renderHomeSection() {
 
         alertsHtml += `
           <div class="assigned-homes-card">
-            <p class="assigned-homes-title">Organization</p>
-            <button type="button" class="quick-action-btn" data-dashboard-org-id="${safeText(orgId)}" style="margin-top:4px;">${safeText(orgName)}</button>
-            ${orgExpanded ? `
-              <div class="assigned-home-clients" style="margin-top:10px;">
-                <p class="assigned-homes-title" style="font-size:12px;color:#475569;margin:4px 0;">Homes (${scopedHomes.length})</p>
-                <div class="assigned-homes-pills">${homesMarkup}</div>
-                <p class="assigned-homes-title" style="font-size:12px;color:#475569;margin:10px 0 4px;">Clients in selected home</p>
-                <div>${clientsMarkup}</div>
-              </div>
-            ` : ''}
+            <p class="assigned-homes-title">Homes (${scopedHomes.length})</p>
+            <div class="assigned-homes-pills">${homesMarkup}</div>
+            <p class="assigned-homes-title" style="font-size:12px;color:#475569;margin:10px 0 4px;">Clients in selected home</p>
+            <div>${clientsMarkup}</div>
             <button type="button" class="quick-action-btn" data-nav-target="homesSection" style="margin-top:10px;">Open My Homes</button>
           </div>
         `;
       }
 
-      if (activeClientsCount === 0 && hasPermission('clients:create')) {
+      if (activeClientsCount === 0 && hasPermission('clients:create') && role !== 'org_admin' && role !== 'supervisor') {
         homeAlerts.innerHTML = `<div class="onboard-hint"><strong>Get started:</strong> Add your first client below, then assign a DSP to begin care tracking.<button type="button" class="quick-action-btn" data-scroll-target="createClientSection" style="margin-left:12px;">Add First Client →</button></div>`;
       } else if ((visibleSummary.escalated || 0) > 0) {
         try {
