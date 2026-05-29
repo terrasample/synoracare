@@ -571,7 +571,7 @@ const DEMO_BASE_USERS = [
     shiftPreference: 'Day',
     certifications: ['CPR/First Aid', 'Medication Administration', 'Fall Prevention'],
     languages: ['English', 'Spanish'],
-    assignedHomes: ['threshold-home-1', 'threshold-home-2']
+    assignedHomes: ['demo-home-1']
   },
   {
     _id: 'demo-user-2',
@@ -601,7 +601,7 @@ const DEMO_BASE_USERS = [
     shiftPreference: 'Flex',
     certifications: ['Medication Administration', 'Behavior Support', 'Trauma-Informed Care'],
     languages: ['English', 'Spanish'],
-    assignedHomes: ['threshold-home-1', 'threshold-home-2', 'threshold-home-3']
+    assignedHomes: ['demo-home-1', 'demo-home-2', 'demo-home-3']
   },
   {
     _id: 'demo-user-4',
@@ -625,13 +625,13 @@ const DEMO_BASE_USERS = [
     roleDisplayName: DEMO_ROLE_DISPLAY.org_admin,
     email: 'priya.nair@synoracare.demo',
     status: 'active',
-    orgId: 'unity-org',
-    orgName: 'Unity Residence',
+    orgId: 'threshold-org',
+    orgName: 'Threshold Residential Services',
     yearsExperience: 12,
     shiftPreference: 'Admin',
     certifications: ['Medication Administration', 'Trauma-Informed Care'],
     languages: ['English'],
-    assignedHomes: ['unity-home-1', 'unity-home-2', 'unity-home-3']
+    assignedHomes: ['demo-home-1', 'demo-home-2', 'demo-home-3']
   }
 ];
 
@@ -958,8 +958,19 @@ const DEMO_PATIENT_WORKSPACE_ENTRIES = [
 ];
 
 function getDemoClients() {
-  // Always use the defined DEMO_CLIENTS for consistency
-  return DEMO_CLIENTS.map((client) => ({ ...client }));
+  const role = getActiveRole();
+  if (role === 'dsp') {
+    // DSP persona: Nia Carter (demo-user-1) — sees only her assigned clients
+    const assigned = new Set(DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-1').map((a) => a.clientId));
+    return DEMO_CLIENTS.filter((c) => assigned.has(c._id)).map((c) => ({ ...c }));
+  }
+  if (role === 'supervisor') {
+    // Supervisor persona: Camila James (demo-user-3) — sees clients assigned to her
+    const assigned = new Set(DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-3').map((a) => a.clientId));
+    return DEMO_CLIENTS.filter((c) => assigned.has(c._id)).map((c) => ({ ...c }));
+  }
+  // org_admin and super_admin see all demo clients
+  return DEMO_CLIENTS.map((c) => ({ ...c }));
 }
 
 function saveDemoClients(clients) {
@@ -2156,7 +2167,30 @@ async function refreshClients() {
 
 async function refreshUsers() {
   if (isDemo()) {
-    usersCache = DEMO_USERS;
+    const role = getActiveRole();
+    let users;
+    if (role === 'org_admin') {
+      // Org admin persona: Priya Nair (demo-user-5) — sees only users in her org
+      const persona = DEMO_BASE_USERS.find((u) => u._id === 'demo-user-5');
+      const orgId = persona?.orgId || 'threshold-org';
+      users = DEMO_USERS.filter((u) => u.orgId === orgId);
+    } else if (role === 'supervisor') {
+      // Supervisor persona: Camila James (demo-user-3) — sees users in her assigned homes
+      const persona = DEMO_BASE_USERS.find((u) => u._id === 'demo-user-3');
+      const supervisorHomes = new Set(persona?.assignedHomes || []);
+      users = DEMO_USERS.filter(
+        (u) => u.orgId === 'threshold-org' &&
+          Array.isArray(u.assignedHomes) &&
+          u.assignedHomes.some((h) => supervisorHomes.has(h))
+      );
+      if (!users.length) users = DEMO_BASE_USERS.filter((u) => u.orgId === 'threshold-org');
+    } else if (role === 'dsp') {
+      // DSP sees only themselves
+      users = DEMO_BASE_USERS.filter((u) => u._id === 'demo-user-1');
+    } else {
+      users = DEMO_USERS;
+    }
+    usersCache = users;
     syncUserPicker();
     renderUserList(usersCache);
     return;
@@ -3889,7 +3923,22 @@ function initializeGuestEntryFromUrl() {
 async function refreshHomes() {
   try {
     if (isDemo()) {
-      homesCache = DEMO_HOMES;
+      const role = getActiveRole();
+      let homes;
+      if (role === 'supervisor') {
+        // Supervisor persona: Camila James (demo-user-3) — only her assigned homes
+        const persona = DEMO_BASE_USERS.find((u) => u._id === 'demo-user-3');
+        const supervisorHomes = new Set(persona?.assignedHomes || []);
+        homes = DEMO_HOMES.filter((h) => supervisorHomes.has(h._id));
+      } else if (role === 'dsp') {
+        // DSP persona: Nia Carter (demo-user-1) — only homes where her clients live
+        const assigned = DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-1').map((a) => a.clientId);
+        const homeIds = new Set(DEMO_CLIENTS.filter((c) => assigned.includes(c._id)).map((c) => c.locationId));
+        homes = DEMO_HOMES.filter((h) => homeIds.has(h._id));
+      } else {
+        homes = DEMO_HOMES;
+      }
+      homesCache = homes;
       syncHomeLocationPicker();
       renderHomesList(homesCache);
       return;
@@ -4188,7 +4237,15 @@ async function loadOrgHomeClients(homeId, panel, orgId) {
 
 async function refreshOrganizations() {
   if (isDemo()) {
-    organizationsCache = DEMO_ORGANIZATIONS.map((org) => ({ ...org }));
+    const role = getActiveRole();
+    if (role === 'org_admin') {
+      // Org admin persona: Priya Nair (demo-user-5) — sees only her org
+      const persona = DEMO_BASE_USERS.find((u) => u._id === 'demo-user-5');
+      const orgId = persona?.orgId || 'threshold-org';
+      organizationsCache = DEMO_ORGANIZATIONS.filter((o) => o.id === orgId).map((o) => ({ ...o }));
+    } else {
+      organizationsCache = DEMO_ORGANIZATIONS.map((org) => ({ ...org }));
+    }
     renderOrganizationsList(organizationsCache);
     return;
   }
