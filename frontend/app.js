@@ -3834,10 +3834,16 @@ async function loadOrgHomeClients(homeId, panel, orgId) {
       }
     } else {
       try {
-        const data = await api(`/api/locations/${encodeURIComponent(homeId)}/clients`);
-        clients = (data.clients || []).filter((c) => String(c.status || 'active') !== 'inactive');
+        // Super admin organizations drilldown should use org-scoped admin endpoint.
+        if (orgId && getActiveRole() === 'super_admin') {
+          const data = await api(`/api/admin/organizations/${encodeURIComponent(orgId)}/homes/${encodeURIComponent(homeId)}/clients`);
+          clients = (data.clients || []).filter((c) => String(c.status || 'active') !== 'inactive');
+        } else {
+          const data = await api(`/api/locations/${encodeURIComponent(homeId)}/clients`);
+          clients = (data.clients || []).filter((c) => String(c.status || 'active') !== 'inactive');
+        }
       } catch (_err) {
-        // Fallback for environments where home-specific client endpoint is unavailable
+        // Final fallback when endpoint is unavailable in an environment.
         const data = await api('/api/clients');
         clients = (data.clients || [])
           .filter((c) => String(c.locationId) === String(homeId))

@@ -28,20 +28,6 @@ router.get('/', requireAuth, async (req, res) => {
       $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }]
     }).lean();
     const clientIds = assigned.map((a) => a.clientId);
-    
-    // For DSPs with location assignments, only show clients in their locations
-    if (req.user.locationIds && req.user.locationIds.length > 0) {
-      const clients = await Client.find({
-        orgId: req.user.orgId,
-        $or: [
-          { _id: { $in: clientIds }, status: 'active' },
-          { locationId: { $in: req.user.locationIds }, status: 'active' }
-        ]
-      })
-        .sort({ displayName: 1 })
-        .lean();
-      return res.json({ clients });
-    }
 
     const clients = await Client.find({ orgId: req.user.orgId, _id: { $in: clientIds }, status: 'active' })
       .sort({ displayName: 1 })

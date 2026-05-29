@@ -44,6 +44,27 @@ router.get('/:id', requireAuth, requirePermissions('homes:read'), async (req, re
   }
 });
 
+// List active clients assigned to a specific home
+router.get('/:id/clients', requireAuth, requirePermissions('homes:read'), async (req, res) => {
+  try {
+    const location = await Location.findOne({ _id: req.params.id, orgId: req.user.orgId }).lean();
+    if (!location) return res.status(404).json({ error: 'Home not found' });
+
+    const clients = await Client.find({
+      orgId: req.user.orgId,
+      locationId: location._id,
+      status: 'active'
+    })
+      .sort({ displayName: 1 })
+      .lean();
+
+    return res.json({ location, clients });
+  } catch (error) {
+    console.error('Error listing home clients:', error);
+    return res.status(500).json({ error: 'Failed to list home clients' });
+  }
+});
+
 // Create a new home
 router.post('/', requireAuth, requirePermissions('homes:create'), async (req, res) => {
   try {

@@ -122,4 +122,78 @@ router.get('/organizations/:orgId/homes', async (req, res) => {
   }
 });
 
+// Super admin: list active clients across one organization.
+router.get('/organizations/:orgId/clients', async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(orgId)) {
+      return res.status(400).json({ error: 'Invalid organization id' });
+    }
+
+    const organization = await Organization.findById(orgId).lean();
+    if (!organization) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const clients = await Client.find({ orgId: organization._id, status: 'active' })
+      .sort({ displayName: 1 })
+      .lean();
+
+    return res.json({
+      organization: {
+        id: organization._id,
+        name: organization.name,
+        slug: organization.slug,
+        stateCode: organization.stateCode || null
+      },
+      clients
+    });
+  } catch (error) {
+    console.error('Error listing organization clients for super admin:', error);
+    return res.status(500).json({ error: 'Failed to list organization clients' });
+  }
+});
+
+// Super admin: list active clients for one home under one organization.
+router.get('/organizations/:orgId/homes/:homeId/clients', async (req, res) => {
+  try {
+    const { orgId, homeId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(orgId) || !mongoose.Types.ObjectId.isValid(homeId)) {
+      return res.status(400).json({ error: 'Invalid organization or home id' });
+    }
+
+    const organization = await Organization.findById(orgId).lean();
+    if (!organization) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const home = await Location.findOne({ _id: homeId, orgId: organization._id }).lean();
+    if (!home) {
+      return res.status(404).json({ error: 'Home not found for this organization' });
+    }
+
+    const clients = await Client.find({
+      orgId: organization._id,
+      locationId: home._id,
+      status: 'active'
+    })
+      .sort({ displayName: 1 })
+      .lean();
+
+    return res.json({
+      organization: {
+        id: organization._id,
+        name: organization.name,
+        slug: organization.slug,
+        stateCode: organization.stateCode || null
+      },
+      home,
+      clients
+    });
+  } catch (error) {
+    console.error('Error listing organization home clients for super admin:', error);
+    return res.status(500).json({ error: 'Failed to list organization home clients' });
+  }
+});
+
 module.exports = router;
