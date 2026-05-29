@@ -139,8 +139,24 @@ async function enforceAccess(req, clientId, question) {
 }
 
 async function getClientAccess(user, clientId) {
-  if (['super_admin', 'org_admin', 'supervisor'].includes(user.role)) {
+  if (['super_admin', 'org_admin'].includes(user.role)) {
     return { allowed: true, assignment: null };
+  }
+
+  if (user.role === 'supervisor') {
+    const locationIds = Array.isArray(user.locationIds) ? user.locationIds : [];
+    if (!locationIds.length) {
+      return { allowed: false, assignment: null };
+    }
+
+    const client = await Client.findOne({
+      _id: clientId,
+      orgId: user.orgId,
+      locationId: { $in: locationIds },
+      status: 'active'
+    }).select('_id').lean();
+
+    return { allowed: Boolean(client), assignment: null };
   }
 
   const now = new Date();

@@ -13,6 +13,21 @@ const router = express.Router();
 
 router.get('/', requireAuth, async (req, res) => {
   try {
+    if (req.user.role === 'supervisor') {
+      const locationIds = Array.isArray(req.user.locationIds) ? req.user.locationIds : [];
+      if (!locationIds.length) return res.json({ clients: [] });
+
+      const clients = await Client.find({
+        orgId: req.user.orgId,
+        locationId: { $in: locationIds },
+        status: 'active'
+      })
+        .sort({ displayName: 1 })
+        .lean();
+
+      return res.json({ clients });
+    }
+
     if (canRole(req.user.role, 'clients:all:read')) {
       const clients = await Client.find({ orgId: req.user.orgId })
         .sort({ status: 1, displayName: 1 })

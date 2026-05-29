@@ -23,6 +23,19 @@ const upload = multer({
 });
 
 async function getAccessibleClientIds(user) {
+  if (user.role === 'supervisor') {
+    const locationIds = Array.isArray(user.locationIds) ? user.locationIds : [];
+    if (!locationIds.length) return [];
+
+    const clients = await Client.find({
+      orgId: user.orgId,
+      locationId: { $in: locationIds },
+      status: 'active'
+    }).select('_id').lean();
+
+    return clients.map((c) => String(c._id));
+  }
+
   if (canRole(user.role, 'clients:all:read')) {
     const clients = await Client.find({ orgId: user.orgId, status: 'active' }).select('_id').lean();
     return clients.map((c) => String(c._id));
@@ -40,7 +53,7 @@ async function getAccessibleClientIds(user) {
 
   const assignedClientIds = assignments.map((a) => String(a.clientId));
 
-  // If user has location assignments, also include clients from those locations
+  // DSP fallback: include clients from assigned locations
   if (user.locationIds && user.locationIds.length > 0) {
     const locationClients = await Client.find({
       orgId: user.orgId,

@@ -18,7 +18,6 @@ const ROLE_PERMISSIONS = {
   ],
   supervisor: [
     'clients:assigned:read',
-    'clients:all:read',
     'clients:create',
     'users:read',
     'assignments:read',
