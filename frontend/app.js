@@ -228,9 +228,9 @@ function getDemoHomeSupervisor(homeId, orgId) {
 }
 
 const DEMO_HOMES = [
-  { _id: 'demo-home-1', name: 'Sunrise Home',    displayName: 'Sunrise Home',    address: '123 Oak Street',    phoneNumber: '555-0101', maxClients: 4, status: 'active', supervisorName: 'Camila James' },
-  { _id: 'demo-home-2', name: 'Peaceful Haven',  displayName: 'Peaceful Haven',  address: '456 Elm Avenue',    phoneNumber: '555-0102', maxClients: 4, status: 'active', supervisorName: 'Camila James' },
-  { _id: 'demo-home-3', name: 'Community Living',displayName: 'Community Living',address: '789 Maple Drive',   phoneNumber: '555-0103', maxClients: 4, status: 'active', supervisorName: 'Camila James' }
+  { _id: 'demo-home-1', name: 'Sunrise Home',    displayName: 'Sunrise Home',    address: '123 Oak Street',    phoneNumber: '555-0101', maxClients: 4, status: 'active', orgId: 'threshold-org', supervisorName: 'Camila James', supervisorUserId: 'demo-user-3' },
+  { _id: 'demo-home-2', name: 'Peaceful Haven',  displayName: 'Peaceful Haven',  address: '456 Elm Avenue',    phoneNumber: '555-0102', maxClients: 4, status: 'active', orgId: 'threshold-org', supervisorName: 'Camila James', supervisorUserId: 'demo-user-3' },
+  { _id: 'demo-home-3', name: 'Community Living',displayName: 'Community Living',address: '789 Maple Drive',   phoneNumber: '555-0103', maxClients: 4, status: 'active', orgId: 'threshold-org', supervisorName: 'Camila James', supervisorUserId: 'demo-user-3' }
 ];
 
 function buildDemoOrgHomes(prefix, count, city) {
@@ -250,7 +250,8 @@ function buildDemoOrgHomes(prefix, count, city) {
       status: 'active',
       activeClients,
       availableCapacity: Math.max(0, 4 - activeClients),
-      supervisorName: getDemoHomeSupervisor(homeId, orgId)
+      supervisorName: getDemoHomeSupervisor(homeId, orgId),
+      supervisorUserId: null
     };
   });
 }
@@ -729,6 +730,26 @@ const DEMO_USERS = (() => {
   return users;
 })();
 
+const DEMO_SUPERVISOR_ID_BY_NAME = DEMO_USERS
+  .filter((u) => u.role === 'supervisor')
+  .reduce((acc, user) => {
+    const key = `${String(user.orgId)}::${String(user.fullName)}`;
+    acc[key] = user._id;
+    return acc;
+  }, {});
+
+DEMO_HOMES.forEach((home) => {
+  const key = `${String(home.orgId || 'threshold-org')}::${String(home.supervisorName || '')}`;
+  home.supervisorUserId = DEMO_SUPERVISOR_ID_BY_NAME[key] || 'demo-user-3';
+});
+
+Object.values(DEMO_ORGANIZATION_HOMES).forEach((homes) => {
+  homes.forEach((home) => {
+    const key = `${String(home.orgId || '')}::${String(home.supervisorName || '')}`;
+    home.supervisorUserId = DEMO_SUPERVISOR_ID_BY_NAME[key] || null;
+  });
+});
+
 const DEMO_ASSIGNMENTS = [
   { _id: 'demo-asgn-1', userId: 'demo-user-1', clientId: 'demo-client-1', dspName: 'Nia Carter', clientName: 'Jordan Miles', role: 'dsp', expiresAt: null },
   { _id: 'demo-asgn-2', userId: 'demo-user-2', clientId: 'demo-client-2', dspName: 'Isaiah Moore', clientName: 'Avery Brooks', role: 'dsp', expiresAt: null },
@@ -776,17 +797,34 @@ function getDemoTrackerEntries() {
     const assignedClientIds = new Set(
       DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-1').map((a) => a.clientId)
     );
-    return DEMO_TRACKER_ENTRIES.filter((e) => !e.clientId || assignedClientIds.has(e.clientId));
+    return DEMO_TRACKER_ENTRIES.filter((e) => assignedClientIds.has(e.clientId));
   }
   if (role === 'supervisor') {
     // Supervisor persona: Camila James (demo-user-3) — entries for her assigned clients
     const assignedClientIds = new Set(
       DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-3').map((a) => a.clientId)
     );
-    return DEMO_TRACKER_ENTRIES.filter((e) => !e.clientId || assignedClientIds.has(e.clientId));
+    return DEMO_TRACKER_ENTRIES.filter((e) => assignedClientIds.has(e.clientId));
   }
   // org_admin and super_admin see all entries
   return DEMO_TRACKER_ENTRIES;
+}
+
+function getDemoAssignmentsForActiveRole() {
+  const role = getActiveRole();
+  if (role === 'dsp') {
+    return DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-1');
+  }
+  if (role === 'supervisor') {
+    const allowedClients = new Set(
+      DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-3').map((a) => a.clientId)
+    );
+    return DEMO_ASSIGNMENTS.filter((a) => allowedClients.has(a.clientId));
+  }
+  if (role === 'org_admin') {
+    return DEMO_ASSIGNMENTS.filter((a) => ['demo-client-1', 'demo-client-2', 'demo-client-3'].includes(a.clientId));
+  }
+  return DEMO_ASSIGNMENTS;
 }
 
 function recalculateDemoTrackerSummary() {
@@ -1120,7 +1158,13 @@ async function renderAssignmentsList() {
 
   if (isDemo()) {
     const byClient = {};
-    DEMO_ASSIGNMENTS.forEach((a) => {
+    const visibleAssignments = getDemoAssignmentsForActiveRole();
+    if (!visibleAssignments.length) {
+      list.innerHTML = '<p class="empty-state">No assignments yet.</p>';
+      return;
+    }
+
+    visibleAssignments.forEach((a) => {
       if (!byClient[a.clientName]) byClient[a.clientName] = [];
       byClient[a.clientName].push(a);
     });
