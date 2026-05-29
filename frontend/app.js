@@ -2897,10 +2897,13 @@ async function renderHomeSection() {
         // In demo mode, show realistic synthetic residents for homes that have no seeded clients.
         if (isDemo() && activeHomeId && !clientsForSelectedHome.length) {
           const selectedHome = scopedHomes.find((home) => String(home._id) === activeHomeId) || null;
-          const syntheticCount = Math.max(0, Number(selectedHome?.activeClients || 0));
-          if (syntheticCount > 0) {
-            clientsForSelectedHome = buildDemoOrgHomeClients(orgId || 'threshold-org', activeHomeId, syntheticCount);
+          // Always show 1–4 synthetic clients for every home (randomized for realism)
+          let syntheticCount = Math.max(1, Number(selectedHome?.activeClients || 0));
+          if (!syntheticCount || syntheticCount > 4) {
+            // Randomize between 1 and 4 if not set or out of bounds
+            syntheticCount = 1 + Math.floor(Math.random() * 4);
           }
+          clientsForSelectedHome = buildDemoOrgHomeClients(orgId || 'threshold-org', activeHomeId, syntheticCount);
         }
 
         const clientsMarkup = clientsForSelectedHome.length
