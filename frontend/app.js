@@ -632,7 +632,7 @@ const DEMO_BASE_USERS = [
     shiftPreference: 'Flex',
     certifications: ['Medication Administration', 'Behavior Support', 'Trauma-Informed Care'],
     languages: ['English', 'Spanish'],
-    assignedHomes: ['demo-home-1', 'demo-home-2', 'demo-home-3']
+    assignedHomes: ['demo-home-1', 'demo-home-2', 'demo-home-3', 'threshold-home-1', 'threshold-home-2', 'threshold-home-3', 'threshold-home-4']
   },
   {
     _id: 'demo-user-4',
@@ -769,12 +769,33 @@ const DEMO_SHIFT_MONITOR = {
   ]
 };
 
+function getDemoTrackerEntries() {
+  const role = getActiveRole();
+  if (role === 'dsp') {
+    // DSP persona: Nia Carter (demo-user-1) — only entries for her assigned clients
+    const assignedClientIds = new Set(
+      DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-1').map((a) => a.clientId)
+    );
+    return DEMO_TRACKER_ENTRIES.filter((e) => !e.clientId || assignedClientIds.has(e.clientId));
+  }
+  if (role === 'supervisor') {
+    // Supervisor persona: Camila James (demo-user-3) — entries for her assigned clients
+    const assignedClientIds = new Set(
+      DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-3').map((a) => a.clientId)
+    );
+    return DEMO_TRACKER_ENTRIES.filter((e) => !e.clientId || assignedClientIds.has(e.clientId));
+  }
+  // org_admin and super_admin see all entries
+  return DEMO_TRACKER_ENTRIES;
+}
+
 function recalculateDemoTrackerSummary() {
-  const pending = DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === 'pending').length;
-  const completed = DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === 'completed').length;
-  const escalated = DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === 'escalated').length;
+  const entries = getDemoTrackerEntries();
+  const pending = entries.filter((entry) => entry.status === 'pending').length;
+  const completed = entries.filter((entry) => entry.status === 'completed').length;
+  const escalated = entries.filter((entry) => entry.status === 'escalated').length;
   const now = new Date();
-  const overdue = DEMO_TRACKER_ENTRIES.filter((entry) => {
+  const overdue = entries.filter((entry) => {
     if (entry.status !== 'pending' || !entry.dueAt) return false;
     const dueDate = new Date(entry.dueAt);
     return !Number.isNaN(dueDate.getTime()) && dueDate < now;
@@ -784,12 +805,13 @@ function recalculateDemoTrackerSummary() {
   DEMO_TRACKER_SUMMARY.completed = completed;
   DEMO_TRACKER_SUMMARY.escalated = escalated;
   DEMO_TRACKER_SUMMARY.overdue = overdue;
-  DEMO_TRACKER_SUMMARY.total = DEMO_TRACKER_ENTRIES.length;
+  DEMO_TRACKER_SUMMARY.total = entries.length;
 }
 
 const DEMO_TRACKER_ENTRIES = [
   {
     _id: 'demo-tracker-1',
+    clientId: 'demo-client-1',
     summary: 'Morning medication verification pending for Jordan Miles.',
     status: 'pending',
     eventType: 'medication',
@@ -799,6 +821,7 @@ const DEMO_TRACKER_ENTRIES = [
   },
   {
     _id: 'demo-tracker-2',
+    clientId: 'demo-client-1',
     summary: 'Behavior escalation debrief required after afternoon event.',
     status: 'escalated',
     eventType: 'behavior',
@@ -808,15 +831,17 @@ const DEMO_TRACKER_ENTRIES = [
   },
   {
     _id: 'demo-tracker-3',
-    summary: 'ADL support log completed and signed by assigned DSP.',
+    clientId: 'demo-client-2',
+    summary: 'ADL support log completed — Avery Brooks morning routine.',
     status: 'completed',
     eventType: 'adl',
     priority: 'medium',
-    details: 'Morning hygiene and grooming completed with verbal prompts only. Client cooperative throughout.',
+    details: 'Morning hygiene and grooming completed with verbal prompts only. Client cooperative throughout. Thyroid medication (Levothyroxine) confirmed taken on empty stomach at 6:45 AM.',
     dueAt: new Date(Date.now() - 90 * 60 * 1000).toISOString()
   },
   {
     _id: 'demo-tracker-4',
+    clientId: 'demo-client-2',
     summary: 'Afternoon medication pass pending — Avery Brooks.',
     status: 'pending',
     eventType: 'medication',
@@ -826,6 +851,7 @@ const DEMO_TRACKER_ENTRIES = [
   },
   {
     _id: 'demo-tracker-5',
+    clientId: 'demo-client-3',
     summary: 'Incident note pending — Taylor Reed wandering observed.',
     status: 'pending',
     eventType: 'incident',
@@ -835,6 +861,7 @@ const DEMO_TRACKER_ENTRIES = [
   },
   {
     _id: 'demo-tracker-6',
+    clientId: 'demo-client-3',
     summary: 'Meal support log completed — Taylor Reed lunch.',
     status: 'completed',
     eventType: 'adl',
@@ -844,6 +871,7 @@ const DEMO_TRACKER_ENTRIES = [
   },
   {
     _id: 'demo-tracker-7',
+    clientId: 'demo-client-1',
     summary: 'Skin integrity check pending — Jordan Miles heels.',
     status: 'pending',
     eventType: 'adl',
@@ -853,6 +881,7 @@ const DEMO_TRACKER_ENTRIES = [
   },
   {
     _id: 'demo-tracker-8',
+    clientId: 'demo-client-1',
     summary: 'Transfer assistance completed — Jordan Miles morning.',
     status: 'completed',
     eventType: 'adl',
@@ -862,6 +891,7 @@ const DEMO_TRACKER_ENTRIES = [
   },
   {
     _id: 'demo-tracker-9',
+    clientId: null,
     summary: 'Shift handoff note pending — evening DSP.',
     status: 'pending',
     eventType: 'documentation',
@@ -871,6 +901,7 @@ const DEMO_TRACKER_ENTRIES = [
   },
   {
     _id: 'demo-tracker-10',
+    clientId: null,
     summary: 'Supervisor visit note completed — weekly check-in.',
     status: 'completed',
     eventType: 'documentation',
@@ -1824,8 +1855,9 @@ function getDemoPatientWorkspaceEntries(clientId) {
 
 async function loadTrackerFeed() {
   if (isDemo()) {
+    const entries = getDemoTrackerEntries();
     renderTrackerFeed(
-      trackerStatusFilter ? DEMO_TRACKER_ENTRIES.filter((entry) => entry.status === trackerStatusFilter) : DEMO_TRACKER_ENTRIES
+      trackerStatusFilter ? entries.filter((entry) => entry.status === trackerStatusFilter) : entries
     );
     return;
   }
