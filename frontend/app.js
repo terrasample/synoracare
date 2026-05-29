@@ -246,11 +246,15 @@ function demoHash(value) {
 function buildDemoOrgHomeClients(orgId, homeId, count) {
   const total = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
   const orgPrefix = String(orgId || 'org').split('-')[0].toUpperCase();
+  const homeSeqMatch = String(homeId || '').match(/(\d+)$/);
+  const homeSequence = homeSeqMatch ? Math.max(0, Number(homeSeqMatch[1]) - 1) : 0;
+  const orgOffset = demoHash(orgId) % (DEMO_FIRST_NAMES.length * DEMO_LAST_NAMES.length);
 
   return Array.from({ length: total }).map((_, idx) => {
-    const seed = demoHash(`${orgId}:${homeId}:${idx}`);
-    const first = DEMO_FIRST_NAMES[seed % DEMO_FIRST_NAMES.length];
-    const last = DEMO_LAST_NAMES[Math.floor(seed / 7) % DEMO_LAST_NAMES.length];
+    const residentIndex = orgOffset + (homeSequence * 4) + idx;
+    const first = DEMO_FIRST_NAMES[residentIndex % DEMO_FIRST_NAMES.length];
+    const last = DEMO_LAST_NAMES[Math.floor(residentIndex / DEMO_FIRST_NAMES.length) % DEMO_LAST_NAMES.length];
+    const seed = demoHash(`${orgId}:${homeId}:${residentIndex}`);
     const externalId = `${orgPrefix}-${String(2000 + (seed % 7000)).padStart(4, '0')}`;
 
     return {
