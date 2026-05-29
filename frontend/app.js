@@ -128,6 +128,7 @@ let currentPatientWorkspace = { clientId: '', orgId: '', entries: [] };
 let currentPage = '';
 let currentTrackerFeed = [];
 let trackerStatusFilter = '';
+let selectedDashboardHomeId = '';
 const chatSourceRegistry = new Map();
 let demoMode = localStorage.getItem('synoracare_demo_mode') === '1' || new URLSearchParams(window.location.search).get('demo') === '1';
 if (demoMode) localStorage.setItem('synoracare_demo_mode', '1');
@@ -2695,17 +2696,44 @@ async function renderHomeSection() {
       let alertsHtml = '';
 
       if (role === 'supervisor') {
-        const homesMarkup = assignedHomes.length
-          ? assignedHomes.slice(0, 4).map((home) => {
+        const selectableHomes = assignedHomes;
+        const hasSelectedHome = selectableHomes.some((home) => String(home._id) === String(selectedDashboardHomeId));
+        const activeHomeId = hasSelectedHome
+          ? String(selectedDashboardHomeId)
+          : (selectableHomes[0]?._id ? String(selectableHomes[0]._id) : '');
+        selectedDashboardHomeId = activeHomeId;
+
+        const homesMarkup = selectableHomes.length
+          ? selectableHomes.map((home) => {
               const name = home.displayName || home.name || 'Home';
-              return `<span class="home-pill">${safeText(name)}</span>`;
+              const homeId = String(home._id || '');
+              const isActive = homeId && homeId === activeHomeId;
+              return `<button type="button" class="home-pill" data-dashboard-home-id="${safeText(homeId)}" style="cursor:pointer;${isActive ? 'background:#dcfce7;border-color:#16a34a;color:#14532d;' : ''}">${safeText(name)}</button>`;
             }).join('')
           : '<span class="home-pill">No assigned homes</span>';
-        const extraCount = Math.max(0, assignedHomes.length - 4);
+
+        const selectedHome = selectableHomes.find((home) => String(home._id) === activeHomeId) || null;
+        const clientsForSelectedHome = activeHomeId
+          ? (clientsCache || []).filter((client) => String(client.locationId || '') === activeHomeId && String(client.status || 'active') !== 'inactive')
+          : [];
+        const clientsMarkup = selectedHome
+          ? (clientsForSelectedHome.length
+            ? clientsForSelectedHome.map((client) => `
+                <button type="button" class="btn-secondary btn-sm" data-dashboard-client-id="${safeText(client._id)}" data-dashboard-client-name="${safeText(client.displayName || '')}" style="margin:4px 6px 0 0;">
+                  ${safeText(client.displayName || 'Client')} ${client.externalId ? `(${safeText(client.externalId)})` : ''}
+                </button>
+              `).join('')
+            : '<p class="empty-state" style="font-size:12px;margin-top:8px;">No active clients in this home.</p>')
+          : '<p class="empty-state" style="font-size:12px;margin-top:8px;">Select a home to view clients.</p>';
+
         alertsHtml += `
           <div class="assigned-homes-card">
             <p class="assigned-homes-title">Assigned Homes (${assignedHomes.length})</p>
-            <div class="assigned-homes-pills">${homesMarkup}${extraCount > 0 ? `<span class="home-pill">+${extraCount} more</span>` : ''}</div>
+            <div class="assigned-homes-pills">${homesMarkup}</div>
+            <div class="assigned-home-clients" style="margin-top:8px;">
+              <p class="assigned-homes-title" style="font-size:12px;color:#475569;margin:4px 0;">${selectedHome ? `Clients in ${safeText(selectedHome.displayName || selectedHome.name || 'selected home')}` : 'Clients in selected home'}</p>
+              <div>${clientsMarkup}</div>
+            </div>
             <button type="button" class="quick-action-btn" data-nav-target="homesSection" style="margin-top:8px;">Open My Homes</button>
           </div>
         `;
@@ -5531,6 +5559,23 @@ document.addEventListener('click', (e) => {
     }
     const didNavigate = navigateTo(moduleCard.dataset.navTarget);
     if (didNavigate && window.innerWidth <= 900) document.body.classList.remove('sidebar-open');
+    return;
+  }
+
+  const dashboardHomeBtn = e.target.closest('[data-dashboard-home-id]');
+  if (dashboardHomeBtn) {
+    selectedDashboardHomeId = String(dashboardHomeBtn.dataset.dashboardHomeId || '').trim();
+    renderHomeSection().catch(() => {});
+    return;
+  }
+
+  const dashboardClientBtn = e.target.closest('[data-dashboard-client-id]');
+  if (dashboardClientBtn) {
+    const clientId = String(dashboardClientBtn.dataset.dashboardClientId || '').trim();
+    const clientName = String(dashboardClientBtn.dataset.dashboardClientName || '').trim();
+    if (clientId) {
+      openClientWorkspace(clientId, clientName).catch(() => {});
+    }
     return;
   }
 
