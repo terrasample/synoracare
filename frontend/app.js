@@ -540,13 +540,163 @@ function getDemoClientCareInfo(clientId, tab) {
   return clientInfo[tabKey] || [];
 }
 
-const DEMO_USERS = [
-  { _id: 'demo-user-1', fullName: 'Nia Carter', role: 'dsp', email: 'nia.carter@synoracare.demo', status: 'active' },
-  { _id: 'demo-user-2', fullName: 'Isaiah Moore', role: 'dsp', email: 'isaiah.moore@synoracare.demo', status: 'active' },
-  { _id: 'demo-user-3', fullName: 'Camila James', role: 'supervisor', email: 'camila.james@synoracare.demo', status: 'active' },
-  { _id: 'demo-user-4', fullName: 'Marcus Webb', role: 'dsp', email: 'marcus.webb@synoracare.demo', status: 'active' },
-  { _id: 'demo-user-5', fullName: 'Priya Nair', role: 'org_admin', email: 'priya.nair@synoracare.demo', status: 'active' }
+const DEMO_ROLE_DISPLAY = {
+  dsp: 'Direct Support Professional',
+  supervisor: 'Supervisor',
+  org_admin: 'Org Admin'
+};
+
+const DEMO_CERTIFICATION_LIBRARY = [
+  'CPR/First Aid',
+  'Medication Administration',
+  'Behavior Support',
+  'Fall Prevention',
+  'Dementia Care',
+  'Trauma-Informed Care'
 ];
+
+const DEMO_LANGUAGE_LIBRARY = ['English', 'Spanish', 'Haitian Creole'];
+
+const DEMO_BASE_USERS = [
+  {
+    _id: 'demo-user-1',
+    fullName: 'Nia Carter',
+    role: 'dsp',
+    roleDisplayName: DEMO_ROLE_DISPLAY.dsp,
+    email: 'nia.carter@synoracare.demo',
+    status: 'active',
+    orgId: 'threshold-org',
+    orgName: 'Threshold Residential Services',
+    yearsExperience: 4,
+    shiftPreference: 'Day',
+    certifications: ['CPR/First Aid', 'Medication Administration', 'Fall Prevention'],
+    languages: ['English', 'Spanish'],
+    assignedHomes: ['threshold-home-1', 'threshold-home-2']
+  },
+  {
+    _id: 'demo-user-2',
+    fullName: 'Isaiah Moore',
+    role: 'dsp',
+    roleDisplayName: DEMO_ROLE_DISPLAY.dsp,
+    email: 'isaiah.moore@synoracare.demo',
+    status: 'active',
+    orgId: 'threshold-org',
+    orgName: 'Threshold Residential Services',
+    yearsExperience: 6,
+    shiftPreference: 'Day',
+    certifications: ['CPR/First Aid', 'Behavior Support', 'Dementia Care'],
+    languages: ['English'],
+    assignedHomes: ['threshold-home-1']
+  },
+  {
+    _id: 'demo-user-3',
+    fullName: 'Camila James',
+    role: 'supervisor',
+    roleDisplayName: DEMO_ROLE_DISPLAY.supervisor,
+    email: 'camila.james@synoracare.demo',
+    status: 'active',
+    orgId: 'threshold-org',
+    orgName: 'Threshold Residential Services',
+    yearsExperience: 9,
+    shiftPreference: 'Flex',
+    certifications: ['Medication Administration', 'Behavior Support', 'Trauma-Informed Care'],
+    languages: ['English', 'Spanish'],
+    assignedHomes: ['threshold-home-1', 'threshold-home-2', 'threshold-home-3']
+  },
+  {
+    _id: 'demo-user-4',
+    fullName: 'Marcus Webb',
+    role: 'dsp',
+    roleDisplayName: DEMO_ROLE_DISPLAY.dsp,
+    email: 'marcus.webb@synoracare.demo',
+    status: 'active',
+    orgId: 'unity-org',
+    orgName: 'Unity Residence',
+    yearsExperience: 3,
+    shiftPreference: 'Evening',
+    certifications: ['CPR/First Aid', 'Medication Administration'],
+    languages: ['English'],
+    assignedHomes: ['unity-home-1', 'unity-home-2']
+  },
+  {
+    _id: 'demo-user-5',
+    fullName: 'Priya Nair',
+    role: 'org_admin',
+    roleDisplayName: DEMO_ROLE_DISPLAY.org_admin,
+    email: 'priya.nair@synoracare.demo',
+    status: 'active',
+    orgId: 'unity-org',
+    orgName: 'Unity Residence',
+    yearsExperience: 12,
+    shiftPreference: 'Admin',
+    certifications: ['Medication Administration', 'Trauma-Informed Care'],
+    languages: ['English'],
+    assignedHomes: ['unity-home-1', 'unity-home-2', 'unity-home-3']
+  }
+];
+
+function buildDemoOrgUsers(org, count, offset = 0) {
+  const homes = DEMO_ORGANIZATION_HOMES[org.id] || [];
+  const orgSlug = String(org.slug || org.id || 'org').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  const orgTag = orgSlug.split('-')[0] || 'org';
+  const poolSize = DEMO_FIRST_NAMES.length * DEMO_LAST_NAMES.length;
+  const shiftOptions = ['Day', 'Evening', 'Night', 'Flex'];
+
+  return Array.from({ length: Math.max(0, Number(count) || 0) }).map((_, idx) => {
+    const seq = offset + idx;
+    const seed = demoHash(`${org.id}:user:${seq}`);
+    const nameIndex = (seed + seq * 17) % poolSize;
+    const first = DEMO_FIRST_NAMES[nameIndex % DEMO_FIRST_NAMES.length];
+    const last = DEMO_LAST_NAMES[Math.floor(nameIndex / DEMO_FIRST_NAMES.length) % DEMO_LAST_NAMES.length];
+    const role = seq % 16 === 0 ? 'org_admin' : (seq % 5 === 0 ? 'supervisor' : 'dsp');
+    const certCount = 2 + (seed % 2);
+    const certifications = Array.from({ length: certCount }).map((__, certIdx) => {
+      const libIndex = (seed + certIdx) % DEMO_CERTIFICATION_LIBRARY.length;
+      return DEMO_CERTIFICATION_LIBRARY[libIndex];
+    });
+    const languages = [DEMO_LANGUAGE_LIBRARY[seed % DEMO_LANGUAGE_LIBRARY.length]];
+    if (seed % 4 === 0 && !languages.includes('English')) {
+      languages.unshift('English');
+    }
+
+    const homeIndexA = homes.length ? seed % homes.length : -1;
+    const homeIndexB = homes.length > 1 ? (homeIndexA + 1 + (seed % (homes.length - 1))) % homes.length : -1;
+    const assignedHomes = [];
+    if (homeIndexA >= 0) assignedHomes.push(homes[homeIndexA]._id);
+    if (homeIndexB >= 0 && homes[homeIndexB]?._id && homes[homeIndexB]._id !== assignedHomes[0]) {
+      assignedHomes.push(homes[homeIndexB]._id);
+    }
+
+    return {
+      _id: `demo-user-${orgTag}-${seq + 1}`,
+      fullName: `${first} ${last}`,
+      role,
+      roleDisplayName: DEMO_ROLE_DISPLAY[role] || 'Staff',
+      email: `${first.toLowerCase()}.${last.toLowerCase()}+${orgTag}${seq + 1}@synoracare.demo`,
+      status: 'active',
+      orgId: org.id,
+      orgName: org.name,
+      yearsExperience: 1 + (seed % 12),
+      shiftPreference: shiftOptions[seed % shiftOptions.length],
+      certifications,
+      languages,
+      assignedHomes
+    };
+  });
+}
+
+const DEMO_USERS = (() => {
+  const users = [...DEMO_BASE_USERS];
+
+  DEMO_ORGANIZATIONS.forEach((org) => {
+    const existingInOrg = users.filter((user) => String(user.orgId) === String(org.id)).length;
+    const requiredForOrg = Math.max(0, Number(org.totalUsers || 0) - existingInOrg);
+    const generated = buildDemoOrgUsers(org, requiredForOrg, existingInOrg);
+    users.push(...generated);
+  });
+
+  return users;
+})();
 
 const DEMO_ASSIGNMENTS = [
   { _id: 'demo-asgn-1', userId: 'demo-user-1', clientId: 'demo-client-1', dspName: 'Nia Carter', clientName: 'Jordan Miles', role: 'dsp', expiresAt: null },
@@ -848,7 +998,6 @@ function handlePageNavigation(pageId) {
   if (!currentUser) return;
 
   if (pageId === 'askSection') {
-    renderAskPromptLibrary();
     return;
   }
 
@@ -1170,63 +1319,7 @@ function getPromptLibraryForRole(role) {
 }
 
 function renderAskPromptLibrary() {
-  const role = currentUser ? getActiveRole() : 'guest';
-  const libraryWrap = document.getElementById('askPromptLibrary');
-  const toggleBtn = document.getElementById('askPromptLibraryToggle');
-  const roleLabel = document.getElementById('askPromptRoleLabel');
-  const groups = document.getElementById('askPromptGroups');
-  if (!libraryWrap || !toggleBtn || !roleLabel || !groups) return;
-
-  const library = getPromptLibraryForRole(role);
-  const phase = library[selectedAskPromptPhase] ? selectedAskPromptPhase : 'pre_shift';
-  const prompts = (library[phase] || []).filter((item) => {
-    if (!askPromptSearchTerm) return true;
-    const haystack = `${item.category || ''} ${item.label || ''} ${item.question || ''}`.toLowerCase();
-    return haystack.includes(askPromptSearchTerm.toLowerCase());
-  });
-
-  libraryWrap.classList.toggle('is-collapsed', isAskPromptLibraryCollapsed);
-  toggleBtn.textContent = isAskPromptLibraryCollapsed ? 'Expand' : 'Collapse';
-
-  roleLabel.textContent = `Prompt Library: ${getRoleDisplayLabel(role)} | ${ASK_PROMPT_PHASE_LABELS[phase] || 'Pre-Shift'}`;
-
-  document.querySelectorAll('.ask-phase-btn').forEach((button) => {
-    button.classList.toggle('is-active', button.dataset.askPhase === phase);
-  });
-
-  if (!prompts.length) {
-    groups.innerHTML = '<p class="empty-state">No matching prompts. Try a different search or phase.</p>';
-    return;
-  }
-
-  const grouped = prompts.reduce((acc, item) => {
-    const key = item.category || 'General';
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(item);
-    return acc;
-  }, {});
-
-  const categories = Object.keys(grouped);
-  if (!categories.includes(selectedAskPromptGroup)) {
-    selectedAskPromptGroup = categories[0] || '';
-  }
-
-  groups.innerHTML = Object.entries(grouped)
-    .map(([category, items]) => {
-      const isOpen = category === selectedAskPromptGroup;
-      return `
-        <article class="ask-prompt-group">
-          <button type="button" class="ask-prompt-group-toggle" data-ask-group="${safeText(category)}" aria-expanded="${isOpen ? 'true' : 'false'}">
-            <span>${safeText(category)}</span>
-            <span class="ask-prompt-group-toggle-count">${safeText(items.length)} prompts</span>
-          </button>
-          <div class="ask-prompt-chip-row" ${isOpen ? '' : 'hidden'}>
-            ${items.map((item) => `<button type="button" class="ask-prompt-chip" data-question="${safeText(item.question)}">${safeText(item.label)}</button>`).join('')}
-          </div>
-        </article>
-      `;
-    })
-    .join('');
+  return;
 }
 
 const ROLE_HIDDEN_SECTIONS = {
@@ -2711,7 +2804,7 @@ function buildDemoAskResponse({ clientId, question, mode = 'general' }) {
   const clientName = selectedClient?.displayName || 'the selected client';
   const prompt = String(question || '').toLowerCase();
 
-  if (mode === 'meal' || /meal|eating|food|nutrition|diet|appetite|swallow|texture|lunch|breakfast|dinner|feeding/.test(prompt)) {
+  if (mode === 'meal' || /meal|eating|food|nutrition|diet|appetite|swallow|texture|lunch|breakfast|dinner|feeding|feed/.test(prompt)) {
     const clientCareInfo = DEMO_CLIENT_CARE_INFO[clientId];
     const dietInfo = clientCareInfo?.nutrition?.[1]?.content || 'Regular diet. Confirm texture and allergy requirements before serving.';
     const allergyInfo = clientCareInfo?.nutrition?.[2]?.content || clientCareInfo?.nutrition?.[1]?.content || 'Check allergy profile before preparing meals.';
@@ -3196,14 +3289,28 @@ function renderUserList(users) {
     return;
   }
 
-  list.innerHTML = users.map((u) => `
-    <div class="data-item">
-      <span class="data-item-label">${safeText(u.fullName)}</span>
-      <span class="data-item-meta data-item-role role-${safeText(u.role)}">${safeText(u.roleDisplayName || getRoleDisplayLabel(u.role))}</span>
-      <span class="data-item-meta">${safeText(u.status || 'active')}</span>
-      <span class="data-item-email">${safeText(u.email)}</span>
-    </div>
-  `).join('');
+  list.innerHTML = users.map((u) => {
+    const profileMeta = [];
+    if (u.orgName) profileMeta.push(u.orgName);
+    if (Number.isFinite(Number(u.yearsExperience))) profileMeta.push(`${Number(u.yearsExperience)}y exp`);
+    if (u.shiftPreference) profileMeta.push(`${u.shiftPreference} shift`);
+    const certificationText = Array.isArray(u.certifications) && u.certifications.length
+      ? u.certifications.slice(0, 3).join(', ')
+      : '';
+
+    return `
+      <div class="data-item" style="display:block;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="data-item-label">${safeText(u.fullName)}</span>
+          <span class="data-item-meta data-item-role role-${safeText(u.role)}">${safeText(u.roleDisplayName || getRoleDisplayLabel(u.role))}</span>
+          <span class="data-item-meta">${safeText(u.status || 'active')}</span>
+        </div>
+        <span class="data-item-email">${safeText(u.email)}</span>
+        ${profileMeta.length ? `<span class="data-item-meta">${safeText(profileMeta.join(' · '))}</span>` : ''}
+        ${certificationText ? `<span class="data-item-meta">Certifications: ${safeText(certificationText)}</span>` : ''}
+      </div>
+    `;
+  }).join('');
 }
 
 function renderTrackerSummary(data) {
@@ -4571,46 +4678,57 @@ document.getElementById('trainingContextRow').addEventListener('click', (e) => {
   selectedTrainingContext = button.dataset.trainingContext;
   selectedAskPromptPhase = selectedTrainingContext;
   renderTraining(getActiveRole(), selectedTrainingContext);
-  renderAskPromptLibrary();
 });
 
-document.getElementById('askPromptPhaseTabs')?.addEventListener('click', (e) => {
-  const button = e.target.closest('button[data-ask-phase]');
-  if (!button) return;
+const askPromptPhaseTabs = document.getElementById('askPromptPhaseTabs');
+if (askPromptPhaseTabs) {
+  askPromptPhaseTabs.addEventListener('click', (e) => {
+    const button = e.target.closest('button[data-ask-phase]');
+    if (!button) return;
 
-  selectedAskPromptPhase = button.dataset.askPhase || 'pre_shift';
-  selectedAskPromptGroup = '';
-  renderAskPromptLibrary();
-});
-
-document.getElementById('askPromptSearch')?.addEventListener('input', (e) => {
-  askPromptSearchTerm = String(e.target.value || '').trim();
-  selectedAskPromptGroup = '';
-  renderAskPromptLibrary();
-});
-
-document.getElementById('askPromptLibraryToggle')?.addEventListener('click', () => {
-  isAskPromptLibraryCollapsed = !isAskPromptLibraryCollapsed;
-  renderAskPromptLibrary();
-});
-
-document.getElementById('askPromptGroups')?.addEventListener('click', (e) => {
-  const groupButton = e.target.closest('button[data-ask-group]');
-  if (groupButton) {
-    const nextGroup = groupButton.dataset.askGroup || '';
-    selectedAskPromptGroup = selectedAskPromptGroup === nextGroup ? '' : nextGroup;
+    selectedAskPromptPhase = button.dataset.askPhase || 'pre_shift';
+    selectedAskPromptGroup = '';
     renderAskPromptLibrary();
-    return;
-  }
+  });
+}
 
-  const button = e.target.closest('button.ask-prompt-chip[data-question]');
-  if (!button) return;
+const askPromptSearch = document.getElementById('askPromptSearch');
+if (askPromptSearch) {
+  askPromptSearch.addEventListener('input', (e) => {
+    askPromptSearchTerm = String(e.target.value || '').trim();
+    selectedAskPromptGroup = '';
+    renderAskPromptLibrary();
+  });
+}
 
-  const textarea = document.querySelector('#askForm textarea');
-  if (!textarea) return;
-  textarea.value = button.dataset.question || '';
-  textarea.focus();
-});
+const askPromptLibraryToggle = document.getElementById('askPromptLibraryToggle');
+if (askPromptLibraryToggle) {
+  askPromptLibraryToggle.addEventListener('click', () => {
+    isAskPromptLibraryCollapsed = !isAskPromptLibraryCollapsed;
+    renderAskPromptLibrary();
+  });
+}
+
+const askPromptGroups = document.getElementById('askPromptGroups');
+if (askPromptGroups) {
+  askPromptGroups.addEventListener('click', (e) => {
+    const groupButton = e.target.closest('button[data-ask-group]');
+    if (groupButton) {
+      const nextGroup = groupButton.dataset.askGroup || '';
+      selectedAskPromptGroup = selectedAskPromptGroup === nextGroup ? '' : nextGroup;
+      renderAskPromptLibrary();
+      return;
+    }
+
+    const button = e.target.closest('button.ask-prompt-chip[data-question]');
+    if (!button) return;
+
+    const textarea = document.querySelector('#askForm textarea');
+    if (!textarea) return;
+    textarea.value = button.dataset.question || '';
+    textarea.focus();
+  });
+}
 
 document.getElementById('assignmentForm').addEventListener('submit', async (e) => {
   e.preventDefault();
