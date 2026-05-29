@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const Assignment = require('../models/Assignment');
 const User = require('../models/User');
+const Client = require('../models/Client');
 const InviteToken = require('../models/InviteToken');
 const AuditEvent = require('../models/AuditEvent');
 const Organization = require('../models/Organization');
@@ -12,6 +13,12 @@ const { requirePermissions } = require('../middleware/permissions');
 const { getRoleDisplayLabel, mergeRoleDisplayLabels, canRole } = require('../config/accessControl');
 
 const router = express.Router();
+
+function userCanAccessClientByHome(user, client) {
+  const locationIds = Array.isArray(user?.locationIds) ? user.locationIds : [];
+  if (!locationIds.length || !client?.locationId) return false;
+  return locationIds.some((locationId) => String(locationId) === String(client.locationId));
+}
 
 function hashToken(token) {
   return crypto.createHash('sha256').update(String(token)).digest('hex');
@@ -65,6 +72,22 @@ router.post('/', requireAuth, requirePermissions('assignments:create'), async (r
     if (!isValidObjectId(userId)) return res.status(400).json({ error: 'Invalid userId' });
     if (!isValidObjectId(clientId)) return res.status(400).json({ error: 'Invalid clientId' });
 
+    const [targetUser, client] = await Promise.all([
+      User.findOne({ _id: userId, orgId: req.user.orgId }).lean(),
+      Client.findOne({ _id: clientId, orgId: req.user.orgId }).lean()
+    ]);
+
+    if (!targetUser) return res.status(404).json({ error: 'User not found' });
+    if (!client) return res.status(404).json({ error: 'Client not found' });
+
+    if (req.user.role === 'supervisor' && !userCanAccessClientByHome(req.user, client)) {
+      return res.status(403).json({ error: 'Supervisors can only assign clients within their homes' });
+    }
+
+    if (targetUser.role === 'supervisor' && !userCanAccessClientByHome(targetUser, client)) {
+      return res.status(400).json({ error: 'Target supervisor is not assigned to this client home' });
+    }
+
     let expiresAtValue = null;
     if (expiresAt) {
       const parsedDate = new Date(expiresAt);
@@ -111,6 +134,22 @@ router.post('/break-glass', requireAuth, async (req, res) => {
     const targetUserId = canRole(req.user.role, 'assignments:create')
       ? (userId || req.user._id)
       : req.user._id;
+
+    const [targetUser, client] = await Promise.all([
+      User.findOne({ _id: targetUserId, orgId: req.user.orgId }).lean(),
+      Client.findOne({ _id: clientId, orgId: req.user.orgId }).lean()
+    ]);
+
+    if (!targetUser) return res.status(404).json({ error: 'Target user not found' });
+    if (!client) return res.status(404).json({ error: 'Client not found' });
+
+    if (req.user.role === 'supervisor' && !userCanAccessClientByHome(req.user, client)) {
+      return res.status(403).json({ error: 'Supervisors can only create break-glass for clients within their homes' });
+    }
+
+    if (targetUser.role === 'supervisor' && !userCanAccessClientByHome(targetUser, client)) {
+      return res.status(400).json({ error: 'Target supervisor is not assigned to this client home' });
+    }
 
     const assignment = await Assignment.findOneAndUpdate(
       {
