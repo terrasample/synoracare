@@ -325,85 +325,85 @@ const DEMO_CLIENT_CARE_INFO = {
     care: [
       {
         title: 'Morning ADL Support',
-        content: 'Assist with personal hygiene and grooming between 7:00 AM and 8:00 AM. Use verbal prompts, allow maximum independence, and document completion on the care tracker.',
+        content: 'Assist with personal hygiene and grooming between 7:00 AM and 8:00 AM. Use verbal prompts, allow maximum independence, and document completion on the care tracker. Jordan prefers warm water and has sensitive skin—use fragrance-free soap only.',
         icon: '🧼'
       },
       {
         title: 'Transfer Assistance',
-        content: 'Provide steady support during transfers from bed to chair using approved stand-pivot technique. Always lock wheels before assisting.',
+        content: 'Provide steady support during transfers from bed to chair using approved stand-pivot technique. Always lock wheels before assisting. Jordan reports occasional dizziness upon standing—allow 30 seconds to stabilize before pivoting.',
         icon: '🚶'
       },
       {
         title: 'Toileting Protocol',
-        content: 'Accompany and supervise during all toileting. Ensure dignity and privacy. Check for signs of discomfort or health changes.',
+        content: 'Accompany and supervise during all toileting. Ensure dignity and privacy. Check for signs of discomfort or health changes. Jordan is often reluctant to ask for help—encourage regular checks, especially after meals and medications.',
         icon: '🚽'
       }
     ],
     nutrition: [
       {
         title: 'Meal Times',
-        content: 'Breakfast: 7:30 AM | Lunch: 12:00 PM | Dinner: 5:30 PM | Snacks: 10 AM & 3 PM as needed.',
+        content: 'Breakfast (7:30 AM): 45g carbs | Lunch (12:00 PM): 50g carbs | Dinner (5:30 PM): 50g carbs | Snacks (10 AM & 3 PM): 15-20g carbs each. Track carb intake for diabetes management. Pair starches with protein to stabilize blood sugar.',
         icon: '⏰'
       },
       {
         title: 'Diet Type',
-        content: 'Regular diet with whole grains, fresh fruits, and vegetables. Adequate hydration: 8 glasses of water daily. Avoid caffeine after 2 PM.',
+        content: 'Whole grains, lean proteins, fresh vegetables. NO simple carbs or sugary drinks. Recommended meals: oatmeal with berries + eggs, grilled chicken with brown rice + broccoli, baked salmon with sweet potato. Hydration critical: 8-10 glasses water daily. NO caffeine after 2 PM (interferes with sleep, which affects blood sugar).',
         icon: '🥗'
       },
       {
         title: 'Dietary Restrictions',
-        content: 'ALLERGY ALERT: Peanuts and tree nuts (anaphylaxis risk). NO shellfish, dairy alternatives recommended. Sodium restriction: <2300mg/day.',
+        content: 'ALLERGY ALERT ⚠️: Peanuts and tree nuts (anaphylaxis risk—EpiPen in kitchen). NO shellfish (histamine reaction). NO latex gloves during food prep. Dairy alternatives required. Sodium restriction: <2300mg/day (monitor canned foods and soups). Recent note from supervisor: Jordan\'s blood sugar spikes with processed foods—stick to fresh ingredients.',
         icon: '🚫'
       }
     ],
     medications: [
       {
         title: 'Morning Medications (7:30 AM)',
-        content: 'Metformin 500mg x2 tablets (diabetes), Lisinopril 10mg x1 tablet (hypertension). Take with food. Monitor blood pressure daily.',
+        content: 'Metformin 500mg x2 tablets (diabetes control) + Lisinopril 10mg x1 tablet (hypertension). MUST take with food (milk, eggs, or toast). Monitor: Blood pressure baseline 130/80—report if elevated. Recent note: Metformin occasionally causes stomach upset; offer ginger tea if discomfort reported.',
         icon: '💊'
       },
       {
         title: 'Afternoon Medications (1:00 PM)',
-        content: 'Sertraline 50mg x1 tablet (depression). Take with or without food. Report mood changes to supervisor.',
+        content: 'Sertraline 50mg x1 tablet (depression/anxiety). Take with or without food. Monitor mood: Watch for withdrawal, irritability, or unusually elevated mood. Supervisor alert: Last month, missed dose caused behavioral escalation—never skip. Report mood changes same day.',
         icon: '💊'
       },
       {
         title: 'Evening Medications (7:30 PM)',
-        content: 'Atorvastatin 20mg x1 tablet (cholesterol). Take before bed. No grapefruit juice. Verify pulse before administration.',
+        content: 'Atorvastatin 20mg x1 tablet (cholesterol management). Take before bed with 8oz water. CRITICAL: NO grapefruit juice, pomegranate, or cranberry juice (blocks absorption). Before administration, verify pulse is steady (report if >90 or irregular). Recent lab: Cholesterol down to 168—meds working well.',
         icon: '💊'
       }
     ],
     behavior: [
       {
         title: 'Behavioral Baseline',
-        content: 'Jordan typically responds well to structured routines and consistent DSP interactions. Prefers calm environments with minimal noise.',
+        content: 'Jordan is generally pleasant and cooperative. Responds well to structured routines and consistent DSP interactions (especially when assigned to same staff). Morning mood is best; becomes more fatigued/withdrawn by evening. Prefers calm, quiet environments.',
         icon: '😊'
       },
       {
         title: 'Escalation Triggers',
-        content: 'Sudden routine changes, loud noises, and transitions between activities. Allow 10-minute warning before any schedule change.',
+        content: 'Triggers: Sudden routine changes, loud noises, transitions between activities, missed medications, hunger (blood sugar dips), interruptions during meals. Early signs of escalation: furrowed brow, rapid speech, fidgeting, repetitive questions. Time-sensitive: Allow 10-minute warning before schedule changes. Supervisor note: Last behavioral incident occurred after skipped morning meds—prevention critical.',
         icon: '⚠️'
       },
       {
         title: 'De-escalation Techniques',
-        content: 'Use calm voice, offer choices, provide quiet time in preferred space. If distressed, pause activity and reassure. Never force completion. Contact supervisor if escalation continues.',
+        content: 'Step 1: Use calm, slow voice. Step 2: Offer choices ("Would you prefer lunch now or in 15 minutes?"). Step 3: Provide quiet time in Jordan\'s preferred space (bedroom with soft music). Step 4: Use hand-holding or gentle shoulder touch if accepted. Step 5: Never argue or force. If escalation continues beyond 5 minutes, contact supervisor Camila James immediately. Success note: Yesterday, de-escalation technique prevented incident after accidental loud noise.',
         icon: '🧘'
       }
     ],
     safety: [
       {
         title: 'Fall Risk Level',
-        content: 'HIGH. Ensure non-slip footwear at all times. Use grab bars in bathroom. Avoid clutter in walking paths. Supervise during ambulation.',
+        content: 'Fall risk score: 9/10 (high). Non-slip footwear at all times (check velcro fastenings daily). Use grab bars in bathroom + bedroom. Supervise all ambulation. Remove clutter from walking paths. Lighting on in hallways at night. Recent incident: Jordan fell reaching for water pitcher—now all fluids provided in spill-proof cups. Monitor for balance changes.',
         icon: '⚠️'
       },
       {
         title: 'Skin Integrity',
-        content: 'Check for pressure areas daily, especially heels and sacrum. Reposition every 2 hours. Report any redness or breakdown immediately.',
+        content: 'Check heels, sacrum, elbows, and behind ears—document findings. Reposition every 2 hours during waking hours. Use pressure-relief cushion in wheelchair. Report ANY redness, warmth, or breakdown to supervisor within 30 minutes. Last month: Early catch prevented Stage 2 pressure ulcer on left heel. Continue diligence.',
         icon: '🩹'
       },
       {
         title: 'Infection Control',
-        content: 'Hand hygiene before and after care. Use PPE as indicated. Report fever, cough, or signs of infection within 30 minutes of observation.',
+        content: 'Standard precautions: Hand hygiene before/after all care. Use latex-free gloves (allergy). Report within 30 minutes: fever >99.5°F, persistent cough, vomiting, diarrhea, confusion, or unusual lethargy. Diabetics are infection-prone: watch wounds closely. Last note: Jordan had minor upper respiratory infection 2 weeks ago—monitor for recurrence.',
         icon: '✋'
       }
     ]
@@ -413,55 +413,55 @@ const DEMO_CLIENT_CARE_INFO = {
     care: [
       {
         title: 'Self-Care Activities',
-        content: 'Avery is mostly independent with grooming and dressing. Provide oversight only. Encourage participation and offer assistance only when requested.',
+        content: 'Avery is mostly independent with grooming and dressing. Provide oversight only—step in only if asked or if safety concern. Encourage participation and autonomy. Supervise medication administration closely. Avery prefers morning showers; arrange schedule accordingly.',
         icon: '🧼'
       },
       {
         title: 'Mobility Support',
-        content: 'Ambulates with a cane independently. Ensure cane is within reach at all times. Watch for balance issues on stairs.',
+        content: 'Ambulates independently with cane. Cane must be within reach at all times (bathroom, meals, walks). Watch for balance issues on wet floors, stairs, and uneven surfaces. Avery enjoys morning walks (20-30 min)—encourage daily activity. No running or rapid movements. Recent note: Avery\'s balance has improved with consistent activity.',
         icon: '🚶'
       }
     ],
     nutrition: [
       {
         title: 'Meal Preferences',
-        content: 'Prefers smaller, frequent meals. High-protein options preferred. Enjoys home-cooked style foods. Avoid overly processed foods.',
+        content: 'Avery prefers smaller, frequent meals (5 times daily). High-protein focus: chicken, fish, eggs, yogurt. Favorite snacks: almonds, string cheese, hummus with veggies. AVOID: overly processed foods, fried foods. Schedule: 7:00 AM breakfast | 10:00 AM snack | 12:30 PM lunch | 3:00 PM snack | 6:00 PM dinner. Hydration: 6-8 glasses water daily.',
         icon: '🍽️'
       },
       {
         title: 'Dietary Restrictions',
-        content: 'Gluten-free diet required (celiac disease). Check all packaged food labels. Offer GF bread, pasta, and cereals only.',
+        content: 'CELIAC DISEASE: Even trace gluten causes severe GI upset. Read ALL labels before offering food. Safe foods: rice, potatoes, eggs, meat, vegetables, GF bread/pasta/cereals. NEVER: regular pasta, bread, cereals, cross-contaminated utensils. Separate cutting boards & toaster required. Recent GI upset traced to cross-contamination during lunch prep—extreme vigilance needed.',
         icon: '🌾'
       }
     ],
     medications: [
       {
         title: 'Morning Medications (8:00 AM)',
-        content: 'Levothyroxine 75mcg x1 tablet (thyroid). Take on empty stomach, 30 minutes before breakfast. Do not take with calcium or iron supplements.',
+        content: 'Levothyroxine 75mcg x1 tablet (hypothyroidism/thyroid regulation). CRITICAL: Take on empty stomach, 30-60 minutes BEFORE breakfast. Do NOT take with: calcium supplements, iron supplements, antacids, or coffee (blocks absorption). Let Avery self-administer if capable—promotes independence. Supervisor note: Avery\'s energy level stable—thyroid medication working well.',
         icon: '💊'
       },
       {
         title: 'Evening Medications (8:00 PM)',
-        content: 'Omeprazole 20mg x1 capsule (GERD). Take 30 minutes before meals.',
+        content: 'Omeprazole 20mg x1 capsule (GERD/acid reflux management). Take 30-60 minutes BEFORE dinner. Reduces stomach acid. Can take with or without food. Side note: Avery reports less heartburn since starting—quality of life improved. Continue as prescribed.',
         icon: '💊'
       }
     ],
     behavior: [
       {
         title: 'Personality',
-        content: 'Avery is sociable and enjoys conversations. Prefers a relaxed, friendly approach. Values independence and autonomy in decisions.',
+        content: 'Avery is naturally sociable, enjoys conversations about books, news, and current events. Prefers a relaxed, friendly, informal approach (not overly formal). Values independence and autonomy in all decisions. Respond to Avery as a peer, not a dependent. Enjoys humor and has excellent memory for details.',
         icon: '😊'
       },
       {
         title: 'Preferences',
-        content: 'Enjoys reading and listening to music. Prefers morning activities. Can become withdrawn if left alone for extended periods.',
+        content: 'Morning person—best mood 7-10 AM. Enjoys: reading (currently reading mystery novel), audiobooks, music (classical & jazz preferred), gardening activities, socializing with other residents. Becomes withdrawn/depressed if isolated too long. Recommendation: encourage daily social activity, reading time. Avery\'s mood notably improves with social engagement.',
         icon: '🎵'
       }
     ],
     safety: [
       {
         title: 'General Safety',
-        content: 'Low fall risk but monitor on wet surfaces. Ensure adequate lighting. Keep pathways clear.',
+        content: 'Fall risk score: 2/10 (low). However, still monitor on wet surfaces, slippery floors, and stairs. Ensure adequate lighting, especially in hallways/bathrooms. Keep walking paths clear. Cane within reach always. No changes needed—Avery is quite stable.',
         icon: '💡'
       }
     ]
@@ -471,45 +471,45 @@ const DEMO_CLIENT_CARE_INFO = {
     care: [
       {
         title: 'Personal Care',
-        content: 'Requires full assistance with ADLs. Use standard protocols for bathing, dressing, and grooming. Communicate each step clearly.',
+        content: 'Taylor requires full assistance with all ADLs: bathing, dressing, grooming, toileting. Communicate each step clearly, even if no verbal response. Use hand-over-hand guidance. Speak slowly and use simple language. Respect dignity—cover body during care, ask permission before touching. Recent note: Taylor responds well to consistent staff—assign same DSP when possible.',
         icon: '🧼'
       }
     ],
     nutrition: [
       {
         title: 'Feeding Support',
-        content: 'Requires supervision and minimal hand-over-hand cueing during meals. Ensure client drinks adequate fluids. Monitor for choking risks.',
+        content: 'Requires supervision and hand-over-hand cueing during meals. Typical intake: 75% of meal consumed. Place food within reach, small bites. Minimal verbal cueing needed ("Try a bite"). Monitor hydration closely—Taylor often forgets to drink. Target: 6-8 glasses fluid daily. Use easy-grip cups (spill-proof). Track intake on tracker. Recent progress: Taylor\'s appetite improving with consistent mealtime routine.',
         icon: '🥄'
       },
       {
         title: 'Swallowing Precautions',
-        content: 'Soft, moist foods preferred. Thickened liquids required (nectar consistency). Sit upright during meals for 30 minutes after eating.',
+        content: 'Dysphagia risk: Taylor has swallowing difficulty (aspiration risk). REQUIRED: All liquids MUST be thickened to NECTAR consistency (not water-thin). Foods must be soft/moist (no crunchy, dry, or hard items). Use thickening powder (located in kitchen drawer). Positioning: Sit upright during meals AND remain upright 30 minutes after eating (prevents aspiration). Monitor for: coughing, choking, wet voice quality, difficulty swallowing. Report concerns to supervisor immediately. Safety note: Last month, proper swallowing protocol prevented aspiration incident.',
         icon: '⚠️'
       }
     ],
     medications: [
       {
         title: 'All Medications (7:00 AM & 7:00 PM)',
-        content: 'Donepezil 10mg x1 tablet (dementia). Amlodipine 5mg x1 tablet (hypertension). Assist with self-administration or administer directly as needed.',
+        content: 'Donepezil 10mg x1 tablet (Aricept—dementia/Alzheimer\'s progression slowing). Amlodipine 5mg x1 tablet (hypertension control). Assist with self-administration IF able; otherwise administer directly. Crush tablets into applesauce if swallowing difficulty (approved by supervisor). Monitor: Blood pressure baseline 138/82—report if elevated. Donepezil working—Taylor showing slight improvement in memory/orientation.',
         icon: '💊'
       }
     ],
     behavior: [
       {
         title: 'Cognitive Status',
-        content: 'Mid-stage dementia. Short-term memory loss expected. Repeat instructions as needed. Use simple, concrete language.',
+        content: 'Mid-stage dementia: Short-term memory severely impaired. Does NOT remember recent conversations, meals, or events. Repeat information as needed without frustration. USE: Simple language, short sentences, yes/no questions. AVOID: Complex explanations, correcting false memories, arguing. Taylor often confuses past/present. Reassure without reinforcing confusion. Recent observation: Taylor is calmer when DSPs use gentle, consistent tone.',
         icon: '🧠'
       },
       {
         title: 'Emotional Needs',
-        content: 'Responds well to reassurance and physical comfort (hand-holding, gentle touch). Avoid arguing about facts or reality.',
+        content: 'Taylor responds exceptionally well to physical reassurance: hand-holding, gentle shoulder/back touch, soft voice. Emotional state often difficult to assess verbally—watch nonverbal cues (facial expression, body tension). Calming techniques: soft music, hand massage, sitting nearby, gentle talking about pleasant memories. Avoid: sudden loud noises, rushed movements, confrontation. Taylor\'s mood dramatically improves with consistent physical comfort. Supervisor note: Consistent, warm staff interaction has reduced agitation incidents by 60%.',
         icon: '❤️'
       }
     ],
     safety: [
       {
-        title: 'Wandering Risk',
-        content: 'MODERATE. Ensure client is supervised in common areas. Door alarms activated. Wears ID bracelet at all times.',
+        title: 'MODERATE Wandering Risk Management',
+        content: 'Wandering risk score: 6/10 (moderate). Taylor has attempted exit-seeking 3 times in past 4 weeks. Safety protocols: Door alarms activated at all times. Wears ID bracelet (updated info quarterly). Supervise in common areas—never leave unsupervised. Redirect gently if heading toward exits ("Let\'s go to the living room instead"). Recent incident: Taylor found near exterior door 10:45 AM—alarm worked, caught in time. Continue vigilance. Note triggers: Agitation increases mid-morning and late afternoon—increase supervision during these windows.',
         icon: '🚪'
       }
     ]
