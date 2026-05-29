@@ -1671,9 +1671,7 @@ function updateSession() {
 
   if (roleViewOverride) {
     const persona = isDemo() ? getDemoPersonaForRole(activeRole) : null;
-    const personaSuffix = activeRole === 'supervisor' && persona?.fullName
-      ? `: ${persona.fullName}`
-      : '';
+    const personaSuffix = persona?.fullName ? `: ${persona.fullName}` : '';
     info.textContent = `${currentUser.fullName} | ${getRoleDisplayLabel(currentUser.role)} (viewing as ${getRoleDisplayLabel(activeRole)}${personaSuffix})`;
   } else {
     info.textContent = `${currentUser.fullName} | ${getRoleDisplayLabel(currentUser.role)}`;
@@ -2590,7 +2588,8 @@ async function renderHomeSection() {
 
   const welcomeTitle = document.getElementById('homeWelcomeTitle');
   const welcomeRole = document.getElementById('homeWelcomeRole');
-  const displayName = currentUser.fullName || currentUser.email || 'Admin';
+  const persona = (roleViewOverride && isDemo()) ? getDemoPersonaForRole(role) : null;
+  const displayName = persona?.fullName || currentUser.fullName || currentUser.email || 'Admin';
   if (welcomeTitle) welcomeTitle.textContent = `Welcome back, ${displayName}`;
 
   // Super admin gets a dedicated dashboard view
@@ -2828,7 +2827,10 @@ async function renderHomeSection() {
           } else {
             homeAlerts.innerHTML = alertsHtml;
           }
-        } catch (_e) {}
+        } catch (_e) {
+          // If tracker feed fetch fails, still render the dashboard drilldown card.
+          homeAlerts.innerHTML = alertsHtml;
+        }
       } else {
         homeAlerts.innerHTML = alertsHtml;
       }
