@@ -53,7 +53,9 @@ const ROLE_PERMISSION_FALLBACK = {
     'reports:export',
     'shifts:handoff:create',
     'shifts:all:read',
-    'legal_records:export'
+    'legal_records:export',
+    'homes:read',
+    'homes:manage'
   ],
   org_admin: [
     'clients:all:read',
@@ -2806,7 +2808,7 @@ function renderClientList(clients) {
   const canArchive = hasPermission('clients:archive');
   const canDelete = hasPermission('clients:delete');
 
-  list.innerHTML = visibleClients.map((c) => `
+  const clientCardHtml = (c) => `
     <div class="data-item" data-client-open-id="${safeText(c._id)}" role="button" tabindex="0" aria-label="Open ${safeText(c.displayName)} in patient workspace">
       <div class="data-item-stack">
         <span class="data-item-label">${safeText(c.displayName)}</span>
@@ -2820,10 +2822,55 @@ function renderClientList(clients) {
         ${canDelete ? `<button type="button" class="btn-danger btn-sm" data-client-action="delete" data-client-id="${safeText(c._id)}">Delete</button>` : ''}
       </div>
     </div>
-  `).join('');
+  `;
+
+  const role = getActiveRole();
+
+  // DSPs: flat list of their own assigned clients
+  if (role === 'dsp') {
+    list.innerHTML = `<p style="font-size:12px;color:var(--muted);margin:0 0 8px;font-weight:600;">Your assigned clients</p>` + visibleClients.map(clientCardHtml).join('');
+    return;
+  }
+
+  // Supervisors, org_admin, super_admin: group by home
+  const grouped = {};
+  const unassigned = [];
+  visibleClients.forEach((c) => {
+    if (c.locationId) {
+      if (!grouped[c.locationId]) grouped[c.locationId] = [];
+      grouped[c.locationId].push(c);
+    } else {
+      unassigned.push(c);
+    }
+  });
+
+  let html = '';
+  Object.entries(grouped).forEach(([locationId, groupClients]) => {
+    const home = homesCache.find((h) => String(h._id) === String(locationId));
+    const homeName = home?.displayName || home?.name || 'Home';
+    html += `<div class="client-home-group">
+      <div class="client-home-group-header">
+        <span class="client-home-group-name">🏠 ${safeText(homeName)}</span>
+        <span class="client-home-group-count">${groupClients.length} client${groupClients.length !== 1 ? 's' : ''}</span>
+      </div>
+      ${groupClients.map(clientCardHtml).join('')}
+    </div>`;
+  });
+
+  if (unassigned.length) {
+    html += `<div class="client-home-group">
+      <div class="client-home-group-header">
+        <span class="client-home-group-name">📋 No Home Assigned</span>
+        <span class="client-home-group-count">${unassigned.length} client${unassigned.length !== 1 ? 's' : ''}</span>
+      </div>
+      ${unassigned.map(clientCardHtml).join('')}
+    </div>`;
+  }
+
+  list.innerHTML = html || '<p class="empty-state">No clients found.</p>';
 }
 
-async function openClientWorkspace(clientId) {
+async function openClientWorkspace(clientId, clientName = '') {
   const patientClientSelect = document.getElementById('patientWorkspaceClientId');
   if (!patientClientSelect) {
     showToast('Patient workspace is not available right now.', 'error');
@@ -2832,11 +2879,16 @@ async function openClientWorkspace(clientId) {
 
   const hasMatchingOption = Array.from(patientClientSelect.options || []).some((option) => option.value === String(clientId));
   if (!hasMatchingOption) {
-    showToast('Could not open this client in patient workspace.', 'error');
-    return;
+    const fallbackClient = clientsCache.find((item) => String(item._id) === String(clientId));
+    const label = clientName || fallbackClient?.displayName || `Client ${String(clientId).slice(-4)}`;
+    const option = document.createElement('option');
+    option.value = String(clientId);
+    option.textContent = label;
+    patientClientSelect.appendChild(option);
   }
 
   patientClientSelect.value = String(clientId);
+  selectedPatientTab = 'care';
   navigateTo('patientWorkspaceSection');
   await loadPatientWorkspace();
 }
@@ -3723,14 +3775,106 @@ function renderOrganizationHomes(organization, homes) {
   }
 
   list.innerHTML = homes.map((home) => `
-    <div class="data-item" style="cursor:default;">
-      <div class="data-item-stack">
-        <span class="data-item-label">${safeText(home.displayName || home.name || 'Unnamed Home')}</span>
-        <span class="data-item-meta">${safeText(home.address || 'No address')} · Status: ${safeText(home.status || 'unknown')}</span>
-        <span class="data-item-meta">Capacity: ${safeText(String(home.maxClients || 0))} · Active Clients: ${safeText(String(home.activeClients || 0))} · Available: ${safeText(String(home.availableCapacity || 0))}</span>
+    <div class="org-home-card" data-org-home-id="${safeText(String(home._id || home.id || ''))}">
+      <div class="org-home-card-header" data-org-home-toggle="${safeText(String(home._id || home.id || ''))}">
+        <div>
+          <div class="org-home-card-title">🏠 ${safeText(home.displayName || home.name || 'Unnamed Home')}</div>
+          <div class="org-home-card-meta">${safeText(home.address || 'No address')} · Capacity: ${safeText(String(home.maxClients || 0))}</div>
+        </div>
+        <span class="org-home-card-badge">${safeText(String(home.activeClients || 0))} clients ▾</span>
+      </div>
+      <div class="org-home-card-clients" id="org-home-clients-${safeText(String(home._id || home.id || ''))}" style="display:none;">
+        <p class="empty-state" style="font-size:12px;padding:6px 0;">Loading clients...</p>
       </div>
     </div>
   `).join('');
+
+  // Attach toggle handlers
+  list.querySelectorAll('[data-org-home-toggle]').forEach((header) => {
+    header.addEventListener('click', () => {
+      const homeId = header.getAttribute('data-org-home-toggle');
+      const clientsPanel = document.getElementById(`org-home-clients-${homeId}`);
+      if (!clientsPanel) return;
+      const isOpen = clientsPanel.style.display !== 'none';
+      clientsPanel.style.display = isOpen ? 'none' : '';
+      const badge = header.querySelector('.org-home-card-badge');
+      if (badge) badge.textContent = badge.textContent.replace(isOpen ? ' ▴' : ' ▾', isOpen ? ' ▾' : ' ▴');
+      if (!isOpen) loadOrgHomeClients(homeId, clientsPanel, organization.id || organization._id);
+    });
+  });
+}
+
+async function loadOrgHomeClients(homeId, panel, orgId) {
+  if (!panel) return;
+  panel.innerHTML = '<p class="empty-state" style="font-size:12px;padding:6px 0;">Loading...</p>';
+
+  try {
+    let clients = [];
+
+    if (isDemo()) {
+      // Use clientsCache if loaded, otherwise fall back to DEMO_CLIENTS
+      const allClients = clientsCache.length ? clientsCache : getDemoClients();
+      clients = allClients.filter((c) => String(c.locationId) === String(homeId) && String(c.status || 'active') !== 'inactive');
+
+      // For org homes that don't have real demo clients, generate synthetic ones
+      if (!clients.length) {
+        const homeEl = document.querySelector(`[data-org-home-id="${homeId}"]`);
+        const badge = homeEl?.querySelector('.org-home-card-badge');
+        const count = badge ? parseInt(badge.textContent) || 0 : 0;
+        clients = Array.from({ length: count }).map((_, i) => ({
+          _id: `${homeId}-client-${i + 1}`,
+          displayName: ['Alex Johnson', 'Morgan Lee', 'Casey Torres', 'Riley Kim', 'Jamie Cruz'][i] || `Client ${i + 1}`,
+          externalId: `SC-${2000 + i + 1}`,
+          locationId: homeId,
+          status: 'active'
+        }));
+      }
+    } else {
+      try {
+        const data = await api(`/api/locations/${encodeURIComponent(homeId)}/clients`);
+        clients = (data.clients || []).filter((c) => String(c.status || 'active') !== 'inactive');
+      } catch (_err) {
+        // Fallback for environments where home-specific client endpoint is unavailable
+        const data = await api('/api/clients');
+        clients = (data.clients || [])
+          .filter((c) => String(c.locationId) === String(homeId))
+          .filter((c) => String(c.status || 'active') !== 'inactive');
+      }
+    }
+
+    if (!clients.length) {
+      panel.innerHTML = '<p class="empty-state" style="font-size:12px;padding:6px 0;">No active clients in this home.</p>';
+      return;
+    }
+
+    panel.innerHTML = clients.map((c) => `
+      <div class="org-client-row" data-org-client-id="${safeText(c._id)}" role="button" tabindex="0" aria-label="View ${safeText(c.displayName)} care profile">
+        <div>
+          <div class="org-client-row-name">${safeText(c.displayName)}</div>
+          <div class="org-client-row-meta">${safeText(c.externalId || '—')} · ${safeText(c.status || 'active')}</div>
+        </div>
+        <span class="org-client-row-arrow">View Care →</span>
+      </div>
+    `).join('');
+
+    panel.querySelectorAll('[data-org-client-id]').forEach((row) => {
+      row.addEventListener('click', () => {
+        const clientId = row.getAttribute('data-org-client-id');
+        const clientName = row.querySelector('.org-client-row-name')?.textContent || '';
+        openClientWorkspace(clientId, clientName);
+      });
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          const clientId = row.getAttribute('data-org-client-id');
+          const clientName = row.querySelector('.org-client-row-name')?.textContent || '';
+          openClientWorkspace(clientId, clientName);
+        }
+      });
+    });
+  } catch (err) {
+    panel.innerHTML = `<p class="empty-state" style="font-size:12px;color:#dc2626;padding:6px 0;">Could not load clients: ${safeText(err.message)}</p>`;
+  }
 }
 
 async function refreshOrganizations() {
