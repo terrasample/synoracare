@@ -41,6 +41,7 @@ const ROLE_PERMISSION_FALLBACK = {
   supervisor: [
     'clients:assigned:read',
     'clients:all:read',
+    'clients:create',
     'users:read',
     'assignments:read',
     'tracker:entry:create',
