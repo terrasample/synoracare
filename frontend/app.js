@@ -227,6 +227,42 @@ const DEMO_ORGANIZATION_HOMES = {
   'unity-org': buildDemoOrgHomes('unity', 19, 'Unity')
 };
 
+const DEMO_FIRST_NAMES = [
+  'Alex', 'Morgan', 'Casey', 'Riley', 'Jamie', 'Jordan', 'Avery', 'Taylor', 'Skyler', 'Parker',
+  'Cameron', 'Drew', 'Quinn', 'Sage', 'Reese', 'Blake', 'Rowan', 'Devon', 'Hayden', 'Logan',
+  'Kai', 'Noah', 'Liam', 'Mia', 'Emma', 'Olivia', 'Sophia', 'Mason', 'Ethan', 'Isabella'
+];
+
+const DEMO_LAST_NAMES = [
+  'Johnson', 'Lee', 'Torres', 'Kim', 'Cruz', 'Miles', 'Brooks', 'Reed', 'Nguyen', 'Patel',
+  'Garcia', 'Walker', 'Bennett', 'Perry', 'Collins', 'Foster', 'Ramirez', 'Bryant', 'Cooper', 'Simmons',
+  'Price', 'Hughes', 'Powell', 'Fisher', 'Ward', 'Bailey', 'Barnes', 'Howard', 'Morgan', 'Rivera'
+];
+
+function demoHash(value) {
+  return String(value || '').split('').reduce((acc, ch) => ((acc * 31) + ch.charCodeAt(0)) % 2147483647, 7);
+}
+
+function buildDemoOrgHomeClients(orgId, homeId, count) {
+  const total = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
+  const orgPrefix = String(orgId || 'org').split('-')[0].toUpperCase();
+
+  return Array.from({ length: total }).map((_, idx) => {
+    const seed = demoHash(`${orgId}:${homeId}:${idx}`);
+    const first = DEMO_FIRST_NAMES[seed % DEMO_FIRST_NAMES.length];
+    const last = DEMO_LAST_NAMES[Math.floor(seed / 7) % DEMO_LAST_NAMES.length];
+    const externalId = `${orgPrefix}-${String(2000 + (seed % 7000)).padStart(4, '0')}`;
+
+    return {
+      _id: `${homeId}-client-${idx + 1}`,
+      displayName: `${first} ${last}`,
+      externalId,
+      locationId: homeId,
+      status: 'active'
+    };
+  });
+}
+
 const DEMO_ORGANIZATIONS = [
   {
     id: 'threshold-org',
@@ -468,7 +504,15 @@ const DEMO_CLIENT_CARE_INFO = {
 };
 
 function getDemoClientCareInfo(clientId, tab) {
-  const clientInfo = DEMO_CLIENT_CARE_INFO[clientId];
+  let clientInfo = DEMO_CLIENT_CARE_INFO[clientId];
+  if (!clientInfo) {
+    // For synthetic demo residents, map to one of the available care templates.
+    const profileIds = Object.keys(DEMO_CLIENT_CARE_INFO);
+    if (profileIds.length) {
+      const fallbackId = profileIds[demoHash(clientId) % profileIds.length];
+      clientInfo = DEMO_CLIENT_CARE_INFO[fallbackId];
+    }
+  }
   if (!clientInfo) return [];
   
   const tabMap = {
@@ -3861,18 +3905,12 @@ async function loadOrgHomeClients(homeId, panel, orgId) {
       const allClients = clientsCache.length ? clientsCache : getDemoClients();
       clients = allClients.filter((c) => String(c.locationId) === String(homeId) && String(c.status || 'active') !== 'inactive');
 
-      // For org homes that don't have real demo clients, generate synthetic ones
+      // For org homes that don't have real demo clients, generate realistic synthetic residents.
       if (!clients.length) {
         const homeEl = document.querySelector(`[data-org-home-id="${homeId}"]`);
         const badge = homeEl?.querySelector('.org-home-card-badge');
         const count = badge ? parseInt(badge.textContent) || 0 : 0;
-        clients = Array.from({ length: count }).map((_, i) => ({
-          _id: `${homeId}-client-${i + 1}`,
-          displayName: ['Alex Johnson', 'Morgan Lee', 'Casey Torres', 'Riley Kim', 'Jamie Cruz'][i] || `Client ${i + 1}`,
-          externalId: `SC-${2000 + i + 1}`,
-          locationId: homeId,
-          status: 'active'
-        }));
+        clients = buildDemoOrgHomeClients(orgId || 'demo-org', homeId, count);
       }
     } else {
       try {
