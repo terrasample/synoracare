@@ -55,8 +55,7 @@ const ROLE_PERMISSION_FALLBACK = {
     'shifts:handoff:create',
     'shifts:all:read',
     'legal_records:export',
-    'homes:read',
-    'homes:manage'
+    'homes:read'
   ],
   org_admin: [
     'clients:all:read',
@@ -3704,6 +3703,9 @@ async function renderHomesList(homes) {
     return;
   }
 
+  const canManageHomes = hasPermission('homes:manage');
+  const canArchiveHomes = hasPermission('homes:archive');
+
   list.innerHTML = homes
     .filter((h) => h.status === 'active')
     .map((h) => `
@@ -3714,8 +3716,8 @@ async function renderHomesList(homes) {
           ${h.phoneNumber ? `<span class="data-item-meta">Phone: ${safeText(h.phoneNumber)}</span>` : ''}
         </div>
         <div class="data-item-actions">
-          <button type="button" class="btn-icon" data-home-id="${h._id}" data-home-action="manage" aria-label="Manage staff">👥</button>
-          <button type="button" class="btn-icon" data-home-id="${h._id}" data-home-action="archive" aria-label="Archive">🗑️</button>
+          ${canManageHomes ? `<button type="button" class="btn-icon" data-home-id="${h._id}" data-home-action="manage" aria-label="Manage staff">👥</button>` : ''}
+          ${canArchiveHomes ? `<button type="button" class="btn-icon" data-home-id="${h._id}" data-home-action="archive" aria-label="Archive">🗑️</button>` : ''}
         </div>
       </div>
     `)
@@ -3728,6 +3730,12 @@ async function renderHomesSection() {
     const list = document.getElementById('homesList');
     if (list) list.innerHTML = '<p class="empty-state">You do not have access to homes management.</p>';
     return;
+  }
+
+  const homeForm = document.getElementById('homeForm');
+  const homeFormColumn = homeForm?.closest('.two-col-left');
+  if (homeFormColumn) {
+    homeFormColumn.style.display = hasPermission('homes:create') ? '' : 'none';
   }
 
   document.getElementById('homeDetailsSection').style.display = 'none';
@@ -3974,6 +3982,11 @@ document.getElementById('homesList')?.addEventListener('click', async (e) => {
 
   try {
     if (action === 'manage') {
+      if (!hasPermission('homes:manage')) {
+        showToast('You do not have permission to manage home staff.', 'error');
+        return;
+      }
+
       // Show staff management UI for this home
       const home = homesCache.find((h) => h._id === homeId);
       if (home) {
@@ -3987,8 +4000,13 @@ document.getElementById('homesList')?.addEventListener('click', async (e) => {
           : '<p class="empty-state">No staff assigned to this home</p>';
       }
     } else if (action === 'archive') {
+      if (!hasPermission('homes:archive')) {
+        showToast('You do not have permission to archive homes.', 'error');
+        return;
+      }
+
       if (confirm('Archive this home? Move or archive all clients first.')) {
-        await api(`/api/locations/${homeId}`, { method: 'PATCH' });
+        await api(`/api/locations/${homeId}/archive`, { method: 'PATCH' });
         await refreshHomes();
         showToast('Home archived.', 'success');
       }
@@ -4152,7 +4170,7 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
         _id: `demo-client-${Date.now()}`,
         displayName: String(payload.displayName || '').trim() || 'Demo Client',
         externalId: String(payload.externalId || '').trim() || `SC-DEMO-${demoClients.length + 1001}`,
-        locationId: String(payload.clientLocationId || '').trim() || null,
+        locationId: String(payload.locationId || '').trim() || null,
         status: 'active'
       };
       demoClients.unshift(nextClient);
