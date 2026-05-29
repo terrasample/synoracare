@@ -109,6 +109,7 @@ const ROLE_PERMISSION_FALLBACK = {
 let token = '';
 let currentUser = null;
 let roleViewOverride = null;
+let supervisorPersonaId = 'demo-user-3';
 let orgRoleDisplayLabels = { ...DEFAULT_ROLE_DISPLAY_LABELS };
 let authContextLoadedForToken = '';
 let clientsCache = [];
@@ -664,7 +665,37 @@ const DEMO_BASE_USERS = [
     shiftPreference: 'Flex',
     certifications: ['Medication Administration', 'Behavior Support', 'Trauma-Informed Care'],
     languages: ['English', 'Spanish'],
-    assignedHomes: ['demo-home-1', 'demo-home-2', 'demo-home-3', 'threshold-home-1', 'threshold-home-2', 'threshold-home-3', 'threshold-home-4']
+    assignedHomes: ['threshold-home-1', 'threshold-home-2', 'threshold-home-3', 'threshold-home-4']
+  },
+  {
+    _id: 'demo-user-6',
+    fullName: 'Marcus Reid',
+    role: 'supervisor',
+    roleDisplayName: DEMO_ROLE_DISPLAY.supervisor,
+    email: 'marcus.reid@synoracare.demo',
+    status: 'active',
+    orgId: 'threshold-org',
+    orgName: 'Threshold Residential Services',
+    yearsExperience: 7,
+    shiftPreference: 'Evening',
+    certifications: ['Behavior Support', 'CPR/First Aid', 'Medication Administration'],
+    languages: ['English'],
+    assignedHomes: ['threshold-home-5', 'threshold-home-6', 'threshold-home-7', 'threshold-home-8']
+  },
+  {
+    _id: 'demo-user-7',
+    fullName: 'Destiny Brown',
+    role: 'supervisor',
+    roleDisplayName: DEMO_ROLE_DISPLAY.supervisor,
+    email: 'destiny.brown@synoracare.demo',
+    status: 'active',
+    orgId: 'threshold-org',
+    orgName: 'Threshold Residential Services',
+    yearsExperience: 5,
+    shiftPreference: 'Day',
+    certifications: ['Trauma-Informed Care', 'Fall Prevention'],
+    languages: ['English', 'French'],
+    assignedHomes: ['threshold-home-9', 'threshold-home-10', 'threshold-home-11', 'threshold-home-12']
   },
   {
     _id: 'demo-user-4',
@@ -831,9 +862,12 @@ function getDemoTrackerEntries() {
     return DEMO_TRACKER_ENTRIES.filter((e) => assignedClientIds.has(e.clientId));
   }
   if (role === 'supervisor') {
-    // Supervisor persona: Camila James (demo-user-3) — entries for her assigned clients
+    // Supervisor persona — entries for clients in their assigned homes
+    const supPersona = getDemoPersonaForRole('supervisor');
+    const supHomeIds = new Set(supPersona?.assignedHomes || []);
+    const supClients = new Set(DEMO_CLIENTS.filter((c) => supHomeIds.has(c.locationId)).map((c) => c._id));
     const assignedClientIds = new Set(
-      DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-3').map((a) => a.clientId)
+      DEMO_ASSIGNMENTS.filter((a) => a.userId === supervisorPersonaId || supClients.has(a.clientId)).map((a) => a.clientId)
     );
     return DEMO_TRACKER_ENTRIES.filter((e) => assignedClientIds.has(e.clientId));
   }
@@ -847,8 +881,11 @@ function getDemoAssignmentsForActiveRole() {
     return DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-1');
   }
   if (role === 'supervisor') {
+    const supPersona2 = getDemoPersonaForRole('supervisor');
+    const supHomeIds2 = new Set(supPersona2?.assignedHomes || []);
     const allowedClients = new Set(
-      DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-3').map((a) => a.clientId)
+      [...DEMO_ASSIGNMENTS.filter((a) => a.userId === supervisorPersonaId).map((a) => a.clientId),
+       ...DEMO_CLIENTS.filter((c) => supHomeIds2.has(c.locationId)).map((c) => c._id)]
     );
     return DEMO_ASSIGNMENTS.filter((a) => allowedClients.has(a.clientId));
   }
@@ -1109,9 +1146,10 @@ function getDemoClients() {
     return sourceClients.filter((c) => assigned.has(c._id)).map((c) => ({ ...c }));
   }
   if (role === 'supervisor') {
-    // Supervisor persona: Camila James (demo-user-3) — sees clients assigned to her
-    const assigned = new Set(DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-3').map((a) => a.clientId));
-    return sourceClients.filter((c) => assigned.has(c._id)).map((c) => ({ ...c }));
+    // Supervisor persona — sees clients in their assigned homes
+    const supPersona3 = getDemoPersonaForRole('supervisor');
+    const supHomeIds3 = new Set(supPersona3?.assignedHomes || []);
+    return sourceClients.filter((c) => supHomeIds3.has(c.locationId)).map((c) => ({ ...c }));
   }
   // org_admin and super_admin see all demo clients
   return sourceClients.map((c) => ({ ...c }));
@@ -1645,6 +1683,10 @@ async function withSubmitLock(form, run, pendingLabel) {
 function getDemoPersonaForRole(role) {
   const normalizedRole = String(role || '').trim();
   if (!normalizedRole) return null;
+  // For supervisor, respect the active persona selection
+  if (normalizedRole === 'supervisor') {
+    return DEMO_BASE_USERS.find((u) => u._id === supervisorPersonaId) || DEMO_BASE_USERS.find((u) => u.role === 'supervisor') || null;
+  }
   return DEMO_BASE_USERS.find((user) => String(user.role || '').trim() === normalizedRole) || null;
 }
 
@@ -1687,6 +1729,21 @@ function updateSession() {
     } else {
       roleViewOverride = null;
       roleSwitcher.style.display = 'none';
+    }
+  }
+
+  // Supervisor persona picker — visible when viewing as supervisor
+  const personaSwitcher = document.getElementById('demoPersonaSwitcher');
+  if (personaSwitcher) {
+    if (canUseRoleSwitcher() && isDemo() && activeRole === 'supervisor') {
+      const supervisorPersonas = DEMO_BASE_USERS.filter((u) => u.role === 'supervisor' && u.orgId === 'threshold-org');
+      personaSwitcher.innerHTML = supervisorPersonas.map((u) =>
+        `<option value="${u._id}">${safeText(u.fullName)}</option>`
+      ).join('');
+      personaSwitcher.value = supervisorPersonaId;
+      personaSwitcher.style.display = '';
+    } else {
+      personaSwitcher.style.display = 'none';
     }
   }
 
@@ -2336,8 +2393,8 @@ async function refreshUsers() {
       const orgId = persona?.orgId || 'threshold-org';
       users = DEMO_USERS.filter((u) => u.orgId === orgId);
     } else if (role === 'supervisor') {
-      // Supervisor persona: Camila James (demo-user-3) — sees users in her assigned homes
-      const persona = DEMO_BASE_USERS.find((u) => u._id === 'demo-user-3');
+      // Supervisor persona — sees users in their assigned homes
+      const persona = getDemoPersonaForRole('supervisor');
       const supervisorHomes = new Set(persona?.assignedHomes || []);
       users = DEMO_USERS.filter(
         (u) => u.orgId === 'threshold-org' &&
@@ -4199,10 +4256,15 @@ async function refreshHomes() {
       const role = getActiveRole();
       let homes;
       if (role === 'supervisor') {
-        // Supervisor persona: Camila James (demo-user-3) — only her assigned homes
-        const persona = DEMO_BASE_USERS.find((u) => u._id === 'demo-user-3');
+        // Supervisor persona — only their assigned homes (search across all org homes)
+        const persona = getDemoPersonaForRole('supervisor');
         const supervisorHomes = new Set(persona?.assignedHomes || []);
-        homes = DEMO_HOMES.filter((h) => supervisorHomes.has(h._id));
+        const orgId = persona?.orgId || 'threshold-org';
+        const allOrgHomes = [
+          ...DEMO_HOMES.filter((h) => h.orgId === orgId),
+          ...(DEMO_ORGANIZATION_HOMES[orgId] || [])
+        ];
+        homes = allOrgHomes.filter((h) => supervisorHomes.has(h._id));
       } else if (role === 'org_admin') {
         // Org admin persona: sees all homes in their organization
         const persona = DEMO_BASE_USERS.find((u) => u._id === 'demo-user-5');
@@ -6298,9 +6360,26 @@ document.getElementById('demoRoleSwitcher')?.addEventListener('change', async (e
   if (!newRole) return;
 
   roleViewOverride = newRole === 'super_admin' ? null : newRole;
+  // Reset dashboard selection state on role change
+  selectedDashboardHomeId = '';
+  selectedDashboardOrgId = '';
   updateSession();
   await refreshAllPickers();
+  renderHomeSection(); // re-render dashboard with fresh homesCache
   showToast(`Viewing as ${getRoleDisplayLabel(getActiveRole())}`, 'success');
+});
+
+document.getElementById('demoPersonaSwitcher')?.addEventListener('change', async (e) => {
+  if (!currentUser || !canUseRoleSwitcher()) return;
+  const newPersonaId = e.target.value;
+  if (!newPersonaId) return;
+  supervisorPersonaId = newPersonaId;
+  selectedDashboardHomeId = '';
+  const persona = getDemoPersonaForRole('supervisor');
+  updateSession();
+  await refreshAllPickers();
+  renderHomeSection();
+  showToast(`Viewing as ${persona?.fullName || 'Supervisor'}`, 'success');
 });
 
 document.getElementById('roleLabelsForm')?.addEventListener('submit', async (e) => {
