@@ -3795,12 +3795,15 @@ function renderOrganizationHomes(organization, homes) {
 
   list.innerHTML = homes.map((home) => `
     <div class="org-home-card" data-org-home-id="${safeText(String(home._id || home.id || ''))}">
-      <div class="org-home-card-header" data-org-home-toggle="${safeText(String(home._id || home.id || ''))}">
+      <div class="org-home-card-header" data-org-home-toggle="${safeText(String(home._id || home.id || ''))}" role="button" tabindex="0" aria-label="Toggle clients for ${safeText(home.displayName || home.name || 'Home')}">
         <div>
           <div class="org-home-card-title">🏠 ${safeText(home.displayName || home.name || 'Unnamed Home')}</div>
           <div class="org-home-card-meta">${safeText(home.address || 'No address')} · Capacity: ${safeText(String(home.maxClients || 0))}</div>
         </div>
         <span class="org-home-card-badge">${safeText(String(home.activeClients || 0))} clients ▾</span>
+      </div>
+      <div style="padding:0 14px 10px;">
+        <button type="button" class="btn-secondary btn-sm" data-org-home-toggle="${safeText(String(home._id || home.id || ''))}">View Clients</button>
       </div>
       <div class="org-home-card-clients" id="org-home-clients-${safeText(String(home._id || home.id || ''))}" style="display:none;">
         <p class="empty-state" style="font-size:12px;padding:6px 0;">Loading clients...</p>
@@ -3808,19 +3811,42 @@ function renderOrganizationHomes(organization, homes) {
     </div>
   `).join('');
 
-  // Attach toggle handlers
-  list.querySelectorAll('[data-org-home-toggle]').forEach((header) => {
-    header.addEventListener('click', () => {
-      const homeId = header.getAttribute('data-org-home-toggle');
-      const clientsPanel = document.getElementById(`org-home-clients-${homeId}`);
-      if (!clientsPanel) return;
-      const isOpen = clientsPanel.style.display !== 'none';
-      clientsPanel.style.display = isOpen ? 'none' : '';
-      const badge = header.querySelector('.org-home-card-badge');
-      if (badge) badge.textContent = badge.textContent.replace(isOpen ? ' ▴' : ' ▾', isOpen ? ' ▾' : ' ▴');
-      if (!isOpen) loadOrgHomeClients(homeId, clientsPanel, organization.id || organization._id);
+  const toggleHomeClients = (homeId) => {
+    if (!homeId) return;
+    const clientsPanel = document.getElementById(`org-home-clients-${homeId}`);
+    if (!clientsPanel) return;
+    const isOpen = clientsPanel.style.display !== 'none';
+    clientsPanel.style.display = isOpen ? 'none' : '';
+
+    // Keep badge arrows in sync for every toggle control of the same home card
+    list.querySelectorAll(`[data-org-home-toggle="${homeId}"]`).forEach((el) => {
+      const card = el.closest('.org-home-card');
+      const badge = card?.querySelector('.org-home-card-badge');
+      if (badge) {
+        const base = badge.textContent.replace(' ▾', '').replace(' ▴', '');
+        badge.textContent = `${base}${isOpen ? ' ▾' : ' ▴'}`;
+      }
     });
-  });
+
+    if (!isOpen) loadOrgHomeClients(homeId, clientsPanel, organization.id || organization._id);
+  };
+
+  // Delegated handlers are more reliable than per-node bindings if cards rerender often.
+  list.onclick = (e) => {
+    const toggleTarget = e.target.closest('[data-org-home-toggle]');
+    if (!toggleTarget) return;
+    const homeId = toggleTarget.getAttribute('data-org-home-toggle');
+    toggleHomeClients(homeId);
+  };
+
+  list.onkeydown = (e) => {
+    if (!(e.key === 'Enter' || e.key === ' ')) return;
+    const toggleTarget = e.target.closest('[data-org-home-toggle]');
+    if (!toggleTarget) return;
+    e.preventDefault();
+    const homeId = toggleTarget.getAttribute('data-org-home-toggle');
+    toggleHomeClients(homeId);
+  };
 }
 
 async function loadOrgHomeClients(homeId, panel, orgId) {
