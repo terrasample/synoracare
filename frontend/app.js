@@ -689,7 +689,9 @@ function updateClientSectionAccess() {
   const form = document.getElementById('clientForm');
   if (!section || !form) return;
 
-  const canCreateClients = hasPermission('clients:create');
+  const role = getActiveRole();
+  const addClientRoles = new Set(['supervisor', 'org_admin', 'super_admin']);
+  const canCreateClients = addClientRoles.has(role) && hasPermission('clients:create');
   const leftColumn = form.closest('.two-col-left');
   if (leftColumn) {
     leftColumn.style.display = canCreateClients ? '' : 'none';
@@ -4127,6 +4129,14 @@ document.getElementById('transferForm')?.addEventListener('submit', async (e) =>
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   await withSubmitLock(e.target, async () => {
+    const role = getActiveRole();
+    const addClientRoles = new Set(['supervisor', 'org_admin', 'super_admin']);
+    const canCreateClients = addClientRoles.has(role) && hasPermission('clients:create');
+    if (!canCreateClients) {
+      showToast('Only Supervisor, Org Admin, and Super Admin can add clients.', 'error');
+      return;
+    }
+
     const payload = Object.fromEntries(new FormData(e.target).entries());
     const selectedSupervisorId = String(payload.supervisorUserId || '').trim();
 
