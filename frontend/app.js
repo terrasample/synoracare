@@ -128,6 +128,8 @@ let selectedPatientTab = 'care';
 let currentPatientWorkspace = { clientId: '', orgId: '', entries: [] };
 let currentPage = '';
 let currentTrackerFeed = [];
+let policyHubData = [];
+let selectedPolicyId = '';
 let trackerStatusFilter = '';
 let selectedDashboardHomeId = '';
 let selectedDashboardOrgId = '';
@@ -1066,6 +1068,7 @@ const PAGE_ACCESS_RULES = {
   askSection: 'ask:approved_guidance:read',
   patientWorkspaceSection: ['clients:assigned:read', 'clients:all:read'],
   careModulesSection: 'tracker:entry:read',
+  policyHubSection: 'tracker:entry:read',
   homesSection: 'homes:read',
   reportingSection: 'reports:export',
   uploadSection: 'documents:upload',
@@ -1258,6 +1261,17 @@ function handlePageNavigation(pageId) {
     loadTrackerFeed()
       .then(() => renderCareModulesSection())
       .catch(() => renderCareModulesSection());
+    return;
+  }
+
+  if (pageId === 'policyHubSection') {
+    const adminPanel = document.getElementById('policyHubAdminPanel');
+    if (adminPanel) {
+      const role = getActiveRole();
+      const canManagePolicies = role === 'org_admin' || role === 'super_admin';
+      adminPanel.style.display = canManagePolicies ? '' : 'none';
+    }
+    loadPolicyHub().catch(() => {});
     return;
   }
 
@@ -2235,6 +2249,149 @@ function renderCareModulesSection() {
     .join('');
 }
 
+function splitCsvValues(value) {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function splitLineValues(value) {
+  return String(value || '')
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function renderPolicyDetail(policy) {
+  const detail = document.getElementById('policyHubDetail');
+  if (!detail) return;
+
+  if (!policy) {
+    detail.innerHTML = '<p class="empty-state">Select a policy to view immediate actions, procedures, reporting requirements, and contacts.</p>';
+    return;
+  }
+
+  const immediateActions = Array.isArray(policy.immediateActions) ? policy.immediateActions : [];
+  const procedureSteps = Array.isArray(policy.procedureSteps) ? policy.procedureSteps : [];
+  const reportingRequirements = Array.isArray(policy.reportingRequirements) ? policy.reportingRequirements : [];
+  const contacts = Array.isArray(policy.contacts) ? policy.contacts : [];
+  const incidentTypes = Array.isArray(policy.incidentTypes) ? policy.incidentTypes : [];
+
+  detail.innerHTML = `
+    <div class="data-item" style="display:block;">
+      <span class="data-item-label">${safeText(policy.title || 'Untitled policy')}</span>
+      <span class="data-item-meta">Category: ${safeText(policy.category || 'uncategorized')} | Version: ${safeText(policy.version || '1.0')}</span>
+      <span class="data-item-meta">Incident Types: ${safeText(incidentTypes.join(', ') || 'none')}</span>
+      <p style="margin:8px 0 0 0;color:#334155;">${safeText(policy.summary || 'No summary provided.')}</p>
+      <div style="margin-top:12px;display:grid;gap:10px;">
+        <div>
+          <strong>Immediate Actions</strong>
+          <ul style="margin:6px 0 0 18px;">${immediateActions.map((step) => `<li>${safeText(step)}</li>`).join('') || '<li>None listed.</li>'}</ul>
+        </div>
+        <div>
+          <strong>Procedure Steps</strong>
+          <ol style="margin:6px 0 0 18px;">${procedureSteps.map((step) => `<li>${safeText(step)}</li>`).join('') || '<li>None listed.</li>'}</ol>
+        </div>
+        <div>
+          <strong>Reporting Requirements</strong>
+          <ul style="margin:6px 0 0 18px;">${reportingRequirements.map((step) => `<li>${safeText(step)}</li>`).join('') || '<li>None listed.</li>'}</ul>
+        </div>
+        <div>
+          <strong>Contacts</strong>
+          <ul style="margin:6px 0 0 18px;">${contacts.map((contact) => `<li>${safeText(contact.role || 'Contact')}${contact.phone ? ` | ${safeText(contact.phone)}` : ''}${contact.email ? ` | ${safeText(contact.email)}` : ''}</li>`).join('') || '<li>None listed.</li>'}</ul>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <button type="button" id="ackPolicyBtn" class="btn-secondary">Acknowledge Policy</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('ackPolicyBtn')?.addEventListener('click', async () => {
+    try {
+      const policyId = policy._id || policy.id || policy.slug;
+      if (!policyId) return;
+      await api(`/api/policies/${encodeURIComponent(policyId)}/ack`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: 'Viewed in SynoraCare Policy Hub' })
+      });
+      showToast('Policy acknowledgement saved.', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
+}
+
+function renderPolicyList(items) {
+  const list = document.getElementById('policyHubList');
+  if (!list) return;
+
+  if (!Array.isArray(items) || !items.length) {
+    list.innerHTML = '<p class="empty-state">No policies found for your organization.</p>';
+    renderPolicyDetail(null);
+    return;
+  }
+
+  list.innerHTML = items.map((policy) => {
+    const policyId = policy._id || policy.id || policy.slug;
+    const incidentText = Array.isArray(policy.incidentTypes) ? policy.incidentTypes.join(', ') : 'none';
+    const isSelected = selectedPolicyId && String(policyId) === String(selectedPolicyId);
+    return `
+      <div class="data-item" role="button" tabindex="0" data-policy-id="${safeText(String(policyId || ''))}" style="cursor:pointer;${isSelected ? 'border-color:#16a34a;background:#f0fdf4;' : ''}">
+        <span class="data-item-label">${safeText(policy.title || 'Untitled policy')}</span>
+        <span class="data-item-meta">Category: ${safeText(policy.category || 'uncategorized')} | Version: ${safeText(policy.version || '1.0')}</span>
+        <span class="data-item-meta">Incident Types: ${safeText(incidentText || 'none')}</span>
+      </div>
+    `;
+  }).join('');
+
+  list.querySelectorAll('[data-policy-id]').forEach((node) => {
+    const open = () => {
+      const id = node.getAttribute('data-policy-id');
+      selectedPolicyId = id || '';
+      const selected = policyHubData.find((item) => String(item._id || item.id || item.slug) === String(id));
+      renderPolicyList(policyHubData);
+      renderPolicyDetail(selected || null);
+    };
+    node.addEventListener('click', open);
+    node.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        open();
+      }
+    });
+  });
+}
+
+async function loadPolicyHub(options = {}) {
+  const params = new URLSearchParams();
+  const incidentType = String(options.incidentType ?? document.getElementById('policyIncidentType')?.value || '').trim();
+  const category = String(options.category ?? document.getElementById('policyCategory')?.value || '').trim();
+  const query = String(options.query ?? document.getElementById('policyQuery')?.value || '').trim();
+
+  if (incidentType) params.set('incidentType', incidentType);
+  if (category) params.set('category', category);
+  if (query) params.set('query', query);
+
+  const route = options.quickIncidentLookup && incidentType
+    ? `/api/policies/incident/${encodeURIComponent(incidentType)}`
+    : `/api/policies${params.toString() ? `?${params.toString()}` : ''}`;
+
+  const data = await api(route);
+  const items = Array.isArray(data.policies) ? data.policies : [];
+  policyHubData = items;
+
+  if (!selectedPolicyId && items[0]) {
+    selectedPolicyId = String(items[0]._id || items[0].id || items[0].slug || '');
+  }
+
+  renderPolicyList(items);
+  const selected = items.find((item) => String(item._id || item.id || item.slug) === String(selectedPolicyId));
+  renderPolicyDetail(selected || items[0] || null);
+}
+
 function buildReportPayload(entries, filters) {
   const filtered = entries.filter((entry) => {
     const matchesClient = !filters.clientId || entry.clientId === filters.clientId;
@@ -2344,13 +2501,22 @@ async function loadReportingSection(formValues = null) {
     currentReportPayload = payload;
     renderReportPayload(payload);
   } catch (error) {
+    // Patch: Show a clear error for 401/403 instead of logging out
+    if (error && error.status && (error.status === 401 || error.status === 403)) {
+      const summaryEl = document.getElementById('reportingSummary');
+      if (summaryEl) summaryEl.innerHTML = `<p class="empty-state">You do not have access to reporting or your session expired. Please log in again.</p>`;
+      const byTypeEl = document.getElementById('reportByType');
+      const recentEl = document.getElementById('reportRecent');
+      if (byTypeEl) byTypeEl.innerHTML = '';
+      if (recentEl) recentEl.innerHTML = '';
+      return;
+    }
     if (isDemo()) {
       const payload = buildReportPayload(DEMO_TRACKER_ENTRIES, filters);
       currentReportPayload = payload;
       renderReportPayload(payload);
       return;
     }
-
     currentReportPayload = null;
     const summaryEl = document.getElementById('reportingSummary');
     const byTypeEl = document.getElementById('reportByType');
@@ -5389,6 +5555,65 @@ document.getElementById('refreshCareModulesBtn')?.addEventListener('click', asyn
   } catch (err) {
     const grid = document.getElementById('careModulesGrid');
     if (grid) grid.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
+  }
+});
+
+document.getElementById('refreshPolicyHubBtn')?.addEventListener('click', async () => {
+  try {
+    await loadPolicyHub();
+  } catch (err) {
+    const list = document.getElementById('policyHubList');
+    if (list) list.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
+  }
+});
+
+document.getElementById('policyFilterForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    selectedPolicyId = '';
+    await loadPolicyHub();
+  } catch (err) {
+    const list = document.getElementById('policyHubList');
+    if (list) list.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
+  }
+});
+
+document.getElementById('policyQuickLookupBtn')?.addEventListener('click', async () => {
+  try {
+    selectedPolicyId = '';
+    await loadPolicyHub({ quickIncidentLookup: true });
+  } catch (err) {
+    const list = document.getElementById('policyHubList');
+    if (list) list.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
+  }
+});
+
+document.getElementById('policyCreateForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const output = document.getElementById('policyAdminOutput');
+
+  try {
+    const payload = {
+      title: String(form.title?.value || '').trim(),
+      incidentTypes: splitCsvValues(form.incidentTypes?.value || ''),
+      summary: String(form.summary?.value || '').trim(),
+      procedureSteps: splitLineValues(form.procedureSteps?.value || '')
+    };
+
+    const data = await api('/api/policies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (output) output.textContent = `Policy created: ${data.policy?.title || payload.title}`;
+    form.reset();
+    await loadPolicyHub();
+    showToast('Policy created successfully.', 'success');
+  } catch (err) {
+    if (output) output.textContent = err.message;
+    showToast(err.message, 'error');
   }
 });
 

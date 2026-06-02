@@ -59,6 +59,10 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="8" height="7" rx="1"/><rect x="13" y="4" width="8" height="7" rx="1"/><rect x="3" y="13" width="8" height="7" rx="1"/><rect x="13" y="13" width="8" height="7" rx="1"/></svg>
           <span class="nav-label">Care Modules</span>
         </button>
+        <button type="button" class="nav-item" data-nav-target="policyHubSection">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M9 7h8"/><path d="M9 11h8"/><path d="M9 15h5"/></svg>
+          <span class="nav-label">Policy Hub</span>
+        </button>
         <button type="button" class="nav-item nav-role-supervisor" data-nav-target="reportingSection">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="11" width="3" height="7" rx="1"/><rect x="11" y="8" width="3" height="10" rx="1"/><rect x="16" y="5" width="3" height="13" rx="1"/></svg>
           <span class="nav-label">Reporting</span>
@@ -982,6 +986,65 @@
         </div>
       </div>
       <div id="careModulesGrid" class="care-modules-grid"></div>
+    </section>
+
+    <section class="page" id="policyHubSection" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2>Policy & Procedure Hub</h2>
+          <p class="page-desc">Organization-specific incident policies, procedures, and acknowledgement tracking.</p>
+        </div>
+        <div class="page-header-actions">
+          <button id="refreshPolicyHubBtn" type="button" class="btn-secondary">Refresh Policies</button>
+        </div>
+      </div>
+
+      <form id="policyFilterForm" class="report-toolbar" style="margin-bottom:12px;">
+        <select id="policyIncidentType" name="incidentType">
+          <option value="">All Incident Types</option>
+          <option value="dsp-injury">DSP Injury</option>
+          <option value="client-injury">Client Injury</option>
+          <option value="medication-error">Medication Error</option>
+          <option value="workplace-injury">Workplace Injury</option>
+          <option value="safety-hazard">Safety Hazard</option>
+          <option value="property-damage">Property Damage</option>
+        </select>
+        <select id="policyCategory" name="category">
+          <option value="">All Categories</option>
+          <option value="health-and-safety">Health & Safety</option>
+          <option value="incident-response">Incident Response</option>
+          <option value="workers-comp">Workers Comp</option>
+          <option value="compliance">Compliance</option>
+          <option value="operations">Operations</option>
+        </select>
+        <input id="policyQuery" name="query" type="text" placeholder="Search policy title, procedure, reporting, OSHA..." />
+        <button type="submit">Search</button>
+        <button id="policyQuickLookupBtn" type="button" class="btn-secondary">Quick Incident Lookup</button>
+      </form>
+
+      <div class="report-panels">
+        <article class="report-panel">
+          <h3>Policy Results</h3>
+          <div id="policyHubList" class="data-list"></div>
+        </article>
+        <article class="report-panel">
+          <h3>Policy Details</h3>
+          <div id="policyHubDetail" class="data-list">
+            <p class="empty-state">Select a policy to view immediate actions, procedures, reporting requirements, and contacts.</p>
+          </div>
+          <div id="policyHubAdminPanel" style="display:none;margin-top:12px;">
+            <h4 style="margin:0 0 8px 0;">Org Admin Actions</h4>
+            <form id="policyCreateForm" style="display:grid;gap:8px;">
+              <input name="title" placeholder="Policy title" required />
+              <input name="incidentTypes" placeholder="Incident types (comma separated)" />
+              <input name="summary" placeholder="Short summary" />
+              <textarea name="procedureSteps" placeholder="Procedure steps (one per line)"></textarea>
+              <button type="submit">Create Policy</button>
+            </form>
+            <pre id="policyAdminOutput" class="output-pre" style="margin-top:8px;"></pre>
+          </div>
+        </article>
+      </div>
     </section>
 
     <!-- ── AUTH: Reporting ──────────────────────────────────────── -->

@@ -16,6 +16,7 @@ const contactRoutes = require('./routes/contact');
 const shiftsRoutes = require('./routes/shifts');
 const locationsRoutes = require('./routes/locations');
 const adminRoutes = require('./routes/admin');
+const policyRoutes = require('./routes/policies');
 
 const app = express();
 
@@ -87,6 +88,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/shifts', shiftsRoutes);
 app.use('/api/locations', locationsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/policies', policyRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
