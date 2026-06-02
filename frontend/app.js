@@ -2152,6 +2152,14 @@ function syncClientPickers() {
     label: `${client.displayName} (${client.externalId || 'no-ext-id'})`
   }));
 
+  // In demo mode with org_admin/super_admin, clientsCache contains homes — populate reportingHomeId
+  if (isDemo() && (getActiveRole() === 'org_admin' || getActiveRole() === 'super_admin')) {
+    setSelectOptions('reportingHomeId', options, 'All Homes');
+    // Reset client dropdown when homes change
+    const clientSelect = document.getElementById('reportingClientId');
+    if (clientSelect) clientSelect.innerHTML = '<option value="">All Clients</option>';
+  }
+
   setSelectOptions('assignmentClientId', options, 'Select Client');
   setSelectOptions('uploadClientId', options, 'Select Client');
   setSelectOptions('askClientId', options, 'Select Client');
@@ -2159,13 +2167,26 @@ function syncClientPickers() {
   setSelectOptions('trackerClientId', options, 'Select Client');
   setSelectOptions('legalRecordsClientId', options, 'Select Client');
   setSelectOptions('patientWorkspaceClientId', options, 'Select Client');
-  setSelectOptions('reportingClientId', options, 'All Clients');
 
   const patientSelect = document.getElementById('patientWorkspaceClientId');
   if (isDemo() && patientSelect && !patientSelect.value && options.length) {
     patientSelect.value = options[0].value;
     loadPatientWorkspace().catch(() => {});
   }
+}
+
+function syncClientsByHome(homeId) {
+  // Populate reportingClientId with residents from the selected home
+  if (!homeId) {
+    const clientSelect = document.getElementById('reportingClientId');
+    if (clientSelect) clientSelect.innerHTML = '<option value="">All Clients</option>';
+    return;
+  }
+  const residentsInHome = DEMO_CLIENTS.filter((c) => c.locationId === homeId).map((c) => ({
+    value: c._id,
+    label: `${c.displayName} (${c.externalId || 'no-ext-id'})`
+  }));
+  setSelectOptions('reportingClientId', residentsInHome, 'All Clients');
 }
 
 function getDemoPatientWorkspaceEntries(clientId) {
@@ -2836,6 +2857,7 @@ function renderReportPayload(payload) {
 
 async function loadReportingSection(formValues = null) {
   const filters = formValues || {
+    homeId: document.getElementById('reportingHomeId')?.value || '',
     clientId: document.getElementById('reportingClientId')?.value || '',
     status: document.getElementById('reportingStatus')?.value || '',
     from: document.getElementById('reportingFrom')?.value || '',
@@ -2844,6 +2866,7 @@ async function loadReportingSection(formValues = null) {
 
   try {
     const params = new URLSearchParams({ limit: '250' });
+    if (filters.homeId) params.set('homeId', filters.homeId);
     if (filters.clientId) params.set('clientId', filters.clientId);
     if (filters.status) params.set('status', filters.status);
     if (filters.from) params.set('from', filters.from);
@@ -6162,11 +6185,16 @@ document.getElementById('reportingForm')?.addEventListener('submit', async (e) =
   e.preventDefault();
   const form = new FormData(e.target);
   await loadReportingSection({
+    homeId: String(form.get('homeId') || ''),
     clientId: String(form.get('clientId') || ''),
     status: String(form.get('status') || ''),
     from: String(form.get('from') || ''),
     to: String(form.get('to') || '')
   });
+});
+
+document.getElementById('reportingHomeId')?.addEventListener('change', (e) => {
+  syncClientsByHome(e.target.value);
 });
 
 document.getElementById('exportReportCsvBtn')?.addEventListener('click', () => {
