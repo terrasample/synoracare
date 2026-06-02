@@ -3046,12 +3046,12 @@ async function api(path, options = {}) {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    if (response.status === 401 && token) {
-      clearAuthSessionState();
-      updateSession();
-      throw new Error('Session expired. Please sign in again.');
-    }
-    throw new Error(data.error || 'Request failed');
+    const errMsg = response.status === 401
+      ? (data.error || 'Session expired. Please sign in again.')
+      : (data.error || 'Request failed');
+    const err = new Error(errMsg);
+    err.status = response.status;
+    throw err;
   }
   return data;
 }
@@ -7036,3 +7036,13 @@ if (currentUser && token) {
     updateSession();
   });
 }
+
+// Global handler: any unhandled 401 means the session expired — log out cleanly.
+window.addEventListener('unhandledrejection', (event) => {
+  if (event.reason && event.reason.status === 401 && token) {
+    event.preventDefault();
+    clearAuthSessionState();
+    updateSession();
+    showToast('Session expired. Please sign in again.', 'error');
+  }
+});
