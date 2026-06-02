@@ -2144,7 +2144,7 @@ function syncClientPickers() {
     const allHomes = Object.values(DEMO_ORGANIZATION_HOMES).flat();
     const homeOptions = allHomes.map((h) => ({ value: h._id, label: h.displayName }));
     setSelectOptions('reportingHomeId', homeOptions, 'All Homes');
-    setSelectOptions('reportingClientId', options, 'All Clients');
+    syncReportingClientDatalist(clientsCache);
   }
 
   setSelectOptions('assignmentClientId', options, 'Select Client');
@@ -2163,8 +2163,33 @@ function syncClientPickers() {
 }
 
 function getClientHomeId(clientId) {
-  // Look up the locationId (homeId) for a given client from clientsCache
   return clientsCache.find((c) => c._id === clientId)?.locationId || '';
+}
+
+function syncReportingClientDatalist(clients) {
+  // Populate the datalist for the searchable client input
+  const datalist = document.getElementById('reportingClientList');
+  if (!datalist) return;
+  datalist.innerHTML = clients.map((c) =>
+    `<option value="${c.displayName} (${c.externalId || 'no-ext-id'})" data-id="${c._id}"></option>`
+  ).join('');
+  // Clear hidden ID and text input when list changes
+  const hiddenInput = document.getElementById('reportingClientId');
+  const textInput = document.getElementById('reportingClientInput');
+  if (hiddenInput) hiddenInput.value = '';
+  if (textInput) textInput.value = '';
+}
+
+function resolveReportingClientId() {
+  // Match typed text against datalist options to get the underlying client ID
+  const textInput = document.getElementById('reportingClientInput');
+  const hiddenInput = document.getElementById('reportingClientId');
+  if (!textInput || !hiddenInput) return;
+  const typed = textInput.value.trim();
+  if (!typed) { hiddenInput.value = ''; return; }
+  const datalist = document.getElementById('reportingClientList');
+  const match = Array.from(datalist?.options || []).find((o) => o.value === typed);
+  hiddenInput.value = match ? match.dataset.id : '';
 }
 
 function getDemoPatientWorkspaceEntries(clientId) {
@@ -6161,40 +6186,35 @@ document.getElementById('careModulesGrid')?.addEventListener('keydown', (e) => {
 
 document.getElementById('reportingForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
+  resolveReportingClientId();
   const form = new FormData(e.target);
   await loadReportingSection({
     homeId: String(form.get('homeId') || ''),
-    clientId: String(form.get('clientId') || ''),
+    clientId: String(document.getElementById('reportingClientId')?.value || ''),  // resolved hidden field
     status: String(form.get('status') || ''),
     from: String(form.get('from') || ''),
     to: String(form.get('to') || '')
   });
 });
 
-// Client selection → auto-fill home
-document.getElementById('reportingClientId')?.addEventListener('change', (e) => {
+// Client text input → resolve ID + auto-fill home
+document.getElementById('reportingClientInput')?.addEventListener('input', (e) => {
   if (!isDemo()) return;
+  resolveReportingClientId();
+  const hiddenInput = document.getElementById('reportingClientId');
+  const clientId = hiddenInput?.value || '';
   const homeSelect = document.getElementById('reportingHomeId');
-  if (!homeSelect) return;
-  homeSelect.value = e.target.value ? getClientHomeId(e.target.value) : '';
+  if (homeSelect) homeSelect.value = clientId ? getClientHomeId(clientId) : '';
 });
 
-// Home selection → filter client list to that home's residents
+// Home selection → filter datalist to that home's residents
 document.getElementById('reportingHomeId')?.addEventListener('change', (e) => {
   if (!isDemo()) return;
   const homeId = e.target.value;
-  const clientSelect = document.getElementById('reportingClientId');
-  if (!clientSelect) return;
-  if (!homeId) {
-    // Restore full client list
-    const allOptions = clientsCache.map((c) => ({ value: c._id, label: `${c.displayName} (${c.externalId || 'no-ext-id'})` }));
-    setSelectOptions('reportingClientId', allOptions, 'All Clients');
-    return;
-  }
-  const filtered = clientsCache
-    .filter((c) => c.locationId === homeId)
-    .map((c) => ({ value: c._id, label: `${c.displayName} (${c.externalId || 'no-ext-id'})` }));
-  setSelectOptions('reportingClientId', filtered, 'All Clients');
+  const filtered = homeId
+    ? clientsCache.filter((c) => c.locationId === homeId)
+    : clientsCache;
+  syncReportingClientDatalist(filtered);
 });
 
 document.getElementById('exportReportCsvBtn')?.addEventListener('click', () => {

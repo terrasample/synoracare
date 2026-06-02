@@ -1104,9 +1104,9 @@
         <select id="reportingHomeId" name="homeId">
           <option value="">All Homes</option>
         </select>
-        <select id="reportingClientId" name="clientId">
-          <option value="">All Clients</option>
-        </select>
+        <input id="reportingClientInput" name="clientName" type="text" placeholder="Search client by name…" autocomplete="off" list="reportingClientList" />
+        <datalist id="reportingClientList"></datalist>
+        <input id="reportingClientId" name="clientId" type="hidden" />
         <select id="reportingStatus" name="status">
           <option value="">All Statuses</option>
           <option value="pending">Pending</option>
