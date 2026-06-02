@@ -901,6 +901,7 @@ const DEMO_TRACKER_SUMMARY = {
   completed: 3,
   total: 10,
   overdue: 0
+};
 
 const DEMO_POLICIES = [
   {
@@ -948,7 +949,6 @@ const DEMO_POLICIES = [
     contacts: [{ role: 'Compliance Officer', phone: '(800) 555-0120', email: 'compliance@synoracare.ai' }]
   }
 ];
-};
 
 const DEMO_SHIFT_MONITOR = {
   activeCount: 2,
@@ -2672,9 +2672,9 @@ function syncPolicyOrgSwitcher() {
 }
 
 async function loadPolicyHub(options = {}) {
-  const incidentType = String(options.incidentType ?? document.getElementById('policyIncidentType')?.value || '').trim();
-  const category = String(options.category ?? document.getElementById('policyCategory')?.value || '').trim();
-  const query = String(options.query ?? document.getElementById('policyQuery')?.value || '').trim();
+  const incidentType = String((options.incidentType ?? document.getElementById('policyIncidentType')?.value) || '').trim();
+  const category = String((options.category ?? document.getElementById('policyCategory')?.value) || '').trim();
+  const query = String((options.query ?? document.getElementById('policyQuery')?.value) || '').trim();
 
   // Demo mode — use static demo policies, no API call needed
   if (isDemo()) {
