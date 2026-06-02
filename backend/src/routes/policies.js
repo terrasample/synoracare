@@ -587,7 +587,7 @@ router.post('/:id/ack', requirePermissions('policies:ack'), async (req, res) => 
     await AuditEvent.create({
       orgId: resolveOrgId(req),
       userId: req.user._id,
-      eventType: 'security_alert',
+      eventType: 'policy_event',
       payload: {
         action: 'policy_acknowledged',
         policyId: policy._id,
@@ -641,7 +641,7 @@ router.post('/', requirePermissions('policies:create'), async (req, res) => {
     await AuditEvent.create({
       orgId: resolveOrgId(req),
       userId: req.user._id,
-      eventType: 'security_alert',
+      eventType: 'policy_event',
       payload: {
         action: 'policy_created',
         policyId: policy._id,
@@ -706,7 +706,7 @@ router.put('/:id', requirePermissions('policies:update'), async (req, res) => {
     await AuditEvent.create({
       orgId: resolveOrgId(req),
       userId: req.user._id,
-      eventType: 'security_alert',
+      eventType: 'policy_event',
       payload: {
         action: 'policy_updated',
         policyId: policy._id,
@@ -738,6 +738,12 @@ router.post('/:id/submit-review', requirePermissions('policies:submit_review'), 
     await policy.save();
 
     await recordRevision(policy, req.user._id, 'submit_review', 'Policy submitted for review');
+    await AuditEvent.create({
+      orgId: resolveOrgId(req),
+      userId: req.user._id,
+      eventType: 'policy_event',
+      payload: { action: 'policy_submitted_review', policyId: policy._id, slug: policy.slug }
+    });
 
     return res.json({ ok: true, policy: policy.toObject() });
   } catch (error) {
@@ -777,6 +783,12 @@ router.post('/:id/approve-publish', requirePermissions('policies:approve'), asyn
       message: hasPublishedBefore
         ? `Policy updated: ${policy.title} (v${policy.version})`
         : `New policy published: ${policy.title} (v${policy.version})`
+    });
+    await AuditEvent.create({
+      orgId: resolveOrgId(req),
+      userId: req.user._id,
+      eventType: 'policy_event',
+      payload: { action: 'policy_published', policyId: policy._id, slug: policy.slug, version: policy.version }
     });
 
     return res.json({ ok: true, policy: policy.toObject() });
@@ -831,6 +843,12 @@ router.post('/:id/rollback/:revisionId', requirePermissions('policies:rollback')
       type: 'policy_updated',
       message: `Policy rollback published: ${policy.title} (v${policy.version})`
     });
+    await AuditEvent.create({
+      orgId: resolveOrgId(req),
+      userId: req.user._id,
+      eventType: 'policy_event',
+      payload: { action: 'policy_rollback', policyId: policy._id, slug: policy.slug, restoredFromRevision: revision._id }
+    });
 
     return res.json({ ok: true, policy: policy.toObject(), restoredFromRevision: revision._id });
   } catch (error) {
@@ -865,7 +883,7 @@ async function archivePolicyById(req, res) {
     await AuditEvent.create({
       orgId: resolveOrgId(req),
       userId: req.user._id,
-      eventType: 'security_alert',
+      eventType: 'policy_event',
       payload: {
         action: 'policy_archived',
         policyId: policy._id,

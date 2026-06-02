@@ -1035,8 +1035,16 @@
           </div>
           <div id="policyHubAdminPanel" style="display:none;margin-top:12px;">
             <h4 style="margin:0 0 8px 0;">Org Admin Actions</h4>
+            <button id="policyRestoreBtn" type="button" class="btn-secondary" style="display:none;margin-bottom:10px;">Restore to Draft</button>
             <form id="policyCreateForm" style="display:grid;gap:8px;">
               <input name="title" placeholder="Policy title" required />
+              <select name="category">
+                <option value="incident-response">Incident Response</option>
+                <option value="health-and-safety">Health &amp; Safety</option>
+                <option value="workers-comp">Workers Comp</option>
+                <option value="compliance">Compliance</option>
+                <option value="operations">Operations</option>
+              </select>
               <input name="incidentTypes" placeholder="Incident types (comma separated)" />
               <input name="summary" placeholder="Short summary" />
               <textarea name="procedureSteps" placeholder="Procedure steps (one per line)"></textarea>

@@ -152,6 +152,8 @@ let currentPage = '';
 let currentTrackerFeed = [];
 let policyHubData = [];
 let selectedPolicyId = '';
+let policyListPage = 0;
+const POLICY_PAGE_SIZE = 10;
 let policyHistoryData = [];
 let policyReadReceiptsData = [];
 let policyNotificationsData = [];
@@ -2309,6 +2311,13 @@ function syncPolicyEditor(policy) {
   const form = document.getElementById('policyEditForm');
   if (!form) return;
 
+  const isArchived = String(policy?.workflowStatus || '') === 'archived';
+  const restoreBtn = document.getElementById('policyRestoreBtn');
+
+  // Hide edit/workflow actions for archived policies; show Restore button instead
+  form.style.display = isArchived ? 'none' : '';
+  if (restoreBtn) restoreBtn.style.display = isArchived && hasPermission('policies:update') ? '' : 'none';
+
   form.policyId.value = String(policy?._id || policy?.id || policy?.slug || '');
   form.title.value = String(policy?.title || '');
   form.category.value = String(policy?.category || '');
@@ -2514,7 +2523,18 @@ function renderPolicyList(items) {
     return;
   }
 
-  list.innerHTML = items.map((policy) => {
+  const totalPages = Math.ceil(items.length / POLICY_PAGE_SIZE);
+  if (policyListPage >= totalPages) policyListPage = Math.max(0, totalPages - 1);
+  const pageItems = items.slice(policyListPage * POLICY_PAGE_SIZE, (policyListPage + 1) * POLICY_PAGE_SIZE);
+
+  const pagination = totalPages > 1 ? `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.82rem;">
+      <button type="button" id="policyPagePrev" class="btn-secondary" style="padding:2px 10px;" ${policyListPage === 0 ? 'disabled' : ''}>&laquo; Prev</button>
+      <span>Page ${policyListPage + 1} of ${totalPages}</span>
+      <button type="button" id="policyPageNext" class="btn-secondary" style="padding:2px 10px;" ${policyListPage >= totalPages - 1 ? 'disabled' : ''}>Next &raquo;</button>
+    </div>` : '';
+
+  list.innerHTML = pageItems.map((policy) => {
     const policyId = policy._id || policy.id || policy.slug;
     const incidentText = Array.isArray(policy.incidentTypes) ? policy.incidentTypes.join(', ') : 'none';
     const isSelected = selectedPolicyId && String(policyId) === String(selectedPolicyId);
@@ -2526,7 +2546,7 @@ function renderPolicyList(items) {
         <span class="data-item-meta">Incident Types: ${safeText(incidentText || 'none')}</span>
       </div>
     `;
-  }).join('');
+  }).join('') + pagination;
 
   list.querySelectorAll('[data-policy-id]').forEach((node) => {
     const open = () => {
@@ -2546,6 +2566,13 @@ function renderPolicyList(items) {
         open();
       }
     });
+  });
+
+  document.getElementById('policyPagePrev')?.addEventListener('click', () => {
+    if (policyListPage > 0) { policyListPage--; renderPolicyList(policyHubData); }
+  });
+  document.getElementById('policyPageNext')?.addEventListener('click', () => {
+    if ((policyListPage + 1) * POLICY_PAGE_SIZE < policyHubData.length) { policyListPage++; renderPolicyList(policyHubData); }
   });
 }
 
@@ -2604,6 +2631,7 @@ async function loadPolicyHub(options = {}) {
     const data = await api(route);
     const items = Array.isArray(data.policies) ? data.policies : [];
     policyHubData = items;
+    policyListPage = 0;
 
     if (!selectedPolicyId && items[0]) {
       selectedPolicyId = String(items[0]._id || items[0].id || items[0].slug || '');
@@ -5871,6 +5899,7 @@ document.getElementById('policyCreateForm')?.addEventListener('submit', async (e
   try {
     const payload = {
       title: String(form.title?.value || '').trim(),
+      category: String(form.category?.value || 'incident-response').trim(),
       incidentTypes: splitCsvValues(form.incidentTypes?.value || ''),
       summary: String(form.summary?.value || '').trim(),
       procedureSteps: splitLineValues(form.procedureSteps?.value || '')
@@ -5974,6 +6003,28 @@ document.getElementById('policyArchiveBtn')?.addEventListener('click', async () 
     if (output) output.textContent = 'Policy archived.';
     await Promise.all([loadPolicyHub(), loadPolicyNotifications()]);
     showToast('Policy archived.', 'success');
+  } catch (err) {
+    if (output) output.textContent = err.message;
+    showToast(err.message, 'error');
+  }
+});
+
+document.getElementById('policyRestoreBtn')?.addEventListener('click', async () => {
+  const output = document.getElementById('policyAdminOutput');
+  try {
+    if (!selectedPolicyId) throw new Error('Select a policy first.');
+    const selected = getSelectedPolicy();
+    const confirmed = window.confirm(`Restore "${selected?.title || 'this policy'}" to draft?`);
+    if (!confirmed) return;
+    // Restore = PUT with only isActive:true + workflowStatus restore via update endpoint
+    await api(`/api/policies/${encodeURIComponent(selectedPolicyId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: selected?.title || '', isActive: true })
+    });
+    if (output) output.textContent = 'Policy restored to draft.';
+    await loadPolicyHub();
+    showToast('Policy restored to draft. Submit it for review to republish.', 'success');
   } catch (err) {
     if (output) output.textContent = err.message;
     showToast(err.message, 'error');

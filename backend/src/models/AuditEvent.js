@@ -19,7 +19,8 @@ const AuditEventSchema = new mongoose.Schema(
         'tracker_entry',
         'tracker_status_update',
         'password_reset',
-        'legal_records_export'
+        'legal_records_export',
+        'policy_event'
       ],
       required: true
     },
