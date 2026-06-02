@@ -975,9 +975,11 @@ const DEMO_SHIFT_MONITOR = {
 function getDemoTrackerEntries() {
   const role = getActiveRole();
   if (role === 'dsp') {
-    // DSP persona: Nia Carter (demo-user-1) — only entries for her assigned clients
+    // DSP persona — only entries for assigned clients
+    const dspPersona = getDemoPersonaForRole('dsp');
+    const dspUserId = String(dspPersona?._id || 'demo-user-1');
     const assignedClientIds = new Set(
-      DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-1').map((a) => a.clientId)
+      DEMO_ASSIGNMENTS.filter((a) => String(a.userId) === dspUserId).map((a) => a.clientId)
     );
     return DEMO_TRACKER_ENTRIES.filter((e) => assignedClientIds.has(e.clientId));
   }
@@ -998,7 +1000,9 @@ function getDemoTrackerEntries() {
 function getDemoAssignmentsForActiveRole() {
   const role = getActiveRole();
   if (role === 'dsp') {
-    return DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-1');
+    const dspPersona = getDemoPersonaForRole('dsp');
+    const dspUserId = String(dspPersona?._id || 'demo-user-1');
+    return DEMO_ASSIGNMENTS.filter((a) => String(a.userId) === dspUserId);
   }
   if (role === 'supervisor') {
     const supPersona2 = getDemoPersonaForRole('supervisor');
@@ -1122,6 +1126,14 @@ function canAccessPage(pageId) {
     return pageId === 'loginSection';
   }
 
+  const activeRole = String(getActiveRole() || '').trim();
+  if (activeRole === 'dsp') {
+    // DSP experience stays focused on Ask + Policy Hub.
+    if (pageId === 'trackerSection' || pageId === 'breakGlassSection') {
+      return false;
+    }
+  }
+
   const requiredPermission = PAGE_ACCESS_RULES[pageId];
   if (!requiredPermission) return true;
 
@@ -1221,8 +1233,10 @@ function getDemoClients() {
   }
 
   if (role === 'dsp') {
-    // DSP persona: Nia Carter (demo-user-1) — sees only her assigned clients
-    const assigned = new Set(DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-1').map((a) => a.clientId));
+    // DSP persona — sees only assigned clients
+    const dspPersona = getDemoPersonaForRole('dsp');
+    const dspUserId = String(dspPersona?._id || 'demo-user-1');
+    const assigned = new Set(DEMO_ASSIGNMENTS.filter((a) => String(a.userId) === dspUserId).map((a) => a.clientId));
     return DEMO_CLIENTS.filter((c) => assigned.has(c._id)).map((c) => ({ ...c }));
   }
   if (role === 'supervisor') {
@@ -1783,17 +1797,18 @@ async function withSubmitLock(form, run, pendingLabel) {
 function getDemoPersonaForRole(role) {
   const normalizedRole = String(role || '').trim();
   if (!normalizedRole) return null;
+  const demoPool = Array.isArray(DEMO_USERS) && DEMO_USERS.length ? DEMO_USERS : DEMO_BASE_USERS;
   // For supervisor, DSP, org_admin, respect the active persona selection
   if (normalizedRole === 'supervisor') {
-    return DEMO_BASE_USERS.find((u) => u._id === supervisorPersonaId) || DEMO_BASE_USERS.find((u) => u.role === 'supervisor') || null;
+    return demoPool.find((u) => u._id === supervisorPersonaId) || demoPool.find((u) => u.role === 'supervisor') || null;
   }
   if (normalizedRole === 'dsp') {
-    return DEMO_BASE_USERS.find((u) => u._id === window.dspPersonaId) || DEMO_BASE_USERS.find((u) => u.role === 'dsp') || null;
+    return demoPool.find((u) => u._id === window.dspPersonaId) || demoPool.find((u) => u.role === 'dsp') || null;
   }
   if (normalizedRole === 'org_admin') {
-    return DEMO_BASE_USERS.find((u) => u._id === window.orgAdminPersonaId) || DEMO_BASE_USERS.find((u) => u.role === 'org_admin') || null;
+    return demoPool.find((u) => u._id === window.orgAdminPersonaId) || demoPool.find((u) => u.role === 'org_admin') || null;
   }
-  return DEMO_BASE_USERS.find((user) => String(user.role || '').trim() === normalizedRole) || null;
+  return demoPool.find((user) => String(user.role || '').trim() === normalizedRole) || null;
 }
 
 function updateSession() {
@@ -1844,14 +1859,15 @@ function updateSession() {
     let personas = [];
     let currentId = '';
     if (canUseRoleSwitcher() && isDemo()) {
+      const scopeOrgId = String(getDemoPersonaForRole('org_admin')?.orgId || 'threshold-org');
       if (activeRole === 'supervisor') {
-        personas = DEMO_BASE_USERS.filter((u) => u.role === 'supervisor' && u.orgId === 'threshold-org');
+        personas = DEMO_USERS.filter((u) => u.role === 'supervisor' && u.orgId === scopeOrgId);
         currentId = supervisorPersonaId;
       } else if (activeRole === 'dsp') {
-        personas = DEMO_BASE_USERS.filter((u) => u.role === 'dsp' && u.orgId === 'threshold-org');
+        personas = DEMO_USERS.filter((u) => u.role === 'dsp' && u.orgId === scopeOrgId);
         currentId = window.dspPersonaId || personas[0]?._id || '';
       } else if (activeRole === 'org_admin') {
-        personas = DEMO_BASE_USERS.filter((u) => u.role === 'org_admin' && u.orgId === 'threshold-org');
+        personas = DEMO_USERS.filter((u) => u.role === 'org_admin');
         currentId = window.orgAdminPersonaId || personas[0]?._id || '';
       }
     }
@@ -3306,8 +3322,8 @@ async function refreshUsers() {
     const role = getActiveRole();
     let users;
     if (role === 'org_admin') {
-      // Org admin persona: Priya Nair (demo-user-5) — sees only users in her org
-      const persona = DEMO_BASE_USERS.find((u) => u._id === 'demo-user-5');
+      // Org admin persona — sees only users in their org
+      const persona = getDemoPersonaForRole('org_admin');
       const orgId = persona?.orgId || 'threshold-org';
       users = DEMO_USERS.filter((u) => u.orgId === orgId);
     } else if (role === 'supervisor') {
@@ -3322,7 +3338,9 @@ async function refreshUsers() {
       if (!users.length) users = DEMO_BASE_USERS.filter((u) => u.orgId === 'threshold-org');
     } else if (role === 'dsp') {
       // DSP sees only themselves
-      users = DEMO_BASE_USERS.filter((u) => u._id === 'demo-user-1');
+      const persona = getDemoPersonaForRole('dsp');
+      const dspUserId = String(persona?._id || 'demo-user-1');
+      users = DEMO_USERS.filter((u) => String(u._id) === dspUserId);
     } else {
       users = DEMO_USERS;
     }
