@@ -901,6 +901,53 @@ const DEMO_TRACKER_SUMMARY = {
   completed: 3,
   total: 10,
   overdue: 0
+
+const DEMO_POLICIES = [
+  {
+    _id: 'demo-policy-1', id: 'demo-policy-1', slug: 'dsp-injury-response-procedure',
+    title: 'DSP Injury Response Procedure', category: 'health-and-safety',
+    version: '1.0', currentVersion: 1, workflowStatus: 'published', isActive: true,
+    incidentTypes: ['dsp-injury', 'workplace-injury'],
+    summary: 'Immediate response workflow when a DSP is injured while on shift.',
+    immediateActions: ['Ensure scene is safe and remove immediate hazards.', 'Call 911 for severe injuries and notify supervisor immediately.', 'Provide first aid until trained medical help arrives.'],
+    procedureSteps: ['Open incident case in SynoraCare within 30 minutes.', 'Capture facts, witnesses, and contributing conditions.', 'Submit workers compensation intake before shift end.', 'Schedule return-to-work review within 24 hours.'],
+    reportingRequirements: ['Incident report due within 2 hours.', 'Supervisor review due same shift.'],
+    contacts: [{ role: 'On-Call Supervisor', phone: '(800) 555-0101', email: 'oncall@synoracare.ai' }]
+  },
+  {
+    _id: 'demo-policy-2', id: 'demo-policy-2', slug: 'client-injury-escalation-procedure',
+    title: 'Client Injury Escalation Procedure', category: 'incident-response',
+    version: '1.0', currentVersion: 1, workflowStatus: 'published', isActive: true,
+    incidentTypes: ['client-injury'],
+    summary: 'Protect client safety first, escalate quickly, then complete required reporting.',
+    immediateActions: ['Stabilize client and call emergency services if needed.', 'Notify nurse/clinical lead and supervisor.', 'Stay with client until handoff is complete.'],
+    procedureSteps: ['Complete immediate assessment and document observations.', 'Notify guardian/responsible party per care plan.', 'Log incident details and follow-up actions in tracker.'],
+    reportingRequirements: ['Initial incident log created immediately.', 'Final incident report completed before shift end.'],
+    contacts: [{ role: 'Clinical On-Call', phone: '(800) 555-0110', email: 'clinical@synoracare.ai' }]
+  },
+  {
+    _id: 'demo-policy-3', id: 'demo-policy-3', slug: 'medication-error-immediate-response',
+    title: 'Medication Error Immediate Response', category: 'incident-response',
+    version: '1.0', currentVersion: 1, workflowStatus: 'published', isActive: true,
+    incidentTypes: ['medication-error'],
+    summary: 'Steps for handling medication errors and coordinating urgent clinical follow-up.',
+    immediateActions: ['Assess client condition immediately.', 'Notify nurse/clinical lead and supervisor.', 'Call emergency services if symptoms indicate acute risk.'],
+    procedureSteps: ['Document medication variance and timeline.', 'Complete physician or nurse follow-up documentation.', 'Record corrective actions and coaching steps.'],
+    reportingRequirements: ['Clinical escalation immediate.', 'Variance report before shift close.'],
+    contacts: [{ role: 'Medication Safety Lead', phone: '(800) 555-0140', email: 'medsafety@synoracare.ai' }]
+  },
+  {
+    _id: 'demo-policy-4', id: 'demo-policy-4', slug: 'incident-reporting-investigation-sop',
+    title: 'Incident Reporting and Investigation SOP', category: 'compliance',
+    version: '1.0', currentVersion: 1, workflowStatus: 'published', isActive: true,
+    incidentTypes: ['dsp-injury', 'client-injury', 'medication-error', 'safety-hazard', 'property-damage'],
+    summary: 'Standardized incident classification, investigation, and closure process.',
+    immediateActions: ['Classify incident severity and escalation tier.', 'Escalate high-severity incidents to leadership immediately.', 'Preserve scene details and witness notes.'],
+    procedureSteps: ['Create incident case and assign owner.', 'Collect timeline, witness, and supporting documentation.', 'Record root cause and preventive actions.', 'Close after approvals and action verification.'],
+    reportingRequirements: ['All incidents logged same day.', 'Monthly incident trend review with leadership.'],
+    contacts: [{ role: 'Compliance Officer', phone: '(800) 555-0120', email: 'compliance@synoracare.ai' }]
+  }
+];
 };
 
 const DEMO_SHIFT_MONITOR = {
@@ -2401,6 +2448,18 @@ function renderPolicyReadReceipts(rows) {
 
 async function loadPolicyReadReceipts() {
   if (!hasPermission('policies:read_receipts')) return;
+  if (isDemo()) {
+    const demoReceipts = DEMO_POLICIES.map((p, i) => ({
+      policyId: p._id, title: p.title, slug: p.slug, version: p.version,
+      totalUsers: 8, acknowledgedCount: [6, 5, 4, 8][i] || 4,
+      pendingCount: [2, 3, 4, 0][i] || 2,
+      coveragePct: [75, 63, 50, 100][i] || 50,
+      acknowledgedUsers: [], pendingUsers: []
+    }));
+    policyReadReceiptsData = demoReceipts;
+    renderPolicyReadReceipts(demoReceipts);
+    return;
+  }
   const data = await api('/api/policies/dashboard/read-receipts');
   policyReadReceiptsData = Array.isArray(data.readReceipts) ? data.readReceipts : [];
   renderPolicyReadReceipts(policyReadReceiptsData);
@@ -2443,6 +2502,11 @@ function renderPolicyNotifications(items) {
 
 async function loadPolicyNotifications() {
   if (!hasPermission('policies:notifications:read')) return;
+  if (isDemo()) {
+    policyNotificationsData = [];
+    renderPolicyNotifications([]);
+    return;
+  }
   const data = await api('/api/policies/notifications/me');
   policyNotificationsData = Array.isArray(data.notifications) ? data.notifications : [];
   renderPolicyNotifications(policyNotificationsData);
@@ -2489,9 +2553,7 @@ function renderPolicyDetail(policy) {
           <ul style="margin:6px 0 0 18px;">${contacts.map((contact) => `<li>${safeText(contact.role || 'Contact')}${contact.phone ? ` | ${safeText(contact.phone)}` : ''}${contact.email ? ` | ${safeText(contact.email)}` : ''}</li>`).join('') || '<li>None listed.</li>'}</ul>
         </div>
       </div>
-      <div style="margin-top:10px;">
-        <button type="button" id="ackPolicyBtn" class="btn-secondary">Acknowledge Policy</button>
-      </div>
+      ${workflowStatus === 'published' ? `<div style="margin-top:10px;"><button type="button" id="ackPolicyBtn" class="btn-secondary">Acknowledge Policy</button></div>` : ''}
     </div>
   `;
 
@@ -2501,6 +2563,7 @@ function renderPolicyDetail(policy) {
     try {
       const policyId = policy._id || policy.id || policy.slug;
       if (!policyId) return;
+      if (isDemo()) { showToast('Policy acknowledgement saved.', 'success'); return; }
       await api(`/api/policies/${encodeURIComponent(policyId)}/ack`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2609,11 +2672,33 @@ function syncPolicyOrgSwitcher() {
 }
 
 async function loadPolicyHub(options = {}) {
-  const params = new URLSearchParams();
   const incidentType = String(options.incidentType ?? document.getElementById('policyIncidentType')?.value || '').trim();
   const category = String(options.category ?? document.getElementById('policyCategory')?.value || '').trim();
   const query = String(options.query ?? document.getElementById('policyQuery')?.value || '').trim();
 
+  // Demo mode — use static demo policies, no API call needed
+  if (isDemo()) {
+    let items = [...DEMO_POLICIES];
+    if (options.quickIncidentLookup && incidentType) {
+      items = items.filter((p) => (p.incidentTypes || []).includes(incidentType));
+    } else {
+      if (incidentType) items = items.filter((p) => (p.incidentTypes || []).includes(incidentType));
+      if (category) items = items.filter((p) => p.category === category);
+      if (query) {
+        const q = query.toLowerCase();
+        items = items.filter((p) => `${p.title} ${p.summary} ${(p.procedureSteps || []).join(' ')}`.toLowerCase().includes(q));
+      }
+    }
+    policyHubData = items;
+    policyListPage = 0;
+    if (!selectedPolicyId && items[0]) selectedPolicyId = String(items[0]._id || items[0].id || '');
+    renderPolicyList(items);
+    const selected = items.find((p) => String(p._id || p.id) === String(selectedPolicyId));
+    renderPolicyDetail(selected || items[0] || null);
+    return;
+  }
+
+  const params = new URLSearchParams();
   if (incidentType) params.set('incidentType', incidentType);
   if (category) params.set('category', category);
   if (query) params.set('query', query);
@@ -5851,12 +5936,11 @@ document.getElementById('usersList')?.addEventListener('click', async (e) => {
   if (!btn) return;
   const userId = btn.dataset.grantPolicyManager;
   const isManager = btn.dataset.isPolicyManager === 'true';
-  const { POLICY_MANAGER_PERMISSIONS } = window._policyManagerPermissions || {};
-  const newPerms = isManager ? [] : (POLICY_MANAGER_PERMISSIONS || [
-    'policies:create','policies:update','policies:archive',
-    'policies:submit_review','policies:approve','policies:history:read',
-    'policies:rollback','policies:read_receipts'
-  ]);
+  const newPerms = isManager ? [] : [
+    'policies:create', 'policies:update', 'policies:archive',
+    'policies:submit_review', 'policies:approve', 'policies:history:read',
+    'policies:rollback', 'policies:read_receipts'
+  ];
   try {
     await api(`/api/assignments/users/${encodeURIComponent(userId)}/policy-permissions`, {
       method: 'PATCH',

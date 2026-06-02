@@ -1053,7 +1053,14 @@
             <form id="policyEditForm" style="display:grid;gap:8px;margin-top:12px;">
               <input name="policyId" type="hidden" />
               <input name="title" placeholder="Edit title" required />
-              <input name="category" placeholder="Category (incident-response, compliance...)" />
+              <select name="category">
+                <option value="">-- Category --</option>
+                <option value="health-and-safety">Health &amp; Safety</option>
+                <option value="incident-response">Incident Response</option>
+                <option value="workers-comp">Workers Comp</option>
+                <option value="compliance">Compliance</option>
+                <option value="operations">Operations</option>
+              </select>
               <input name="incidentTypes" placeholder="Incident types (comma separated)" />
               <input name="summary" placeholder="Edit summary" />
               <textarea name="procedureSteps" placeholder="Edit procedure steps (one per line)"></textarea>
