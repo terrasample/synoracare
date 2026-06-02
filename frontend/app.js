@@ -3072,7 +3072,9 @@ async function loadReportingSection(formValues = null) {
       if (recentEl) recentEl.innerHTML = '';
       return;
     }
-    if (isDemo()) {
+    // Reporting should still render demo data whenever demo mode is enabled,
+    // even if role switcher permissions are unavailable for the current user.
+    if (demoMode) {
       const payload = buildReportPayload(DEMO_TRACKER_ENTRIES, filters);
       currentReportPayload = payload;
       renderReportPayload(payload);
