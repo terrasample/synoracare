@@ -32,14 +32,8 @@ const DEFAULT_ROLE_DISPLAY_LABELS = {
 const ROLE_PERMISSION_FALLBACK = {
   dsp: [
     'clients:assigned:read',
-    'tracker:entry:create',
-    'tracker:entry:read',
+    'homes:read',
     'ask:approved_guidance:read',
-    'shifts:handoff:create',
-    'shifts:own:read',
-    'policies:read',
-    'policies:ack',
-    'policies:notifications:read'
   ],
   supervisor: [
     'clients:assigned:read',
@@ -1630,7 +1624,12 @@ const ROLE_HIDDEN_SECTIONS = {
     'auditSection',
     'superAdminOrganizationsSection',
     'legalRecordsSection',
-    'reportingSection'
+    'reportingSection',
+    'trackerSection',
+    'careModulesSection',
+    'breakGlassSection',
+    'policyHubSection',
+    'patientWorkspaceSection',
   ],
   supervisor: ['bootstrapSection', 'createUserSection', 'superAdminOrganizationsSection'],
   org_admin: ['bootstrapSection', 'superAdminOrganizationsSection'],
@@ -2037,7 +2036,7 @@ function applyRoleMode(role) {
     if (section) section.style.display = 'none';
   });
 
-  navigateTo('homeSection');
+  navigateTo(role === 'dsp' ? 'askSection' : 'homeSection');
 }
 
 function renderTraining(role, context) {
@@ -2130,6 +2129,73 @@ function syncClientPickers() {
   if (isDemo() && patientSelect && !patientSelect.value && options.length) {
     patientSelect.value = options[0].value;
     loadPatientWorkspace().catch(() => {});
+  }
+
+  syncAskHomePicker();
+}
+
+function syncAskHomePicker() {
+  const homeSelect = document.getElementById('askHomeId');
+  if (!homeSelect) return;
+
+  if (!homeSelect.dataset.eventBound) {
+    homeSelect.addEventListener('change', (e) => filterAskClientsByHome(e.target.value));
+    homeSelect.dataset.eventBound = '1';
+  }
+
+  const role = getActiveRole();
+  if (role !== 'dsp') {
+    homeSelect.style.display = 'none';
+    return;
+  }
+
+  const assignedHomeIds = [...new Set(clientsCache.map((c) => c.locationId).filter(Boolean))];
+  if (!assignedHomeIds.length) {
+    homeSelect.style.display = 'none';
+    return;
+  }
+
+  homeSelect.style.display = '';
+  const currentVal = homeSelect.value;
+  homeSelect.innerHTML = '<option value="">Select Home</option>';
+
+  assignedHomeIds.forEach((homeId) => {
+    const home = homesCache.find((h) => String(h._id) === String(homeId));
+    const label = home?.displayName || home?.name || homeId;
+    const option = document.createElement('option');
+    option.value = homeId;
+    option.textContent = label;
+    homeSelect.appendChild(option);
+  });
+
+  if (currentVal && assignedHomeIds.includes(currentVal)) {
+    homeSelect.value = currentVal;
+  }
+
+  if (assignedHomeIds.length === 1) {
+    homeSelect.value = assignedHomeIds[0];
+    filterAskClientsByHome(assignedHomeIds[0]);
+  } else if (assignedHomeIds.length > 1 && !homeSelect.value) {
+    setSelectOptions('askClientId', [], 'Select a home first');
+  }
+}
+
+function filterAskClientsByHome(homeId) {
+  const clientSelect = document.getElementById('askClientId');
+  if (!clientSelect) return;
+
+  const filtered = homeId
+    ? clientsCache.filter((c) => String(c.locationId) === String(homeId))
+    : clientsCache;
+
+  const currentVal = clientSelect.value;
+  setSelectOptions('askClientId', filtered.map((c) => ({
+    value: c._id,
+    label: `${c.displayName} (${c.externalId || 'no-ext-id'})`
+  })), 'Select Client');
+
+  if (currentVal && filtered.some((c) => c._id === currentVal)) {
+    clientSelect.value = currentVal;
   }
 }
 

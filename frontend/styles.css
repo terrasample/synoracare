@@ -3150,3 +3150,12 @@ body.guest-mode #loginSection {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── DSP simplified navigation: hide non-relevant sidebar items ── */
+.role-dsp [data-nav-target="homeSection"],
+.role-dsp [data-nav-target="trackerSection"],
+.role-dsp [data-nav-target="patientWorkspaceSection"],
+.role-dsp [data-nav-target="homesSection"],
+.role-dsp .nav-breakglass {
+  display: none !important;
+}
