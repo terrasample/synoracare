@@ -1270,7 +1270,8 @@ function getDemoClients() {
     personaHomeIds.forEach((homeId) => {
       const orgHome = orgHomes.find((home) => String(home._id) === String(homeId));
       if (orgHome) {
-        fallbackClients.push(...buildDemoOrgHomeClients(personaOrgId, orgHome._id, orgHome.activeClients || 0));
+        const clientCount = Math.max(2, orgHome.activeClients || 2);
+        fallbackClients.push(...buildDemoOrgHomeClients(personaOrgId, orgHome._id, clientCount));
         return;
       }
 
