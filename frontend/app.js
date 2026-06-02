@@ -1248,44 +1248,31 @@ const DEMO_PATIENT_WORKSPACE_ENTRIES = [
 ];
 
 function getDemoClients() {
-  // For reporting/dashboards, org admins and super admins see homes (not individual residents)
   const role = getActiveRole();
-  if (role === 'org_admin' || role === 'super_admin') {
-    // Return homes as filterable "clients" for reporting section
-    return DEMO_HOMES.map((home) => ({
-      _id: home._id,
-      displayName: home.displayName,
-      externalId: home.name,
-      locationId: home._id
-    }));
-  }
 
-  let sourceClients = DEMO_CLIENTS;
-  try {
-    const raw = localStorage.getItem(DEMO_CLIENTS_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length) {
-        sourceClients = parsed;
-      }
-    }
-  } catch {
-    // Fall back to seeded demo clients if localStorage is unavailable.
+  if (role === 'org_admin' || role === 'super_admin') {
+    // Generate residents for every home across all orgs using the seeded builder
+    const allClients = [];
+    Object.entries(DEMO_ORGANIZATION_HOMES).forEach(([orgId, homes]) => {
+      homes.forEach((home) => {
+        allClients.push(...buildDemoOrgHomeClients(orgId, home._id, home.activeClients || 0));
+      });
+    });
+    return allClients;
   }
 
   if (role === 'dsp') {
     // DSP persona: Nia Carter (demo-user-1) — sees only her assigned clients
     const assigned = new Set(DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-1').map((a) => a.clientId));
-    return sourceClients.filter((c) => assigned.has(c._id)).map((c) => ({ ...c }));
+    return DEMO_CLIENTS.filter((c) => assigned.has(c._id)).map((c) => ({ ...c }));
   }
   if (role === 'supervisor') {
     // Supervisor persona — sees clients in their assigned homes
     const supPersona3 = getDemoPersonaForRole('supervisor');
     const supHomeIds3 = new Set(supPersona3?.assignedHomes || []);
-    return sourceClients.filter((c) => supHomeIds3.has(c.locationId)).map((c) => ({ ...c }));
+    return DEMO_CLIENTS.filter((c) => supHomeIds3.has(c.locationId)).map((c) => ({ ...c }));
   }
-  // Fall back to all demo clients
-  return sourceClients.map((c) => ({ ...c }));
+  return DEMO_CLIENTS.map((c) => ({ ...c }));
 }
 
 function saveDemoClients(clients) {
@@ -2152,10 +2139,11 @@ function syncClientPickers() {
     label: `${client.displayName} (${client.externalId || 'no-ext-id'})`
   }));
 
-  // In demo mode with org_admin/super_admin, clientsCache contains homes — populate reportingHomeId
-  if (isDemo() && (getActiveRole() === 'org_admin' || getActiveRole() === 'super_admin')) {
-    setSelectOptions('reportingHomeId', options, 'All Homes');
-    // Reset client dropdown when homes change
+  // Populate the reporting home dropdown from org homes — independent of clientsCache
+  if (isDemo()) {
+    const allHomes = Object.values(DEMO_ORGANIZATION_HOMES).flat();
+    const homeOptions = allHomes.map((h) => ({ value: h._id, label: h.displayName }));
+    setSelectOptions('reportingHomeId', homeOptions, 'All Homes');
     const clientSelect = document.getElementById('reportingClientId');
     if (clientSelect) clientSelect.innerHTML = '<option value="">All Clients</option>';
   }
@@ -2182,11 +2170,17 @@ function syncClientsByHome(homeId) {
     if (clientSelect) clientSelect.innerHTML = '<option value="">All Clients</option>';
     return;
   }
-  const residentsInHome = DEMO_CLIENTS.filter((c) => c.locationId === homeId).map((c) => ({
+  // Determine orgId from homeId prefix (e.g. 'threshold-home-3' → 'threshold-org')
+  const orgPrefix = homeId.replace(/-home-\d+$/, '');
+  const orgId = `${orgPrefix}-org`;
+  const allHomes = DEMO_ORGANIZATION_HOMES[orgId] || [];
+  const home = allHomes.find((h) => h._id === homeId);
+  const count = home?.activeClients || 0;
+  const residents = buildDemoOrgHomeClients(orgId, homeId, count).map((c) => ({
     value: c._id,
     label: `${c.displayName} (${c.externalId || 'no-ext-id'})`
   }));
-  setSelectOptions('reportingClientId', residentsInHome, 'All Clients');
+  setSelectOptions('reportingClientId', residents, 'All Clients');
 }
 
 function getDemoPatientWorkspaceEntries(clientId) {
