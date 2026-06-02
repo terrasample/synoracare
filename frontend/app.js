@@ -1248,6 +1248,18 @@ const DEMO_PATIENT_WORKSPACE_ENTRIES = [
 ];
 
 function getDemoClients() {
+  // For reporting/dashboards, org admins and super admins see homes (not individual residents)
+  const role = getActiveRole();
+  if (role === 'org_admin' || role === 'super_admin') {
+    // Return homes as filterable "clients" for reporting section
+    return DEMO_HOMES.map((home) => ({
+      _id: home._id,
+      displayName: home.displayName,
+      externalId: home.name,
+      locationId: home._id
+    }));
+  }
+
   let sourceClients = DEMO_CLIENTS;
   try {
     const raw = localStorage.getItem(DEMO_CLIENTS_STORAGE_KEY);
@@ -1261,7 +1273,6 @@ function getDemoClients() {
     // Fall back to seeded demo clients if localStorage is unavailable.
   }
 
-  const role = getActiveRole();
   if (role === 'dsp') {
     // DSP persona: Nia Carter (demo-user-1) — sees only her assigned clients
     const assigned = new Set(DEMO_ASSIGNMENTS.filter((a) => a.userId === 'demo-user-1').map((a) => a.clientId));
@@ -1273,7 +1284,7 @@ function getDemoClients() {
     const supHomeIds3 = new Set(supPersona3?.assignedHomes || []);
     return sourceClients.filter((c) => supHomeIds3.has(c.locationId)).map((c) => ({ ...c }));
   }
-  // org_admin and super_admin see all demo clients
+  // Fall back to all demo clients
   return sourceClients.map((c) => ({ ...c }));
 }
 
