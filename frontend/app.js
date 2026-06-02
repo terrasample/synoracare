@@ -1002,7 +1002,22 @@ function getDemoAssignmentsForActiveRole() {
   if (role === 'dsp') {
     const dspPersona = getDemoPersonaForRole('dsp');
     const dspUserId = String(dspPersona?._id || 'demo-user-1');
-    return DEMO_ASSIGNMENTS.filter((a) => String(a.userId) === dspUserId);
+    const seededAssignments = DEMO_ASSIGNMENTS.filter((a) => String(a.userId) === dspUserId);
+    if (seededAssignments.length) {
+      return seededAssignments;
+    }
+
+    // Fallback for generated demo DSPs: synthesize assignments from visible demo clients.
+    const demoClients = getDemoClients();
+    return demoClients.map((client, index) => ({
+      _id: `demo-asgn-synth-${dspUserId}-${index + 1}`,
+      userId: dspUserId,
+      clientId: client._id,
+      dspName: dspPersona?.fullName || 'Demo DSP',
+      clientName: client.displayName,
+      role: 'dsp',
+      expiresAt: null
+    }));
   }
   if (role === 'supervisor') {
     const supPersona2 = getDemoPersonaForRole('supervisor');
@@ -1237,7 +1252,41 @@ function getDemoClients() {
     const dspPersona = getDemoPersonaForRole('dsp');
     const dspUserId = String(dspPersona?._id || 'demo-user-1');
     const assigned = new Set(DEMO_ASSIGNMENTS.filter((a) => String(a.userId) === dspUserId).map((a) => a.clientId));
-    return DEMO_CLIENTS.filter((c) => assigned.has(c._id)).map((c) => ({ ...c }));
+    const seededClients = DEMO_CLIENTS.filter((c) => assigned.has(c._id)).map((c) => ({ ...c }));
+    if (seededClients.length) {
+      return seededClients;
+    }
+
+    // Fallback for generated demo DSPs: derive clients from assigned homes.
+    const personaOrgId = String(dspPersona?.orgId || 'threshold-org');
+    const personaHomeIds = Array.isArray(dspPersona?.assignedHomes) ? dspPersona.assignedHomes : [];
+    if (!personaHomeIds.length) {
+      return [];
+    }
+
+    const orgHomes = DEMO_ORGANIZATION_HOMES[personaOrgId] || [];
+    const fallbackClients = [];
+
+    personaHomeIds.forEach((homeId) => {
+      const orgHome = orgHomes.find((home) => String(home._id) === String(homeId));
+      if (orgHome) {
+        fallbackClients.push(...buildDemoOrgHomeClients(personaOrgId, orgHome._id, orgHome.activeClients || 0));
+        return;
+      }
+
+      fallbackClients.push(...DEMO_CLIENTS.filter((client) => String(client.locationId) === String(homeId)).map((client) => ({ ...client })));
+    });
+
+    const deduped = [];
+    const seenIds = new Set();
+    fallbackClients.forEach((client) => {
+      const key = String(client._id || '');
+      if (!key || seenIds.has(key)) return;
+      seenIds.add(key);
+      deduped.push(client);
+    });
+
+    return deduped;
   }
   if (role === 'supervisor') {
     // Supervisor persona — sees clients in their assigned homes
