@@ -1298,6 +1298,7 @@ function handlePageNavigation(pageId) {
         || hasPermission('policies:archive');
       adminPanel.style.display = canManagePolicies ? '' : 'none';
     }
+    syncPolicyOrgSwitcher();
     Promise.all([
       loadPolicyHub(),
       loadPolicyNotifications().catch(() => {})
@@ -2548,6 +2549,38 @@ function renderPolicyList(items) {
   });
 }
 
+// --- Policy Hub org switcher (super_admin only) ---
+let policyViewOrgId = '';
+
+function syncPolicyOrgSwitcher() {
+  const switcher = document.getElementById('policyOrgSwitcher');
+  if (!switcher) return;
+
+  if (String(currentUser?.role || '') !== 'super_admin') {
+    switcher.style.display = 'none';
+    policyViewOrgId = '';
+    return;
+  }
+
+  switcher.style.display = '';
+  const orgs = organizationsCache.length ? organizationsCache : [];
+  if (!orgs.length) {
+    // Trigger a background load then re-render
+    refreshOrganizations().then(() => syncPolicyOrgSwitcher()).catch(() => {});
+    return;
+  }
+
+  // Preserve current selection if still valid
+  const currentValue = policyViewOrgId || String(currentUser.orgId || '');
+  switcher.innerHTML = orgs.map((org) => {
+    const id = String(org.id || org._id || '');
+    const name = safeText(org.name || org.orgName || id);
+    return `<option value="${id}" ${id === currentValue ? 'selected' : ''}>${name}</option>`;
+  }).join('');
+
+  if (!policyViewOrgId) policyViewOrgId = switcher.value;
+}
+
 async function loadPolicyHub(options = {}) {
   const params = new URLSearchParams();
   const incidentType = String(options.incidentType ?? document.getElementById('policyIncidentType')?.value || '').trim();
@@ -2558,25 +2591,34 @@ async function loadPolicyHub(options = {}) {
   if (category) params.set('category', category);
   if (query) params.set('query', query);
   if (canManagePoliciesInUi()) params.set('includeDrafts', 'true');
+  // Super-admin org override
+  if (String(currentUser?.role || '') === 'super_admin' && policyViewOrgId) {
+    params.set('viewOrgId', policyViewOrgId);
+  }
 
   const route = options.quickIncidentLookup && incidentType
     ? `/api/policies/incident/${encodeURIComponent(incidentType)}`
     : `/api/policies${params.toString() ? `?${params.toString()}` : ''}`;
 
-  const data = await api(route);
-  const items = Array.isArray(data.policies) ? data.policies : [];
-  policyHubData = items;
+  try {
+    const data = await api(route);
+    const items = Array.isArray(data.policies) ? data.policies : [];
+    policyHubData = items;
 
-  if (!selectedPolicyId && items[0]) {
-    selectedPolicyId = String(items[0]._id || items[0].id || items[0].slug || '');
-  }
+    if (!selectedPolicyId && items[0]) {
+      selectedPolicyId = String(items[0]._id || items[0].id || items[0].slug || '');
+    }
 
-  renderPolicyList(items);
-  const selected = items.find((item) => String(item._id || item.id || item.slug) === String(selectedPolicyId));
-  renderPolicyDetail(selected || items[0] || null);
+    renderPolicyList(items);
+    const selected = items.find((item) => String(item._id || item.id || item.slug) === String(selectedPolicyId));
+    renderPolicyDetail(selected || items[0] || null);
 
-  if (canManagePoliciesInUi()) {
-    await loadPolicyHistory().catch(() => {});
+    if (canManagePoliciesInUi()) {
+      await loadPolicyHistory().catch(() => {});
+    }
+  } catch (error) {
+    const list = document.getElementById('policyHubList');
+    if (list) list.innerHTML = `<p class="empty-state">Could not load policies: ${safeText(error.message)}</p>`;
   }
 }
 
@@ -4074,6 +4116,8 @@ function renderUserList(users) {
     return;
   }
 
+  const canGrantPolicyManager = hasPermission('users:permissions:update');
+
   list.innerHTML = users.map((u) => {
     const profileMeta = [];
     if (u.orgName) profileMeta.push(u.orgName);
@@ -4082,6 +4126,17 @@ function renderUserList(users) {
     const certificationText = Array.isArray(u.certifications) && u.certifications.length
       ? u.certifications.slice(0, 3).join(', ')
       : '';
+    const isPolicyManager = Array.isArray(u.customPermissions)
+      && u.customPermissions.some((p) => p.startsWith('policies:'));
+
+    const grantToggle = canGrantPolicyManager && u.role !== 'super_admin' ? `
+      <button
+        type="button"
+        class="btn-secondary"
+        style="font-size:0.7rem;padding:2px 8px;margin-top:4px;"
+        data-grant-policy-manager="${safeText(u._id)}"
+        data-is-policy-manager="${isPolicyManager}"
+      >${isPolicyManager ? '✓ Policy Manager' : '+ Grant Policy Manager'}</button>` : '';
 
     return `
       <div class="data-item" style="display:block;">
@@ -4093,6 +4148,7 @@ function renderUserList(users) {
         <span class="data-item-email">${safeText(u.email)}</span>
         ${profileMeta.length ? `<span class="data-item-meta">${safeText(profileMeta.join(' · '))}</span>` : ''}
         ${certificationText ? `<span class="data-item-meta">Certifications: ${safeText(certificationText)}</span>` : ''}
+        ${grantToggle}
       </div>
     `;
   }).join('');
@@ -5752,6 +5808,37 @@ document.getElementById('refreshPolicyHubBtn')?.addEventListener('click', async 
   } catch (err) {
     const list = document.getElementById('policyHubList');
     if (list) list.innerHTML = `<p class="empty-state">${safeText(err.message)}</p>`;
+  }
+});
+
+document.getElementById('policyOrgSwitcher')?.addEventListener('change', async (e) => {
+  policyViewOrgId = String(e.target.value || '');
+  selectedPolicyId = '';
+  await loadPolicyHub().catch(() => {});
+});
+
+// Policy manager grant/revoke toggle (in user list)
+document.getElementById('usersList')?.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-grant-policy-manager]');
+  if (!btn) return;
+  const userId = btn.dataset.grantPolicyManager;
+  const isManager = btn.dataset.isPolicyManager === 'true';
+  const { POLICY_MANAGER_PERMISSIONS } = window._policyManagerPermissions || {};
+  const newPerms = isManager ? [] : (POLICY_MANAGER_PERMISSIONS || [
+    'policies:create','policies:update','policies:archive',
+    'policies:submit_review','policies:approve','policies:history:read',
+    'policies:rollback','policies:read_receipts'
+  ]);
+  try {
+    await api(`/api/assignments/users/${encodeURIComponent(userId)}/policy-permissions`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customPermissions: newPerms })
+    });
+    showToast(isManager ? 'Policy manager access removed.' : 'Policy manager access granted.', 'success');
+    await refreshUsers();
+  } catch (err) {
+    showToast(`Failed: ${err.message}`, 'error');
   }
 });
 

@@ -261,16 +261,23 @@ function buildFilter(req) {
   return { query, category, incidentType };
 }
 
+// Super-admin can pass ?viewOrgId=<id> to inspect any org's policies.
+function resolveOrgId(req) {
+  const viewOrgId = String(req.query.viewOrgId || req.body?.viewOrgId || '').trim();
+  if (viewOrgId && String(req.user.role || '') === 'super_admin') return viewOrgId;
+  return String(req.user.orgId || '');
+}
+
 router.use(requireAuth);
 
 router.get('/', requirePermissions('policies:read'), async (req, res) => {
   try {
-    await ensureOrgPolicySeed(req.user.orgId, req.user._id);
+    await ensureOrgPolicySeed(resolveOrgId(req), req.user._id);
 
     const { query, category, incidentType } = buildFilter(req);
 
     const includeDrafts = String(req.query.includeDrafts || '').toLowerCase() === 'true';
-    const dbQuery = { orgId: req.user.orgId };
+    const dbQuery = { orgId: resolveOrgId(req) };
     if (includeDrafts && hasPolicyAdminAccess(req.user)) {
       dbQuery.workflowStatus = { $ne: 'archived' };
     } else {
@@ -304,7 +311,7 @@ router.get('/', requirePermissions('policies:read'), async (req, res) => {
     return res.json({
       policies,
       meta: {
-        orgId: req.user.orgId,
+        orgId: resolveOrgId(req),
         total: policies.length
       }
     });
@@ -316,7 +323,7 @@ router.get('/', requirePermissions('policies:read'), async (req, res) => {
 
 router.get('/incident/:incidentType', requirePermissions('policies:read'), async (req, res) => {
   try {
-    await ensureOrgPolicySeed(req.user.orgId, req.user._id);
+    await ensureOrgPolicySeed(resolveOrgId(req), req.user._id);
 
     const incidentType = normalizeIncidentType(req.params.incidentType);
     if (!incidentType) {
@@ -325,7 +332,7 @@ router.get('/incident/:incidentType', requirePermissions('policies:read'), async
 
     const includeDrafts = String(req.query.includeDrafts || '').toLowerCase() === 'true';
     const dbQuery = {
-      orgId: req.user.orgId,
+      orgId: resolveOrgId(req),
       incidentTypes: incidentType
     };
     if (includeDrafts && hasPolicyAdminAccess(req.user)) {
@@ -349,7 +356,7 @@ router.get('/incident/:incidentType', requirePermissions('policies:read'), async
 router.get('/ack/me/list', requirePermissions('policies:ack'), async (req, res) => {
   try {
     const acknowledgements = await PolicyAcknowledgement.find({
-      orgId: req.user.orgId,
+      orgId: resolveOrgId(req),
       userId: req.user._id
     })
       .sort({ acknowledgedAt: -1 })
@@ -365,15 +372,15 @@ router.get('/ack/me/list', requirePermissions('policies:ack'), async (req, res) 
 router.get('/dashboard/read-receipts', requirePermissions('policies:read_receipts'), async (req, res) => {
   try {
     const [users, policies, acknowledgements] = await Promise.all([
-      User.find({ orgId: req.user.orgId, status: 'active' })
+      User.find({ orgId: resolveOrgId(req), status: 'active' })
         .select('_id fullName email role')
         .sort({ fullName: 1 })
         .lean(),
-      PolicyDocument.find({ orgId: req.user.orgId, workflowStatus: 'published', isActive: true })
+      PolicyDocument.find({ orgId: resolveOrgId(req), workflowStatus: 'published', isActive: true })
         .select('_id title slug currentVersion version publishedAt')
         .sort({ updatedAt: -1 })
         .lean(),
-      PolicyAcknowledgement.find({ orgId: req.user.orgId })
+      PolicyAcknowledgement.find({ orgId: resolveOrgId(req) })
         .select('policyId userId acknowledgedAt')
         .lean()
     ]);
@@ -431,7 +438,7 @@ router.get('/dashboard/read-receipts', requirePermissions('policies:read_receipt
     return res.json({
       readReceipts: rows,
       meta: {
-        orgId: req.user.orgId,
+        orgId: resolveOrgId(req),
         users: users.length,
         policies: policyIds.size
       }
@@ -444,7 +451,7 @@ router.get('/dashboard/read-receipts', requirePermissions('policies:read_receipt
 
 router.get('/notifications/me', requirePermissions('policies:notifications:read'), async (req, res) => {
   try {
-    const notifications = await PolicyNotification.find({ orgId: req.user.orgId, userId: req.user._id })
+    const notifications = await PolicyNotification.find({ orgId: resolveOrgId(req), userId: req.user._id })
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
@@ -458,7 +465,7 @@ router.get('/notifications/me', requirePermissions('policies:notifications:read'
 
 router.get('/notifications/email-queue', requirePermissions('policies:read_receipts'), async (req, res) => {
   try {
-    const emails = await PolicyEmailNotification.find({ orgId: req.user.orgId })
+    const emails = await PolicyEmailNotification.find({ orgId: resolveOrgId(req) })
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
@@ -472,7 +479,7 @@ router.get('/notifications/email-queue', requirePermissions('policies:read_recei
 router.post('/notifications/:id/read', requirePermissions('policies:notifications:read'), async (req, res) => {
   try {
     const notification = await PolicyNotification.findOneAndUpdate(
-      { _id: req.params.id, orgId: req.user.orgId, userId: req.user._id },
+      { _id: req.params.id, orgId: resolveOrgId(req), userId: req.user._id },
       { $set: { isRead: true, readAt: new Date() } },
       { new: true }
     ).lean();
@@ -489,12 +496,12 @@ router.get('/:id/history', requirePermissions('policies:history:read'), async (r
   try {
     const id = String(req.params.id || '').trim();
     const policy = mongoose.Types.ObjectId.isValid(id)
-      ? await PolicyDocument.findOne({ _id: id, orgId: req.user.orgId }).lean()
-      : await PolicyDocument.findOne({ slug: id.toLowerCase(), orgId: req.user.orgId }).lean();
+      ? await PolicyDocument.findOne({ _id: id, orgId: resolveOrgId(req) }).lean()
+      : await PolicyDocument.findOne({ slug: id.toLowerCase(), orgId: resolveOrgId(req) }).lean();
 
     if (!policy) return res.status(404).json({ error: 'Policy not found' });
 
-    const revisions = await PolicyRevision.find({ orgId: req.user.orgId, policyId: policy._id })
+    const revisions = await PolicyRevision.find({ orgId: resolveOrgId(req), policyId: policy._id })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -507,7 +514,7 @@ router.get('/:id/history', requirePermissions('policies:history:read'), async (r
 
 router.get('/:id', requirePermissions('policies:read'), async (req, res) => {
   try {
-    await ensureOrgPolicySeed(req.user.orgId, req.user._id);
+    await ensureOrgPolicySeed(resolveOrgId(req), req.user._id);
 
     const id = String(req.params.id || '').trim();
     let policy = null;
@@ -515,14 +522,14 @@ router.get('/:id', requirePermissions('policies:read'), async (req, res) => {
     if (mongoose.Types.ObjectId.isValid(id)) {
       policy = await PolicyDocument.findOne({
         _id: id,
-        orgId: req.user.orgId
+        orgId: resolveOrgId(req)
       }).lean();
     }
 
     if (!policy) {
       policy = await PolicyDocument.findOne({
         slug: id.toLowerCase(),
-        orgId: req.user.orgId
+        orgId: resolveOrgId(req)
       }).lean();
     }
 
@@ -548,22 +555,22 @@ router.post('/:id/ack', requirePermissions('policies:ack'), async (req, res) => 
 
     let policy = null;
     if (mongoose.Types.ObjectId.isValid(id)) {
-      policy = await PolicyDocument.findOne({ _id: id, orgId: req.user.orgId, isActive: true, workflowStatus: 'published' }).lean();
+      policy = await PolicyDocument.findOne({ _id: id, orgId: resolveOrgId(req), isActive: true, workflowStatus: 'published' }).lean();
     }
     if (!policy) {
-      policy = await PolicyDocument.findOne({ slug: id.toLowerCase(), orgId: req.user.orgId, isActive: true, workflowStatus: 'published' }).lean();
+      policy = await PolicyDocument.findOne({ slug: id.toLowerCase(), orgId: resolveOrgId(req), isActive: true, workflowStatus: 'published' }).lean();
     }
 
     if (!policy) return res.status(404).json({ error: 'Policy not found' });
 
     const acknowledgement = await PolicyAcknowledgement.findOneAndUpdate(
       {
-        orgId: req.user.orgId,
+        orgId: resolveOrgId(req),
         userId: req.user._id,
         policyId: policy._id
       },
       {
-        orgId: req.user.orgId,
+        orgId: resolveOrgId(req),
         userId: req.user._id,
         policyId: policy._id,
         policySlug: policy.slug,
@@ -578,7 +585,7 @@ router.post('/:id/ack', requirePermissions('policies:ack'), async (req, res) => 
     ).lean();
 
     await AuditEvent.create({
-      orgId: req.user.orgId,
+      orgId: resolveOrgId(req),
       userId: req.user._id,
       eventType: 'security_alert',
       payload: {
@@ -604,11 +611,11 @@ router.post('/', requirePermissions('policies:create'), async (req, res) => {
     const slug = normalizeSlug(payload.slug || title);
     if (!slug) return res.status(400).json({ error: 'Valid slug is required' });
 
-    const existing = await PolicyDocument.findOne({ orgId: req.user.orgId, slug }).lean();
+    const existing = await PolicyDocument.findOne({ orgId: resolveOrgId(req), slug }).lean();
     if (existing) return res.status(409).json({ error: 'Policy slug already exists for this organization' });
 
     const policy = await PolicyDocument.create({
-      orgId: req.user.orgId,
+      orgId: resolveOrgId(req),
       title,
       slug,
       category: String(payload.category || 'incident-response'),
@@ -632,7 +639,7 @@ router.post('/', requirePermissions('policies:create'), async (req, res) => {
     await recordRevision(policy, req.user._id, 'create', 'Initial policy draft created');
 
     await AuditEvent.create({
-      orgId: req.user.orgId,
+      orgId: resolveOrgId(req),
       userId: req.user._id,
       eventType: 'security_alert',
       payload: {
@@ -655,8 +662,8 @@ router.put('/:id', requirePermissions('policies:update'), async (req, res) => {
     const payload = req.body || {};
 
     const policy = mongoose.Types.ObjectId.isValid(id)
-      ? await PolicyDocument.findOne({ _id: id, orgId: req.user.orgId })
-      : await PolicyDocument.findOne({ slug: id.toLowerCase(), orgId: req.user.orgId });
+      ? await PolicyDocument.findOne({ _id: id, orgId: resolveOrgId(req) })
+      : await PolicyDocument.findOne({ slug: id.toLowerCase(), orgId: resolveOrgId(req) });
 
     if (!policy) return res.status(404).json({ error: 'Policy not found' });
 
@@ -682,7 +689,7 @@ router.put('/:id', requirePermissions('policies:update'), async (req, res) => {
       const nextSlug = normalizeSlug(payload.slug || policy.title);
       if (!nextSlug) return res.status(400).json({ error: 'Valid slug is required' });
       if (nextSlug !== policy.slug) {
-        const existing = await PolicyDocument.findOne({ orgId: req.user.orgId, slug: nextSlug }).lean();
+        const existing = await PolicyDocument.findOne({ orgId: resolveOrgId(req), slug: nextSlug }).lean();
         if (existing) return res.status(409).json({ error: 'Policy slug already exists for this organization' });
         policy.slug = nextSlug;
       }
@@ -697,7 +704,7 @@ router.put('/:id', requirePermissions('policies:update'), async (req, res) => {
     await recordRevision(policy, req.user._id, 'update', 'Policy updated and moved to draft');
 
     await AuditEvent.create({
-      orgId: req.user.orgId,
+      orgId: resolveOrgId(req),
       userId: req.user._id,
       eventType: 'security_alert',
       payload: {
@@ -718,8 +725,8 @@ router.post('/:id/submit-review', requirePermissions('policies:submit_review'), 
   try {
     const id = String(req.params.id || '').trim();
     const policy = mongoose.Types.ObjectId.isValid(id)
-      ? await PolicyDocument.findOne({ _id: id, orgId: req.user.orgId })
-      : await PolicyDocument.findOne({ slug: id.toLowerCase(), orgId: req.user.orgId });
+      ? await PolicyDocument.findOne({ _id: id, orgId: resolveOrgId(req) })
+      : await PolicyDocument.findOne({ slug: id.toLowerCase(), orgId: resolveOrgId(req) });
 
     if (!policy) return res.status(404).json({ error: 'Policy not found' });
     if (policy.workflowStatus === 'archived') return res.status(400).json({ error: 'Archived policy cannot be submitted' });
@@ -744,8 +751,8 @@ router.post('/:id/approve-publish', requirePermissions('policies:approve'), asyn
     const id = String(req.params.id || '').trim();
     const note = String(req.body?.note || '').trim();
     const policy = mongoose.Types.ObjectId.isValid(id)
-      ? await PolicyDocument.findOne({ _id: id, orgId: req.user.orgId })
-      : await PolicyDocument.findOne({ slug: id.toLowerCase(), orgId: req.user.orgId });
+      ? await PolicyDocument.findOne({ _id: id, orgId: resolveOrgId(req) })
+      : await PolicyDocument.findOne({ slug: id.toLowerCase(), orgId: resolveOrgId(req) });
 
     if (!policy) return res.status(404).json({ error: 'Policy not found' });
     if (policy.workflowStatus === 'archived') return res.status(400).json({ error: 'Archived policy cannot be published' });
@@ -763,7 +770,7 @@ router.post('/:id/approve-publish', requirePermissions('policies:approve'), asyn
 
     await recordRevision(policy, req.user._id, 'publish', note || 'Policy approved and published');
     await createPolicyNotifications({
-      orgId: req.user.orgId,
+      orgId: resolveOrgId(req),
       actorUserId: req.user._id,
       policy,
       type: hasPublishedBefore ? 'policy_updated' : 'policy_published',
@@ -785,12 +792,12 @@ router.post('/:id/rollback/:revisionId', requirePermissions('policies:rollback')
     const revisionId = String(req.params.revisionId || '').trim();
 
     const policy = mongoose.Types.ObjectId.isValid(id)
-      ? await PolicyDocument.findOne({ _id: id, orgId: req.user.orgId })
-      : await PolicyDocument.findOne({ slug: id.toLowerCase(), orgId: req.user.orgId });
+      ? await PolicyDocument.findOne({ _id: id, orgId: resolveOrgId(req) })
+      : await PolicyDocument.findOne({ slug: id.toLowerCase(), orgId: resolveOrgId(req) });
 
     if (!policy) return res.status(404).json({ error: 'Policy not found' });
 
-    const revision = await PolicyRevision.findOne({ _id: revisionId, orgId: req.user.orgId, policyId: policy._id }).lean();
+    const revision = await PolicyRevision.findOne({ _id: revisionId, orgId: resolveOrgId(req), policyId: policy._id }).lean();
     if (!revision) return res.status(404).json({ error: 'Revision not found' });
 
     const snapshot = revision.snapshot || {};
@@ -818,7 +825,7 @@ router.post('/:id/rollback/:revisionId', requirePermissions('policies:rollback')
 
     await recordRevision(policy, req.user._id, 'rollback', `Rolled back to revision ${revision._id}`);
     await createPolicyNotifications({
-      orgId: req.user.orgId,
+      orgId: resolveOrgId(req),
       actorUserId: req.user._id,
       policy,
       type: 'policy_updated',
@@ -837,8 +844,8 @@ async function archivePolicyById(req, res) {
     const id = String(req.params.id || '').trim();
 
     const policy = mongoose.Types.ObjectId.isValid(id)
-      ? await PolicyDocument.findOne({ _id: id, orgId: req.user.orgId })
-      : await PolicyDocument.findOne({ slug: id.toLowerCase(), orgId: req.user.orgId });
+      ? await PolicyDocument.findOne({ _id: id, orgId: resolveOrgId(req) })
+      : await PolicyDocument.findOne({ slug: id.toLowerCase(), orgId: resolveOrgId(req) });
 
     if (!policy) return res.status(404).json({ error: 'Policy not found' });
 
@@ -848,7 +855,7 @@ async function archivePolicyById(req, res) {
     await policy.save();
     await recordRevision(policy, req.user._id, 'archive', 'Policy archived');
     await createPolicyNotifications({
-      orgId: req.user.orgId,
+      orgId: resolveOrgId(req),
       actorUserId: req.user._id,
       policy,
       type: 'policy_archived',
@@ -856,7 +863,7 @@ async function archivePolicyById(req, res) {
     });
 
     await AuditEvent.create({
-      orgId: req.user.orgId,
+      orgId: resolveOrgId(req),
       userId: req.user._id,
       eventType: 'security_alert',
       payload: {
