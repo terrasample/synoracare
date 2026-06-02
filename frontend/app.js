@@ -3964,7 +3964,7 @@ function inferCareTopic(text) {
   const normalized = String(text || '').toLowerCase();
   if (!normalized) return 'general';
   if (/bath|bathing|shower|toilet|groom|personal care|adl/.test(normalized)) return 'bathing';
-  if (/meal|meals|eat|eating|diet|food|feeding|snack|nutrition/.test(normalized)) return 'meal';
+  if (/meal|meals|\beat\b|eating|diet|food|feeding|snack|nutrition/.test(normalized)) return 'meal';
   if (/med|medication|mar|med pass/.test(normalized)) return 'medication';
   if (/behavior|distress|escalat|de-escalat|redirect/.test(normalized)) return 'behavior';
   return 'general';
@@ -4002,14 +4002,25 @@ function buildImmediateGuidance({ question, sources, structured }) {
   }
 
   if (topic === 'meal') {
-    const mealDetails = [];
-    if (String(structured?.diet || '').trim()) mealDetails.push('dietary restrictions');
-    if (String(structured?.allergies || '').trim()) mealDetails.push('allergies');
-    if (String(structured?.protocols || '').trim()) mealDetails.push('assistance protocols');
-    const detailText = mealDetails.length ? ` Check ${mealDetails.join(', ')} immediately before serving.` : '';
+    const pickFirstSentence = (value) => {
+      const text = String(value || '').trim();
+      if (!text) return '';
+      const normalized = text.replace(/\s+/g, ' ').trim();
+      const sentence = normalized.split(/(?<=[.!?])\s+/)[0] || normalized;
+      return sentence.length > 170 ? `${sentence.slice(0, 167)}...` : sentence;
+    };
+
+    const dietNow = pickFirstSentence(structured?.diet);
+    const allergiesNow = pickFirstSentence(structured?.allergies);
+    const protocolNow = pickFirstSentence(structured?.protocols);
+    const quickItems = [dietNow, allergiesNow, protocolNow].filter(Boolean);
+    const quickAnswer = quickItems.length
+      ? quickItems.map((item, index) => `${index + 1}) ${item}`).join(' ')
+      : 'Confirm texture, allergy flags, and feeding supports before serving.';
+
     return {
       title: 'Start Here For Meals',
-      body: `Open ${sourceName} and go straight to ${sectionName}. That is the first place the DSP should check for meal setup, feeding supports, and food safety guidance.${detailText}`
+      body: `Right now: ${quickAnswer} Then confirm in ${sourceName}, section ${sectionName}.`
     };
   }
 
@@ -4157,7 +4168,7 @@ function buildDemoAskResponse({ clientId, question, mode = 'general' }) {
   const clientName = selectedClient?.displayName || 'the selected client';
   const prompt = String(question || '').toLowerCase();
 
-  if (mode === 'meal' || /meal|eating|food|nutrition|diet|appetite|swallow|texture|lunch|breakfast|dinner|feeding|feed/.test(prompt)) {
+  if (mode === 'meal' || /meal|\beat\b|eating|food|nutrition|diet|appetite|swallow|texture|lunch|breakfast|dinner|feeding|feed/.test(prompt)) {
     const clientCareInfo = DEMO_CLIENT_CARE_INFO[clientId];
     const dietInfo = clientCareInfo?.nutrition?.[1]?.content || 'Regular diet. Confirm texture and allergy requirements before serving.';
     const allergyInfo = clientCareInfo?.nutrition?.[2]?.content || clientCareInfo?.nutrition?.[1]?.content || 'Check allergy profile before preparing meals.';
