@@ -34,6 +34,9 @@ const ROLE_PERMISSION_FALLBACK = {
     'clients:assigned:read',
     'homes:read',
     'ask:approved_guidance:read',
+    'policies:read',
+    'policies:ack',
+    'policies:notifications:read',
   ],
   supervisor: [
     'clients:assigned:read',
@@ -1628,7 +1631,6 @@ const ROLE_HIDDEN_SECTIONS = {
     'trackerSection',
     'careModulesSection',
     'breakGlassSection',
-    'policyHubSection',
     'patientWorkspaceSection',
   ],
   supervisor: ['bootstrapSection', 'createUserSection', 'superAdminOrganizationsSection'],
