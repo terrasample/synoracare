@@ -1035,108 +1035,68 @@ function recalculateDemoTrackerSummary() {
   DEMO_TRACKER_SUMMARY.total = entries.length;
 }
 
-const DEMO_TRACKER_ENTRIES = [
-  {
-    _id: 'demo-tracker-1',
-    clientId: 'demo-client-1',
-    summary: 'Morning medication verification pending for Jordan Miles.',
-    status: 'pending',
-    eventType: 'medication',
-    priority: 'high',
-    details: 'Metformin 500mg and Lisinopril 10mg due at 7:30 AM. DSP must verify identity before administering.',
-    dueAt: new Date(Date.now() + 45 * 60 * 1000).toISOString()
-  },
-  {
-    _id: 'demo-tracker-2',
-    clientId: 'demo-client-1',
-    summary: 'Behavior escalation debrief required after afternoon event.',
-    status: 'escalated',
-    eventType: 'behavior',
-    priority: 'critical',
-    details: 'Jordan became agitated at 2:15 PM during transition to outdoor activity. Supervisor notified. Debrief must be completed before next shift.',
-    dueAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    _id: 'demo-tracker-3',
-    clientId: 'demo-client-2',
-    summary: 'ADL support log completed — Avery Brooks morning routine.',
-    status: 'completed',
-    eventType: 'adl',
-    priority: 'medium',
-    details: 'Morning hygiene and grooming completed with verbal prompts only. Client cooperative throughout. Thyroid medication (Levothyroxine) confirmed taken on empty stomach at 6:45 AM.',
-    dueAt: new Date(Date.now() - 90 * 60 * 1000).toISOString()
-  },
-  {
-    _id: 'demo-tracker-4',
-    clientId: 'demo-client-2',
-    summary: 'Afternoon medication pass pending — Avery Brooks.',
-    status: 'pending',
-    eventType: 'medication',
-    priority: 'high',
-    details: 'Omeprazole 20mg due at 8:00 PM. Must be taken 30 minutes before dinner.',
-    dueAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    _id: 'demo-tracker-5',
-    clientId: 'demo-client-3',
-    summary: 'Incident note pending — Taylor Reed wandering observed.',
-    status: 'pending',
-    eventType: 'incident',
-    priority: 'high',
-    details: 'Taylor found near exterior door at 10:45 AM. Door alarm activated. Returned safely to common area. Incident report required within 2 hours.',
-    dueAt: new Date(Date.now() + 1.5 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    _id: 'demo-tracker-6',
-    clientId: 'demo-client-3',
-    summary: 'Meal support log completed — Taylor Reed lunch.',
-    status: 'completed',
-    eventType: 'adl',
-    priority: 'low',
-    details: 'Thickened liquids prepared correctly. Client consumed 75% of meal seated upright. No choking incidents. Remained upright 30 minutes post-meal.',
-    dueAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    _id: 'demo-tracker-7',
-    clientId: 'demo-client-1',
-    summary: 'Skin integrity check pending — Jordan Miles heels.',
-    status: 'pending',
-    eventType: 'adl',
-    priority: 'medium',
-    details: 'Daily pressure area check due. Focus on heels and sacrum. Report any redness or breakdown to supervisor immediately.',
-    dueAt: new Date(Date.now() + 30 * 60 * 1000).toISOString()
-  },
-  {
-    _id: 'demo-tracker-8',
-    clientId: 'demo-client-1',
-    summary: 'Transfer assistance completed — Jordan Miles morning.',
-    status: 'completed',
-    eventType: 'adl',
-    priority: 'medium',
-    details: 'Bed-to-chair transfer completed using stand-pivot technique. Wheelchair brakes locked. Client reported no pain. Documented.',
-    dueAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    _id: 'demo-tracker-9',
-    clientId: null,
-    summary: 'Shift handoff note pending — evening DSP.',
-    status: 'pending',
-    eventType: 'documentation',
-    priority: 'medium',
-    details: 'End-of-shift summary required. Include all medication administrations, incidents, and behavioral observations from current shift.',
-    dueAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    _id: 'demo-tracker-10',
-    clientId: null,
-    summary: 'Supervisor visit note completed — weekly check-in.',
-    status: 'completed',
-    eventType: 'documentation',
-    priority: 'low',
-    details: 'Supervisor Camila James completed weekly visit with all three clients. No critical concerns identified. ISP updates scheduled for next month.',
-    dueAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
-  }
-];
+const DEMO_TRACKER_ENTRIES = (() => {
+  // Seeded, deterministic rich entries across all homes/DSPs
+  const dspIds = ['demo-user-1', 'demo-user-2', 'demo-user-4'];
+  const homes = [
+    ...Array.from({length: 22}, (_, i) => ({ homeId: `threshold-home-${i + 1}`, orgId: 'threshold-org' })),
+    ...Array.from({length: 19}, (_, i) => ({ homeId: `unity-home-${i + 1}`, orgId: 'unity-org' }))
+  ];
+  const eventTypes = ['medication', 'behavior', 'adl', 'incident', 'documentation', 'note'];
+  const statuses = ['pending', 'completed', 'escalated', 'completed', 'completed', 'pending'];
+  const summaryTemplates = [
+    (type) => `Morning ${type} log completed.`,
+    (type) => `Evening ${type} check pending.`,
+    (type) => `${type.charAt(0).toUpperCase() + type.slice(1)} escalation reported.`,
+    (type) => `Shift ${type} handoff note submitted.`,
+    (type) => `Weekly ${type} review completed.`
+  ];
+
+  function seedRand(n) { let x = Math.sin(n + 1) * 10000; return x - Math.floor(x); }
+
+  const base = [
+    { _id: 'demo-tracker-1', clientId: 'demo-client-1', homeId: 'threshold-home-1', dspId: 'demo-user-1', summary: 'Morning medication verification pending for Jordan Miles.', status: 'pending', eventType: 'medication', priority: 'high', details: 'Metformin 500mg and Lisinopril 10mg due at 7:30 AM.', dueAt: new Date(Date.now() + 45 * 60 * 1000).toISOString(), createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+    { _id: 'demo-tracker-2', clientId: 'demo-client-1', homeId: 'threshold-home-1', dspId: 'demo-user-1', summary: 'Behavior escalation debrief required after afternoon event.', status: 'escalated', eventType: 'behavior', priority: 'critical', details: 'Jordan became agitated at 2:15 PM during transition. Supervisor notified.', dueAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString() },
+    { _id: 'demo-tracker-3', clientId: 'demo-client-2', homeId: 'threshold-home-1', dspId: 'demo-user-1', summary: 'ADL support log completed — Avery Brooks morning routine.', status: 'completed', eventType: 'adl', priority: 'medium', details: 'Morning hygiene completed with verbal prompts only.', dueAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(), createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
+    { _id: 'demo-tracker-4', clientId: 'demo-client-2', homeId: 'threshold-home-1', dspId: 'demo-user-2', summary: 'Afternoon medication pass pending — Avery Brooks.', status: 'pending', eventType: 'medication', priority: 'high', details: 'Omeprazole 20mg due at 8:00 PM.', dueAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(), createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString() },
+    { _id: 'demo-tracker-5', clientId: 'demo-client-3', homeId: 'threshold-home-2', dspId: 'demo-user-2', summary: 'Incident note pending — Taylor Reed wandering observed.', status: 'pending', eventType: 'incident', priority: 'high', details: 'Taylor found near exterior door at 10:45 AM.', dueAt: new Date(Date.now() + 1.5 * 60 * 60 * 1000).toISOString(), createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString() },
+    { _id: 'demo-tracker-6', clientId: 'demo-client-3', homeId: 'threshold-home-2', dspId: 'demo-user-2', summary: 'Meal support log completed — Taylor Reed lunch.', status: 'completed', eventType: 'adl', priority: 'low', details: 'Thickened liquids prepared correctly. Client consumed 75% of meal.', dueAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString() },
+    { _id: 'demo-tracker-7', clientId: 'demo-client-1', homeId: 'threshold-home-1', dspId: 'demo-user-1', summary: 'Skin integrity check pending — Jordan Miles heels.', status: 'pending', eventType: 'adl', priority: 'medium', details: 'Daily pressure area check due. Focus on heels and sacrum.', dueAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), createdAt: new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString() },
+    { _id: 'demo-tracker-8', clientId: 'demo-client-1', homeId: 'threshold-home-1', dspId: 'demo-user-1', summary: 'Transfer assistance completed — Jordan Miles morning.', status: 'completed', eventType: 'adl', priority: 'medium', details: 'Bed-to-chair transfer completed. Client reported no pain.', dueAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), createdAt: new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString() },
+    { _id: 'demo-tracker-9', clientId: null, homeId: 'threshold-home-1', dspId: 'demo-user-2', summary: 'Shift handoff note pending — evening DSP.', status: 'pending', eventType: 'documentation', priority: 'medium', details: 'End-of-shift summary required.', dueAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() },
+    { _id: 'demo-tracker-10', clientId: null, homeId: 'threshold-home-2', dspId: 'demo-user-3', summary: 'Supervisor visit note completed — weekly check-in.', status: 'completed', eventType: 'documentation', priority: 'low', details: 'Supervisor completed weekly visit. No critical concerns.', dueAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString() }
+  ];
+
+  const generated = Array.from({length: 35}, (_, i) => {
+    const s = seedRand(i + 100);
+    const s2 = seedRand(i + 200);
+    const s3 = seedRand(i + 300);
+    const s4 = seedRand(i + 400);
+    const s5 = seedRand(i + 500);
+    const home = homes[Math.floor(s * homes.length)];
+    const eventType = eventTypes[Math.floor(s2 * eventTypes.length)];
+    const status = statuses[Math.floor(s3 * statuses.length)];
+    const dspId = dspIds[Math.floor(s4 * dspIds.length)];
+    const tmpl = summaryTemplates[Math.floor(s5 * summaryTemplates.length)];
+    const daysAgo = Math.floor(s * 30);
+    const hoursAgo = Math.floor(s2 * 24);
+    return {
+      _id: `demo-tracker-gen-${i + 1}`,
+      clientId: null,
+      homeId: home.homeId,
+      dspId,
+      summary: tmpl(eventType),
+      status,
+      eventType,
+      priority: status === 'escalated' ? 'critical' : (status === 'pending' ? 'high' : 'medium'),
+      details: `Auto-generated demo entry for ${home.homeId}.`,
+      dueAt: new Date(Date.now() - (daysAgo * 86400 + hoursAgo * 3600) * 1000).toISOString(),
+      createdAt: new Date(Date.now() - (daysAgo * 86400 + hoursAgo * 3600 + 1800) * 1000).toISOString()
+    };
+  });
+
+  return [...base, ...generated];
+})();
 
 const PAGE_ACCESS_RULES = {
   askSection: 'ask:approved_guidance:read',
@@ -2145,6 +2105,15 @@ function syncClientPickers() {
     const homeOptions = allHomes.map((h) => ({ value: h._id, label: h.displayName }));
     setSelectOptions('reportingHomeId', homeOptions, 'All Homes');
     syncReportingClientDatalist(clientsCache);
+    // Populate DSP datalist
+    const dspList = document.getElementById('reportingDspList');
+    if (dspList) {
+      const dspUsers = (typeof DEMO_USERS !== 'undefined' ? DEMO_USERS : [])
+        .filter((u) => u.role === 'dsp' || u.role === 'supervisor');
+      dspList.innerHTML = dspUsers.map((u) =>
+        `<option value="${u.fullName}" data-id="${u._id}"></option>`
+      ).join('');
+    }
   }
 
   setSelectOptions('assignmentClientId', options, 'Select Client');
@@ -2188,6 +2157,17 @@ function resolveReportingClientId() {
   const typed = textInput.value.trim();
   if (!typed) { hiddenInput.value = ''; return; }
   const datalist = document.getElementById('reportingClientList');
+  const match = Array.from(datalist?.options || []).find((o) => o.value === typed);
+  hiddenInput.value = match ? match.dataset.id : '';
+}
+
+function resolveReportingDspId() {
+  const textInput = document.getElementById('reportingDspInput');
+  const hiddenInput = document.getElementById('reportingDspId');
+  if (!textInput || !hiddenInput) return;
+  const typed = textInput.value.trim();
+  if (!typed) { hiddenInput.value = ''; return; }
+  const datalist = document.getElementById('reportingDspList');
   const match = Array.from(datalist?.options || []).find((o) => o.value === typed);
   hiddenInput.value = match ? match.dataset.id : '';
 }
@@ -2771,17 +2751,19 @@ async function loadPolicyHub(options = {}) {
 }
 
 function buildReportPayload(entries, filters) {
+  const mode = filters.mode || 'resident';
   const filtered = entries.filter((entry) => {
     const matchesClient = !filters.clientId || entry.clientId === filters.clientId;
+    const matchesHome = !filters.homeId || entry.homeId === filters.homeId;
+    const matchesDsp = !filters.dspId || entry.dspId === filters.dspId;
     const matchesStatus = !filters.status || entry.status === filters.status;
-
     const createdAt = entry.createdAt || entry.updatedAt || entry.dueAt;
     const stamp = createdAt ? new Date(createdAt).getTime() : NaN;
     const fromStamp = filters.from ? new Date(`${filters.from}T00:00:00`).getTime() : null;
     const toStamp = filters.to ? new Date(`${filters.to}T23:59:59`).getTime() : null;
     const matchesFrom = fromStamp ? (!Number.isNaN(stamp) && stamp >= fromStamp) : true;
     const matchesTo = toStamp ? (!Number.isNaN(stamp) && stamp <= toStamp) : true;
-    return matchesClient && matchesStatus && matchesFrom && matchesTo;
+    return matchesClient && matchesHome && matchesDsp && matchesStatus && matchesFrom && matchesTo;
   });
 
   const byType = filtered.reduce((acc, entry) => {
@@ -2790,11 +2772,41 @@ function buildReportPayload(entries, filters) {
     return acc;
   }, {});
 
+  const docTypes = ['documentation', 'note'];
+  const docEntries = filtered.filter((e) => docTypes.includes(e.eventType));
+  const docCompliance = docEntries.length > 0
+    ? Math.round((docEntries.filter((e) => e.status === 'completed').length / docEntries.length) * 100)
+    : null;
+
+  const medEntries = filtered.filter((e) => e.eventType === 'medication');
+  const medErrors = medEntries.filter((e) => e.status === 'escalated').length;
+
+  const byHome = filtered.reduce((acc, entry) => {
+    if (!entry.homeId) return acc;
+    if (!acc[entry.homeId]) acc[entry.homeId] = { total: 0, escalated: 0, pending: 0 };
+    acc[entry.homeId].total++;
+    if (entry.status === 'escalated') acc[entry.homeId].escalated++;
+    if (entry.status === 'pending') acc[entry.homeId].pending++;
+    return acc;
+  }, {});
+
+  const byDsp = filtered.reduce((acc, entry) => {
+    if (!entry.dspId) return acc;
+    if (!acc[entry.dspId]) acc[entry.dspId] = { total: 0, completed: 0, escalated: 0 };
+    acc[entry.dspId].total++;
+    if (entry.status === 'completed') acc[entry.dspId].completed++;
+    if (entry.status === 'escalated') acc[entry.dspId].escalated++;
+    return acc;
+  }, {});
+
   const summary = {
     total: filtered.length,
-    pending: filtered.filter((entry) => entry.status === 'pending').length,
-    completed: filtered.filter((entry) => entry.status === 'completed').length,
-    escalated: filtered.filter((entry) => entry.status === 'escalated').length
+    pending: filtered.filter((e) => e.status === 'pending').length,
+    completed: filtered.filter((e) => e.status === 'completed').length,
+    escalated: filtered.filter((e) => e.status === 'escalated').length,
+    incidents: filtered.filter((e) => e.eventType === 'incident').length,
+    docCompliance,
+    medErrors
   };
 
   const sorted = [...filtered].sort((a, b) => {
@@ -2805,63 +2817,149 @@ function buildReportPayload(entries, filters) {
 
   return {
     generatedAt: new Date().toISOString(),
+    mode,
     filters,
     summary,
     byType,
+    byHome,
+    byDsp,
     entries: sorted
   };
+}
+
+function getDspNameById(dspId) {
+  if (!dspId) return 'Unknown Staff';
+  const allUsers = typeof DEMO_USERS !== 'undefined' ? DEMO_USERS : [];
+  const u = allUsers.find((x) => x._id === dspId) || (usersCache || []).find((x) => x._id === dspId);
+  return u ? u.fullName : dspId;
+}
+
+function getHomeNameById(homeId) {
+  if (!homeId) return homeId || 'Unknown Home';
+  for (const homes of Object.values(DEMO_ORGANIZATION_HOMES || {})) {
+    const h = homes.find((x) => x._id === homeId);
+    if (h) return h.name || homeId;
+  }
+  return homeId;
 }
 
 function renderReportPayload(payload) {
   const summaryEl = document.getElementById('reportingSummary');
   const byTypeEl = document.getElementById('reportByType');
   const recentEl = document.getElementById('reportRecent');
+  const homeBreakdownEl = document.getElementById('reportHomeBreakdown');
+  const homeBreakdownPanel = document.getElementById('reportHomeBreakdownPanel');
+  const byTypeLabel = document.getElementById('reportByTypeLabel');
+  const recentLabel = document.getElementById('reportRecentLabel');
   if (!summaryEl || !byTypeEl || !recentEl) return;
 
+  const isStaff = payload.mode === 'staff';
+  if (byTypeLabel) byTypeLabel.textContent = isStaff ? 'Activity by Type' : 'By Event Type';
+  if (recentLabel) recentLabel.textContent = isStaff ? 'Staff Activity Log' : 'Recent Entries';
+
+  const s = payload.summary;
+  const complianceHtml = s.docCompliance !== null && s.docCompliance !== undefined
+    ? `<article class="report-kpi ${s.docCompliance < 70 ? 'kpi-warn' : ''}"><span>${safeText(s.docCompliance)}%</span><small>Doc Compliance</small></article>`
+    : '';
+  const medErrHtml = s.medErrors > 0
+    ? `<article class="report-kpi kpi-danger"><span>${safeText(s.medErrors)}</span><small>Med Escalations</small></article>`
+    : `<article class="report-kpi"><span>${safeText(s.medErrors || 0)}</span><small>Med Escalations</small></article>`;
+  const incidentColor = s.incidents > 0 ? 'kpi-warn' : '';
+
   summaryEl.innerHTML = `
-    <article class="report-kpi"><span>${safeText(payload.summary.total)}</span><small>Total Entries</small></article>
-    <article class="report-kpi"><span>${safeText(payload.summary.pending)}</span><small>Pending</small></article>
-    <article class="report-kpi"><span>${safeText(payload.summary.completed)}</span><small>Completed</small></article>
-    <article class="report-kpi"><span>${safeText(payload.summary.escalated)}</span><small>Escalated</small></article>
+    <article class="report-kpi"><span>${safeText(s.total)}</span><small>Total Entries</small></article>
+    <article class="report-kpi"><span>${safeText(s.pending)}</span><small>Pending</small></article>
+    <article class="report-kpi"><span>${safeText(s.completed)}</span><small>Completed</small></article>
+    <article class="report-kpi ${s.escalated > 0 ? 'kpi-danger' : ''}"><span>${safeText(s.escalated)}</span><small>Escalated</small></article>
+    <article class="report-kpi ${incidentColor}"><span>${safeText(s.incidents)}</span><small>Incidents</small></article>
+    ${complianceHtml}
+    ${medErrHtml}
   `;
 
   const maxTypeValue = Math.max(...Object.values(payload.byType), 1);
   const typeRows = Object.entries(payload.byType)
     .sort((a, b) => b[1] - a[1])
     .map(([type, count]) => {
-      const width = Math.max(10, Math.round((count / maxTypeValue) * 100));
+      const width = Math.max(6, Math.round((count / maxTypeValue) * 100));
+      const isIncident = type === 'incident';
       return `
         <div class="report-bar-row">
           <span class="report-bar-label">${safeText(type)}</span>
-          <div class="report-bar-track"><span class="report-bar-fill" style="width:${safeText(width)}%"></span></div>
+          <div class="report-bar-track"><span class="report-bar-fill ${isIncident ? 'bar-incident' : ''}" style="width:${safeText(width)}%"></span></div>
           <span class="report-bar-count">${safeText(count)}</span>
         </div>
       `;
-    })
-    .join('');
+    }).join('');
   byTypeEl.innerHTML = typeRows || '<p class="empty-state">No matching events for current filters.</p>';
 
-  const recentRows = payload.entries.slice(0, 12).map((entry) => {
-    return `
+  // Home breakdown panel — show only when no specific home is filtered
+  if (homeBreakdownEl && homeBreakdownPanel) {
+    const homeData = Object.entries(payload.byHome || {})
+      .map(([hId, stats]) => ({ hId, ...stats }))
+      .sort((a, b) => b.escalated - a.escalated || b.pending - a.pending);
+    if (homeData.length > 0 && !payload.filters.homeId && !payload.filters.dspId) {
+      homeBreakdownPanel.style.display = '';
+      const topHomes = homeData.slice(0, 8);
+      homeBreakdownEl.innerHTML = topHomes.map((h) => `
+        <div class="report-row">
+          <div>
+            <strong>${safeText(getHomeNameById(h.hId))}</strong>
+            <p>${safeText(h.total)} entries &mdash; ${safeText(h.pending)} pending</p>
+          </div>
+          <div class="report-row-meta">
+            ${h.escalated > 0 ? `<span class="status-badge status-escalated">${safeText(h.escalated)} escalated</span>` : '<span class="status-badge status-completed">OK</span>'}
+          </div>
+        </div>
+      `).join('');
+    } else {
+      homeBreakdownPanel.style.display = 'none';
+    }
+  }
+
+  // Staff performance panel or resident recent entries
+  let recentRows;
+  if (isStaff && Object.keys(payload.byDsp || {}).length > 0) {
+    recentRows = Object.entries(payload.byDsp)
+      .sort((a, b) => b[1].total - a[1].total)
+      .slice(0, 12)
+      .map(([dId, stats]) => {
+        const pct = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+        return `
+          <div class="report-row">
+            <div>
+              <strong>${safeText(getDspNameById(dId))}</strong>
+              <p>${safeText(stats.total)} entries &mdash; ${safeText(pct)}% completed</p>
+            </div>
+            <div class="report-row-meta">
+              ${stats.escalated > 0 ? `<span class="status-badge status-escalated">${safeText(stats.escalated)} escalated</span>` : '<span class="status-badge status-completed">On track</span>'}
+            </div>
+          </div>
+        `;
+      }).join('');
+  } else {
+    recentRows = payload.entries.slice(0, 12).map((entry) => `
       <div class="report-row">
         <div>
           <strong>${safeText(entry.summary || 'No summary')}</strong>
-          <p>${safeText(getClientNameById(entry.clientId))} | ${safeText(entry.eventType || 'other')}</p>
+          <p>${safeText(getClientNameById(entry.clientId) || getHomeNameById(entry.homeId) || 'Org-wide')} | ${safeText(entry.eventType || 'other')}</p>
         </div>
         <div class="report-row-meta">
           <span class="status-badge status-${safeText(entry.status || 'pending')}">${safeText(entry.status || 'pending')}</span>
           <time>${safeText(formatDate(entry.createdAt || entry.updatedAt || entry.dueAt))}</time>
         </div>
       </div>
-    `;
-  }).join('');
+    `).join('');
+  }
   recentEl.innerHTML = recentRows || '<p class="empty-state">No entries available.</p>';
 }
 
 async function loadReportingSection(formValues = null) {
+  const mode = document.getElementById('reportingMode')?.value || 'resident';
   const filters = formValues || {
+    mode,
     homeId: document.getElementById('reportingHomeId')?.value || '',
     clientId: document.getElementById('reportingClientId')?.value || '',
+    dspId: document.getElementById('reportingDspId')?.value || '',
     status: document.getElementById('reportingStatus')?.value || '',
     from: document.getElementById('reportingFrom')?.value || '',
     to: document.getElementById('reportingTo')?.value || ''
@@ -2871,6 +2969,7 @@ async function loadReportingSection(formValues = null) {
     const params = new URLSearchParams({ limit: '250' });
     if (filters.homeId) params.set('homeId', filters.homeId);
     if (filters.clientId) params.set('clientId', filters.clientId);
+    if (filters.dspId) params.set('userId', filters.dspId);
     if (filters.status) params.set('status', filters.status);
     if (filters.from) params.set('from', filters.from);
     if (filters.to) params.set('to', filters.to);
@@ -2881,7 +2980,6 @@ async function loadReportingSection(formValues = null) {
     currentReportPayload = payload;
     renderReportPayload(payload);
   } catch (error) {
-    // Patch: Show a clear error for 401/403 instead of logging out
     if (error && error.status && (error.status === 401 || error.status === 403)) {
       const summaryEl = document.getElementById('reportingSummary');
       if (summaryEl) summaryEl.innerHTML = `<p class="empty-state">You do not have access to reporting or your session expired. Please log in again.</p>`;
@@ -6187,15 +6285,42 @@ document.getElementById('careModulesGrid')?.addEventListener('keydown', (e) => {
 document.getElementById('reportingForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   resolveReportingClientId();
+  resolveReportingDspId();
   const form = new FormData(e.target);
+  const mode = String(document.getElementById('reportingMode')?.value || 'resident');
   await loadReportingSection({
+    mode,
     homeId: String(form.get('homeId') || ''),
-    clientId: String(document.getElementById('reportingClientId')?.value || ''),  // resolved hidden field
+    clientId: String(document.getElementById('reportingClientId')?.value || ''),
+    dspId: String(document.getElementById('reportingDspId')?.value || ''),
     status: String(form.get('status') || ''),
     from: String(form.get('from') || ''),
     to: String(form.get('to') || '')
   });
 });
+
+// Mode tabs
+(function () {
+  function switchReportMode(mode) {
+    const modeInput = document.getElementById('reportingMode');
+    const clientInput = document.getElementById('reportingClientInput');
+    const dspInput = document.getElementById('reportingDspInput');
+    const tabResident = document.getElementById('reportModeResident');
+    const tabStaff = document.getElementById('reportModeStaff');
+    if (modeInput) modeInput.value = mode;
+    if (clientInput) clientInput.style.display = mode === 'resident' ? '' : 'none';
+    if (dspInput) dspInput.style.display = mode === 'staff' ? '' : 'none';
+    if (tabResident) tabResident.classList.toggle('active', mode === 'resident');
+    if (tabStaff) tabStaff.classList.toggle('active', mode === 'staff');
+    // Auto-reload with new mode
+    loadReportingSection({ mode, homeId: '', clientId: '', dspId: '', status: '', from: '', to: '' }).catch(() => {});
+  }
+  document.getElementById('reportModeResident')?.addEventListener('click', () => switchReportMode('resident'));
+  document.getElementById('reportModeStaff')?.addEventListener('click', () => switchReportMode('staff'));
+})();
+
+// DSP input → resolve hidden ID
+document.getElementById('reportingDspInput')?.addEventListener('input', () => resolveReportingDspId());
 
 // Client text input → resolve ID + auto-fill home
 document.getElementById('reportingClientInput')?.addEventListener('input', (e) => {

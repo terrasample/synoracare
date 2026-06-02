@@ -1097,16 +1097,26 @@
       <div class="page-header">
         <div>
           <h2>Reporting</h2>
-          <p class="page-desc">Client and shift analytics for operational oversight and compliance-ready exports</p>
+          <p class="page-desc">Org-wide compliance dashboard &mdash; drill into residents, staff, or homes</p>
         </div>
       </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button type="button" class="report-mode-tab active" id="reportModeResident" data-mode="resident">Resident Report</button>
+        <button type="button" class="report-mode-tab" id="reportModeStaff" data-mode="staff">Staff Performance</button>
+      </div>
+
       <form id="reportingForm" class="report-toolbar">
+        <input type="hidden" id="reportingMode" name="mode" value="resident" />
         <select id="reportingHomeId" name="homeId">
           <option value="">All Homes</option>
         </select>
-        <input id="reportingClientInput" name="clientName" type="text" placeholder="Search client by name…" autocomplete="off" list="reportingClientList" />
+        <input id="reportingClientInput" name="clientName" type="text" placeholder="Search resident by name…" autocomplete="off" list="reportingClientList" />
         <datalist id="reportingClientList"></datalist>
         <input id="reportingClientId" name="clientId" type="hidden" />
+        <input id="reportingDspInput" name="dspName" type="text" placeholder="Search DSP / supervisor by name…" autocomplete="off" list="reportingDspList" style="display:none;" />
+        <datalist id="reportingDspList"></datalist>
+        <input id="reportingDspId" name="dspId" type="hidden" />
         <select id="reportingStatus" name="status">
           <option value="">All Statuses</option>
           <option value="pending">Pending</option>
@@ -1119,14 +1129,19 @@
         <button id="exportReportCsvBtn" type="button" class="btn-secondary">Export CSV</button>
         <button id="exportReportJsonBtn" type="button" class="btn-secondary">Export JSON</button>
       </form>
+
       <div id="reportingSummary" class="report-summary-grid"></div>
       <div class="report-panels">
         <article class="report-panel">
-          <h3>By Event Type</h3>
+          <h3 id="reportByTypeLabel">By Event Type</h3>
           <div id="reportByType" class="report-bars"></div>
         </article>
+        <article class="report-panel" id="reportHomeBreakdownPanel">
+          <h3>Homes Needing Attention</h3>
+          <div id="reportHomeBreakdown" class="report-table"></div>
+        </article>
         <article class="report-panel">
-          <h3>Recent Entries</h3>
+          <h3 id="reportRecentLabel">Recent Entries</h3>
           <div id="reportRecent" class="report-table"></div>
         </article>
       </div>

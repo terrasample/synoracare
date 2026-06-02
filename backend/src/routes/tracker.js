@@ -56,20 +56,43 @@ async function getAccessibleClientIds(user) {
 
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { clientId, status, limit, from, to } = req.query;
+    const { clientId, homeId, userId, status, limit, from, to } = req.query;
     const accessibleClientIds = await getAccessibleClientIds(req.user);
     if (!accessibleClientIds.length) return res.json({ entries: [] });
 
+    let filteredClientIds = accessibleClientIds;
+    if (homeId) {
+      const clientsInHome = await Client.find({
+        orgId: req.user.orgId,
+        locationId: String(homeId),
+        status: 'active',
+        _id: { $in: accessibleClientIds }
+      }).select('_id').lean();
+
+      filteredClientIds = clientsInHome.map((c) => String(c._id));
+      if (!filteredClientIds.length) {
+        return res.json({ entries: [] });
+      }
+    }
+
     const query = {
       orgId: req.user.orgId,
-      clientId: { $in: accessibleClientIds }
+      clientId: { $in: filteredClientIds }
     };
 
     if (clientId) {
-      if (!accessibleClientIds.includes(String(clientId))) {
+      if (!filteredClientIds.includes(String(clientId))) {
         return res.status(403).json({ error: 'No access to this client' });
       }
       query.clientId = clientId;
+    }
+
+    if (userId) {
+      const parsedUserId = String(userId);
+      if (!mongoose.Types.ObjectId.isValid(parsedUserId)) {
+        return res.status(400).json({ error: 'Invalid userId filter' });
+      }
+      query.createdBy = new mongoose.Types.ObjectId(parsedUserId);
     }
 
     if (status && ['pending', 'completed', 'escalated'].includes(String(status))) {
