@@ -3082,7 +3082,11 @@ async function loadReportingSection(formValues = null) {
     const summaryEl = document.getElementById('reportingSummary');
     const byTypeEl = document.getElementById('reportByType');
     const recentEl = document.getElementById('reportRecent');
-    if (summaryEl) summaryEl.innerHTML = `<p class="empty-state">${safeText(error.message)}</p>`;
+    const isNetworkError = error instanceof TypeError && String(error.message).toLowerCase().includes('fetch');
+    const displayMsg = isNetworkError
+      ? 'Could not reach the server. Check your connection or try again.'
+      : (error.message || 'An unexpected error occurred.');
+    if (summaryEl) summaryEl.innerHTML = `<div class="report-error-banner"><strong>Report failed:</strong> ${safeText(displayMsg)}</div>`;
     if (byTypeEl) byTypeEl.innerHTML = '';
     if (recentEl) recentEl.innerHTML = '';
   }
@@ -6367,19 +6371,26 @@ document.getElementById('careModulesGrid')?.addEventListener('keydown', (e) => {
 
 document.getElementById('reportingForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
-  resolveReportingClientId();
-  resolveReportingDspId();
-  const form = new FormData(e.target);
-  const mode = String(document.getElementById('reportingMode')?.value || 'resident');
-  await loadReportingSection({
-    mode,
-    homeId: String(form.get('homeId') || ''),
-    clientId: String(document.getElementById('reportingClientId')?.value || ''),
-    dspId: String(document.getElementById('reportingDspId')?.value || ''),
-    status: String(form.get('status') || ''),
-    from: String(form.get('from') || ''),
-    to: String(form.get('to') || '')
-  });
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalLabel = submitBtn?.textContent || 'Generate Report';
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Generating…'; }
+  try {
+    resolveReportingClientId();
+    resolveReportingDspId();
+    const form = new FormData(e.target);
+    const mode = String(document.getElementById('reportingMode')?.value || 'resident');
+    await loadReportingSection({
+      mode,
+      homeId: String(form.get('homeId') || ''),
+      clientId: String(document.getElementById('reportingClientId')?.value || ''),
+      dspId: String(document.getElementById('reportingDspId')?.value || ''),
+      status: String(form.get('status') || ''),
+      from: String(form.get('from') || ''),
+      to: String(form.get('to') || '')
+    });
+  } finally {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+  }
 });
 
 // Mode tabs
