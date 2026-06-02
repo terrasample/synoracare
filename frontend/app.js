@@ -2593,6 +2593,55 @@ function renderPolicyDetail(policy) {
   });
 }
 
+function renderPolicyLookupAnswer(items, options = {}) {
+  const card = document.getElementById('policyLookupAnswer');
+  if (!card) return;
+
+  const incidentType = String(options.incidentType || '').trim();
+  const category = String(options.category || '').trim();
+  const query = String(options.query || '').trim();
+  const hasInput = Boolean(incidentType || category || query);
+
+  if (!hasInput) {
+    card.innerHTML = '<p class="empty-state">Fill in the policy search fields, click Search, and the recommended answer will appear here.</p>';
+    return;
+  }
+
+  if (!Array.isArray(items) || !items.length) {
+    card.innerHTML = `
+      <div>
+        <strong>No matching policy found.</strong>
+        <p style="margin:6px 0 0 0;color:#475569;">Try broadening your search terms or removing one filter.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const top = items[0];
+  const incidentText = Array.isArray(top.incidentTypes) ? top.incidentTypes.join(', ') : 'none';
+  const actions = Array.isArray(top.immediateActions) ? top.immediateActions.slice(0, 3) : [];
+  const steps = Array.isArray(top.procedureSteps) ? top.procedureSteps.slice(0, 3) : [];
+
+  card.innerHTML = `
+    <div style="display:grid;gap:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <strong>Recommended Answer: ${safeText(top.title || 'Untitled policy')}</strong>
+        <span class="data-item-role">${safeText(top.workflowStatus || 'draft')}</span>
+      </div>
+      <p style="margin:0;color:#475569;">${safeText(top.summary || 'No summary provided.')}</p>
+      <p style="margin:0;color:#64748b;font-size:12px;">Category: ${safeText(top.category || 'uncategorized')} | Incident Types: ${safeText(incidentText)}</p>
+      <div>
+        <strong style="font-size:13px;">Immediate Actions</strong>
+        <ul style="margin:6px 0 0 18px;">${actions.map((step) => `<li>${safeText(step)}</li>`).join('') || '<li>None listed.</li>'}</ul>
+      </div>
+      <div>
+        <strong style="font-size:13px;">Next Steps</strong>
+        <ol style="margin:6px 0 0 18px;">${steps.map((step) => `<li>${safeText(step)}</li>`).join('') || '<li>None listed.</li>'}</ol>
+      </div>
+    </div>
+  `;
+}
+
 function renderPolicyList(items) {
   const list = document.getElementById('policyHubList');
   if (!list) return;
@@ -2692,6 +2741,7 @@ async function loadPolicyHub(options = {}) {
   const incidentType = String((options.incidentType ?? document.getElementById('policyIncidentType')?.value) || '').trim();
   const category = String((options.category ?? document.getElementById('policyCategory')?.value) || '').trim();
   const query = String((options.query ?? document.getElementById('policyQuery')?.value) || '').trim();
+  const lookupMeta = { incidentType, category, query };
 
   // Demo mode — use static demo policies, no API call needed
   if (isDemo()) {
@@ -2709,6 +2759,7 @@ async function loadPolicyHub(options = {}) {
     policyHubData = items;
     policyListPage = 0;
     if (!selectedPolicyId && items[0]) selectedPolicyId = String(items[0]._id || items[0].id || '');
+    renderPolicyLookupAnswer(items, lookupMeta);
     renderPolicyList(items);
     const selected = items.find((p) => String(p._id || p.id) === String(selectedPolicyId));
     renderPolicyDetail(selected || items[0] || null);
@@ -2734,6 +2785,7 @@ async function loadPolicyHub(options = {}) {
     const items = Array.isArray(data.policies) ? data.policies : [];
     policyHubData = items;
     policyListPage = 0;
+    renderPolicyLookupAnswer(items, lookupMeta);
 
     if (!selectedPolicyId && items[0]) {
       selectedPolicyId = String(items[0]._id || items[0].id || items[0].slug || '');
@@ -2749,6 +2801,7 @@ async function loadPolicyHub(options = {}) {
   } catch (error) {
     const list = document.getElementById('policyHubList');
     if (list) list.innerHTML = `<p class="empty-state">Could not load policies: ${safeText(error.message)}</p>`;
+    renderPolicyLookupAnswer([], lookupMeta);
   }
 }
 
