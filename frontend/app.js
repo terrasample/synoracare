@@ -2139,13 +2139,12 @@ function syncClientPickers() {
     label: `${client.displayName} (${client.externalId || 'no-ext-id'})`
   }));
 
-  // Populate the reporting home dropdown from org homes — independent of clientsCache
+  // Populate reporting dropdowns: clients are primary, home auto-fills from selection
   if (isDemo()) {
     const allHomes = Object.values(DEMO_ORGANIZATION_HOMES).flat();
     const homeOptions = allHomes.map((h) => ({ value: h._id, label: h.displayName }));
     setSelectOptions('reportingHomeId', homeOptions, 'All Homes');
-    const clientSelect = document.getElementById('reportingClientId');
-    if (clientSelect) clientSelect.innerHTML = '<option value="">All Clients</option>';
+    setSelectOptions('reportingClientId', options, 'All Clients');
   }
 
   setSelectOptions('assignmentClientId', options, 'Select Client');
@@ -2163,24 +2162,9 @@ function syncClientPickers() {
   }
 }
 
-function syncClientsByHome(homeId) {
-  // Populate reportingClientId with residents from the selected home
-  if (!homeId) {
-    const clientSelect = document.getElementById('reportingClientId');
-    if (clientSelect) clientSelect.innerHTML = '<option value="">All Clients</option>';
-    return;
-  }
-  // Determine orgId from homeId prefix (e.g. 'threshold-home-3' → 'threshold-org')
-  const orgPrefix = homeId.replace(/-home-\d+$/, '');
-  const orgId = `${orgPrefix}-org`;
-  const allHomes = DEMO_ORGANIZATION_HOMES[orgId] || [];
-  const home = allHomes.find((h) => h._id === homeId);
-  const count = home?.activeClients || 0;
-  const residents = buildDemoOrgHomeClients(orgId, homeId, count).map((c) => ({
-    value: c._id,
-    label: `${c.displayName} (${c.externalId || 'no-ext-id'})`
-  }));
-  setSelectOptions('reportingClientId', residents, 'All Clients');
+function getClientHomeId(clientId) {
+  // Look up the locationId (homeId) for a given client from clientsCache
+  return clientsCache.find((c) => c._id === clientId)?.locationId || '';
 }
 
 function getDemoPatientWorkspaceEntries(clientId) {
@@ -6187,8 +6171,30 @@ document.getElementById('reportingForm')?.addEventListener('submit', async (e) =
   });
 });
 
+// Client selection → auto-fill home
+document.getElementById('reportingClientId')?.addEventListener('change', (e) => {
+  if (!isDemo()) return;
+  const homeSelect = document.getElementById('reportingHomeId');
+  if (!homeSelect) return;
+  homeSelect.value = e.target.value ? getClientHomeId(e.target.value) : '';
+});
+
+// Home selection → filter client list to that home's residents
 document.getElementById('reportingHomeId')?.addEventListener('change', (e) => {
-  syncClientsByHome(e.target.value);
+  if (!isDemo()) return;
+  const homeId = e.target.value;
+  const clientSelect = document.getElementById('reportingClientId');
+  if (!clientSelect) return;
+  if (!homeId) {
+    // Restore full client list
+    const allOptions = clientsCache.map((c) => ({ value: c._id, label: `${c.displayName} (${c.externalId || 'no-ext-id'})` }));
+    setSelectOptions('reportingClientId', allOptions, 'All Clients');
+    return;
+  }
+  const filtered = clientsCache
+    .filter((c) => c.locationId === homeId)
+    .map((c) => ({ value: c._id, label: `${c.displayName} (${c.externalId || 'no-ext-id'})` }));
+  setSelectOptions('reportingClientId', filtered, 'All Clients');
 });
 
 document.getElementById('exportReportCsvBtn')?.addEventListener('click', () => {
