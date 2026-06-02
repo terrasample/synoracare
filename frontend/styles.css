@@ -308,11 +308,37 @@ body:not(.role-super_admin) .nav-role-superadmin { display: none; }
   border-color: var(--primary, #0d7a6f);
 }
 
+.report-preset-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) auto minmax(180px, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 12px;
+}
+.report-preset-row input,
+.report-preset-row select {
+  width: 100%;
+}
+
 /* KPI color variants */
 .report-kpi.kpi-warn span { color: #b45309; }
 .report-kpi.kpi-warn { border-color: #fde68a; background: #fffbeb; }
 .report-kpi.kpi-danger span { color: #991b1b; }
 .report-kpi.kpi-danger { border-color: #fecaca; background: #fff5f5; }
+.report-kpi[data-drill] {
+  cursor: pointer;
+}
+.report-kpi[data-drill]:hover {
+  border-color: #0d7a6f;
+  box-shadow: 0 0 0 2px rgba(13, 122, 111, 0.08);
+}
+
+.report-row.report-home-drill {
+  cursor: pointer;
+}
+.report-row.report-home-drill:hover {
+  border-color: #0d7a6f;
+}
 
 /* Incident bar color */
 .report-bar-fill.bar-incident {
@@ -3098,6 +3124,11 @@ body.guest-mode #loginSection {
   .report-toolbar button {
     width: 100%;
   }
+
+  .report-preset-row {
+    grid-template-columns: 1fr;
+  }
+
 
   .report-panels {
     grid-template-columns: 1fr;

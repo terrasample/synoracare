@@ -146,6 +146,8 @@ let isAskPromptLibraryCollapsed = false;
 let askPromptSearchTerm = '';
 let legalExportPayload = null;
 let currentReportPayload = null;
+let currentReportFilters = null;
+const REPORT_PRESET_STORAGE_KEY = 'synoracare_report_presets_v1';
 let selectedPatientTab = 'care';
 let currentPatientWorkspace = { clientId: '', orgId: '', entries: [] };
 let currentPage = '';
@@ -2843,6 +2845,95 @@ function getHomeNameById(homeId) {
   return homeId;
 }
 
+function setReportModeUi(mode) {
+  const normalized = mode === 'staff' ? 'staff' : 'resident';
+  const modeInput = document.getElementById('reportingMode');
+  const clientInput = document.getElementById('reportingClientInput');
+  const dspInput = document.getElementById('reportingDspInput');
+  const tabResident = document.getElementById('reportModeResident');
+  const tabStaff = document.getElementById('reportModeStaff');
+  if (modeInput) modeInput.value = normalized;
+  if (clientInput) clientInput.style.display = normalized === 'resident' ? '' : 'none';
+  if (dspInput) dspInput.style.display = normalized === 'staff' ? '' : 'none';
+  if (tabResident) tabResident.classList.toggle('active', normalized === 'resident');
+  if (tabStaff) tabStaff.classList.toggle('active', normalized === 'staff');
+}
+
+function getCurrentReportingFiltersFromUi() {
+  return {
+    mode: document.getElementById('reportingMode')?.value || 'resident',
+    homeId: document.getElementById('reportingHomeId')?.value || '',
+    clientId: document.getElementById('reportingClientId')?.value || '',
+    dspId: document.getElementById('reportingDspId')?.value || '',
+    status: document.getElementById('reportingStatus')?.value || '',
+    from: document.getElementById('reportingFrom')?.value || '',
+    to: document.getElementById('reportingTo')?.value || ''
+  };
+}
+
+function applyReportingFiltersToUi(filters) {
+  const next = { ...filters };
+  setReportModeUi(next.mode || 'resident');
+
+  const homeSelect = document.getElementById('reportingHomeId');
+  const clientInput = document.getElementById('reportingClientInput');
+  const clientIdInput = document.getElementById('reportingClientId');
+  const dspInput = document.getElementById('reportingDspInput');
+  const dspIdInput = document.getElementById('reportingDspId');
+  const statusSelect = document.getElementById('reportingStatus');
+  const fromInput = document.getElementById('reportingFrom');
+  const toInput = document.getElementById('reportingTo');
+
+  if (homeSelect) homeSelect.value = next.homeId || '';
+  if (statusSelect) statusSelect.value = next.status || '';
+  if (fromInput) fromInput.value = next.from || '';
+  if (toInput) toInput.value = next.to || '';
+
+  if (clientIdInput) clientIdInput.value = next.clientId || '';
+  if (clientInput) {
+    const client = clientsCache.find((c) => c._id === next.clientId);
+    clientInput.value = client ? `${client.displayName} (${client.externalId || 'no-ext-id'})` : '';
+  }
+
+  if (dspIdInput) dspIdInput.value = next.dspId || '';
+  if (dspInput) {
+    const allUsers = typeof DEMO_USERS !== 'undefined' ? DEMO_USERS : usersCache;
+    const user = (allUsers || []).find((u) => u._id === next.dspId);
+    dspInput.value = user?.fullName || '';
+  }
+}
+
+function getReportPresets() {
+  try {
+    const raw = localStorage.getItem(REPORT_PRESET_STORAGE_KEY);
+    const parsed = JSON.parse(raw || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function saveReportPresets(presets) {
+  localStorage.setItem(REPORT_PRESET_STORAGE_KEY, JSON.stringify(presets.slice(0, 20)));
+}
+
+function renderReportPresetOptions() {
+  const select = document.getElementById('reportPresetSelect');
+  if (!select) return;
+  const presets = getReportPresets();
+  const previous = select.value;
+  select.innerHTML = '<option value="">Saved Presets</option>';
+  presets.forEach((preset) => {
+    const option = document.createElement('option');
+    option.value = String(preset.id || '');
+    option.textContent = String(preset.name || 'Untitled preset');
+    select.appendChild(option);
+  });
+  if (previous && presets.some((p) => String(p.id) === previous)) {
+    select.value = previous;
+  }
+}
+
 function renderReportPayload(payload) {
   const summaryEl = document.getElementById('reportingSummary');
   const byTypeEl = document.getElementById('reportByType');
@@ -2867,10 +2958,10 @@ function renderReportPayload(payload) {
   const incidentColor = s.incidents > 0 ? 'kpi-warn' : '';
 
   summaryEl.innerHTML = `
-    <article class="report-kpi"><span>${safeText(s.total)}</span><small>Total Entries</small></article>
-    <article class="report-kpi"><span>${safeText(s.pending)}</span><small>Pending</small></article>
-    <article class="report-kpi"><span>${safeText(s.completed)}</span><small>Completed</small></article>
-    <article class="report-kpi ${s.escalated > 0 ? 'kpi-danger' : ''}"><span>${safeText(s.escalated)}</span><small>Escalated</small></article>
+    <article class="report-kpi" data-drill="all"><span>${safeText(s.total)}</span><small>Total Entries</small></article>
+    <article class="report-kpi" data-drill="pending"><span>${safeText(s.pending)}</span><small>Pending</small></article>
+    <article class="report-kpi" data-drill="completed"><span>${safeText(s.completed)}</span><small>Completed</small></article>
+    <article class="report-kpi ${s.escalated > 0 ? 'kpi-danger' : ''}" data-drill="escalated"><span>${safeText(s.escalated)}</span><small>Escalated</small></article>
     <article class="report-kpi ${incidentColor}"><span>${safeText(s.incidents)}</span><small>Incidents</small></article>
     ${complianceHtml}
     ${medErrHtml}
@@ -2901,7 +2992,7 @@ function renderReportPayload(payload) {
       homeBreakdownPanel.style.display = '';
       const topHomes = homeData.slice(0, 8);
       homeBreakdownEl.innerHTML = topHomes.map((h) => `
-        <div class="report-row">
+        <div class="report-row report-home-drill" data-home-id="${safeText(h.hId)}" data-drill-status="${h.escalated > 0 ? 'escalated' : 'all'}">
           <div>
             <strong>${safeText(getHomeNameById(h.hId))}</strong>
             <p>${safeText(h.total)} entries &mdash; ${safeText(h.pending)} pending</p>
@@ -2954,16 +3045,8 @@ function renderReportPayload(payload) {
 }
 
 async function loadReportingSection(formValues = null) {
-  const mode = document.getElementById('reportingMode')?.value || 'resident';
-  const filters = formValues || {
-    mode,
-    homeId: document.getElementById('reportingHomeId')?.value || '',
-    clientId: document.getElementById('reportingClientId')?.value || '',
-    dspId: document.getElementById('reportingDspId')?.value || '',
-    status: document.getElementById('reportingStatus')?.value || '',
-    from: document.getElementById('reportingFrom')?.value || '',
-    to: document.getElementById('reportingTo')?.value || ''
-  };
+  const filters = formValues || getCurrentReportingFiltersFromUi();
+  currentReportFilters = { ...filters };
 
   try {
     const params = new URLSearchParams({ limit: '250' });
@@ -6302,22 +6385,76 @@ document.getElementById('reportingForm')?.addEventListener('submit', async (e) =
 // Mode tabs
 (function () {
   function switchReportMode(mode) {
-    const modeInput = document.getElementById('reportingMode');
-    const clientInput = document.getElementById('reportingClientInput');
-    const dspInput = document.getElementById('reportingDspInput');
-    const tabResident = document.getElementById('reportModeResident');
-    const tabStaff = document.getElementById('reportModeStaff');
-    if (modeInput) modeInput.value = mode;
-    if (clientInput) clientInput.style.display = mode === 'resident' ? '' : 'none';
-    if (dspInput) dspInput.style.display = mode === 'staff' ? '' : 'none';
-    if (tabResident) tabResident.classList.toggle('active', mode === 'resident');
-    if (tabStaff) tabStaff.classList.toggle('active', mode === 'staff');
-    // Auto-reload with new mode
+    setReportModeUi(mode);
     loadReportingSection({ mode, homeId: '', clientId: '', dspId: '', status: '', from: '', to: '' }).catch(() => {});
   }
   document.getElementById('reportModeResident')?.addEventListener('click', () => switchReportMode('resident'));
   document.getElementById('reportModeStaff')?.addEventListener('click', () => switchReportMode('staff'));
+  setReportModeUi(document.getElementById('reportingMode')?.value || 'resident');
+  renderReportPresetOptions();
 })();
+
+document.getElementById('reportingSummary')?.addEventListener('click', async (e) => {
+  const tile = e.target.closest('.report-kpi[data-drill]');
+  if (!tile) return;
+  const drill = tile.getAttribute('data-drill') || 'all';
+  const next = { ...(currentReportFilters || getCurrentReportingFiltersFromUi()) };
+  next.status = drill === 'all' ? '' : drill;
+  applyReportingFiltersToUi(next);
+  await loadReportingSection(next);
+});
+
+document.getElementById('reportHomeBreakdown')?.addEventListener('click', async (e) => {
+  const row = e.target.closest('.report-home-drill[data-home-id]');
+  if (!row) return;
+  const next = { ...(currentReportFilters || getCurrentReportingFiltersFromUi()) };
+  next.homeId = row.getAttribute('data-home-id') || '';
+  const rowStatus = row.getAttribute('data-drill-status') || 'all';
+  next.status = rowStatus === 'all' ? next.status || '' : rowStatus;
+  applyReportingFiltersToUi(next);
+  await loadReportingSection(next);
+});
+
+document.getElementById('saveReportPresetBtn')?.addEventListener('click', () => {
+  const nameInput = document.getElementById('reportPresetName');
+  const name = String(nameInput?.value || '').trim();
+  if (!name) {
+    showToast('Enter a preset name first.', 'error');
+    return;
+  }
+
+  const presets = getReportPresets();
+  const filters = currentReportFilters || getCurrentReportingFiltersFromUi();
+  const existingIndex = presets.findIndex((p) => String(p.name || '').toLowerCase() === name.toLowerCase());
+  const entry = { id: existingIndex >= 0 ? presets[existingIndex].id : Date.now().toString(36), name, filters };
+  if (existingIndex >= 0) presets[existingIndex] = entry;
+  else presets.unshift(entry);
+  saveReportPresets(presets);
+  renderReportPresetOptions();
+  const select = document.getElementById('reportPresetSelect');
+  if (select) select.value = String(entry.id);
+  if (nameInput) nameInput.value = '';
+  showToast('Report preset saved.', 'success');
+});
+
+document.getElementById('applyReportPresetBtn')?.addEventListener('click', async () => {
+  const selected = String(document.getElementById('reportPresetSelect')?.value || '');
+  if (!selected) return;
+  const preset = getReportPresets().find((p) => String(p.id) === selected);
+  if (!preset?.filters) return;
+  applyReportingFiltersToUi(preset.filters);
+  await loadReportingSection({ ...preset.filters });
+});
+
+document.getElementById('deleteReportPresetBtn')?.addEventListener('click', () => {
+  const select = document.getElementById('reportPresetSelect');
+  const selected = String(select?.value || '');
+  if (!selected) return;
+  const presets = getReportPresets().filter((p) => String(p.id) !== selected);
+  saveReportPresets(presets);
+  renderReportPresetOptions();
+  showToast('Report preset deleted.', 'success');
+});
 
 // DSP input → resolve hidden ID
 document.getElementById('reportingDspInput')?.addEventListener('input', () => resolveReportingDspId());

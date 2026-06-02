@@ -1130,6 +1130,16 @@
         <button id="exportReportJsonBtn" type="button" class="btn-secondary">Export JSON</button>
       </form>
 
+      <div class="report-preset-row">
+        <input id="reportPresetName" type="text" placeholder="Preset name" maxlength="40" />
+        <button id="saveReportPresetBtn" type="button" class="btn-secondary">Save Preset</button>
+        <select id="reportPresetSelect">
+          <option value="">Saved Presets</option>
+        </select>
+        <button id="applyReportPresetBtn" type="button" class="btn-secondary">Apply</button>
+        <button id="deleteReportPresetBtn" type="button" class="btn-secondary">Delete</button>
+      </div>
+
       <div id="reportingSummary" class="report-summary-grid"></div>
       <div class="report-panels">
         <article class="report-panel">
