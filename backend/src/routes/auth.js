@@ -12,7 +12,7 @@ const { requireAuth } = require('../middleware/auth');
 const { requirePermissions } = require('../middleware/permissions');
 const {
   SYSTEM_ROLES,
-  getPermissionsForRole,
+  getEffectivePermissionsForUser,
   sanitizeRoleDisplayLabels,
   mergeRoleDisplayLabels,
   getRoleDisplayLabel
@@ -116,7 +116,8 @@ async function buildAuthUserPayload(user) {
     role: user.role,
     roleDisplayName: getRoleDisplayLabel(user.role, roleDisplayLabels),
     roleDisplayLabels,
-    permissions: getPermissionsForRole(user.role),
+    permissions: getEffectivePermissionsForUser(user),
+    customPermissions: Array.isArray(user.customPermissions) ? user.customPermissions : [],
     orgId: user.orgId,
     email: user.email
   };
@@ -204,13 +205,14 @@ router.post('/login', async (req, res) => {
 router.get('/permissions', requireAuth, async (req, res) => {
   try {
     const roleDisplayLabels = await getOrganizationRoleLabels(req.user.orgId);
-    const permissions = getPermissionsForRole(req.user.role);
+    const permissions = getEffectivePermissionsForUser(req.user);
 
     return res.json({
       role: req.user.role,
       roleDisplayName: getRoleDisplayLabel(req.user.role, roleDisplayLabels),
       roleDisplayLabels,
       permissions,
+      customPermissions: Array.isArray(req.user.customPermissions) ? req.user.customPermissions : [],
       supportedRoles: SYSTEM_ROLES
     });
   } catch (error) {

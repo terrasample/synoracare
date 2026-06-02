@@ -10,7 +10,12 @@ const AuditEvent = require('../models/AuditEvent');
 const Organization = require('../models/Organization');
 const { requireAuth } = require('../middleware/auth');
 const { requirePermissions } = require('../middleware/permissions');
-const { getRoleDisplayLabel, mergeRoleDisplayLabels, canRole } = require('../config/accessControl');
+const {
+  getRoleDisplayLabel,
+  mergeRoleDisplayLabels,
+  canRole,
+  normalizeCustomPermissions
+} = require('../config/accessControl');
 
 const router = express.Router();
 
@@ -72,17 +77,55 @@ router.get('/users', requireAuth, requirePermissions('users:read'), async (req, 
   try {
     const roleDisplayLabels = await getOrgRoleDisplayLabels(req.user.orgId);
     const users = await User.find({ orgId: req.user.orgId })
-      .select('_id fullName email role status inviteAcceptedAt')
+      .select('_id fullName email role status inviteAcceptedAt customPermissions')
       .sort({ fullName: 1 })
       .lean();
     return res.json({
       users: users.map((user) => ({
         ...user,
+        customPermissions: Array.isArray(user.customPermissions) ? user.customPermissions : [],
         roleDisplayName: getRoleDisplayLabel(user.role, roleDisplayLabels)
       }))
     });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to list users' });
+  }
+});
+
+router.patch('/users/:id/policy-permissions', requireAuth, requirePermissions('users:permissions:update'), async (req, res) => {
+  try {
+    const user = await User.findOne({ _id: req.params.id, orgId: req.user.orgId });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const incoming = Array.isArray(req.body?.customPermissions) ? req.body.customPermissions : [];
+    const sanitized = normalizeCustomPermissions(incoming).filter((permission) => permission.startsWith('policies:'));
+
+    user.customPermissions = sanitized;
+    await user.save();
+
+    await AuditEvent.create({
+      orgId: req.user.orgId,
+      userId: req.user._id,
+      eventType: 'security_alert',
+      payload: {
+        action: 'policy_permissions_updated',
+        targetUserId: String(user._id),
+        customPermissions: sanitized
+      }
+    });
+
+    return res.json({
+      ok: true,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        customPermissions: user.customPermissions
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to update policy permissions' });
   }
 });
 

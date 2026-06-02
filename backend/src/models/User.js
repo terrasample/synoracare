@@ -19,7 +19,8 @@ const UserSchema = new mongoose.Schema(
     },
     inviteAcceptedAt: { type: Date, default: null },
     termsAcceptedAt: { type: Date, default: null },
-    mfaEnabled: { type: Boolean, default: false }
+    mfaEnabled: { type: Boolean, default: false },
+    customPermissions: { type: [String], default: [] }
   },
   { timestamps: true }
 );

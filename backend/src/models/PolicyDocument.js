@@ -27,8 +27,19 @@ const PolicyDocumentSchema = new mongoose.Schema(
     reportingRequirements: { type: [String], default: [] },
     contacts: { type: [PolicyContactSchema], default: [] },
     version: { type: String, default: '1.0' },
+    currentVersion: { type: Number, default: 1 },
     effectiveDate: { type: Date, default: Date.now },
     lastReviewedAt: { type: Date, default: Date.now },
+    workflowStatus: {
+      type: String,
+      enum: ['draft', 'in_review', 'published', 'archived'],
+      default: 'draft'
+    },
+    submittedForReviewAt: { type: Date, default: null },
+    submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    approvedAt: { type: Date, default: null },
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    publishedAt: { type: Date, default: null },
     isActive: { type: Boolean, default: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }

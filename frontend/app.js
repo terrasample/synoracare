@@ -36,7 +36,10 @@ const ROLE_PERMISSION_FALLBACK = {
     'tracker:entry:read',
     'ask:approved_guidance:read',
     'shifts:handoff:create',
-    'shifts:own:read'
+    'shifts:own:read',
+    'policies:read',
+    'policies:ack',
+    'policies:notifications:read'
   ],
   supervisor: [
     'clients:assigned:read',
@@ -56,7 +59,10 @@ const ROLE_PERMISSION_FALLBACK = {
     'shifts:all:read',
     'legal_records:export',
     'homes:read',
-    'homes:update'
+    'homes:update',
+    'policies:read',
+    'policies:ack',
+    'policies:notifications:read'
   ],
   org_admin: [
     'clients:all:read',
@@ -78,7 +84,11 @@ const ROLE_PERMISSION_FALLBACK = {
     'homes:read',
     'homes:create',
     'homes:update',
-    'homes:manage'
+    'homes:manage',
+    'users:permissions:update',
+    'policies:read',
+    'policies:ack',
+    'policies:notifications:read'
   ],
   super_admin: [
     'clients:all:read',
@@ -103,7 +113,19 @@ const ROLE_PERMISSION_FALLBACK = {
     'homes:create',
     'homes:update',
     'homes:archive',
-    'homes:manage'
+    'homes:manage',
+    'users:permissions:update',
+    'policies:read',
+    'policies:ack',
+    'policies:notifications:read',
+    'policies:create',
+    'policies:update',
+    'policies:archive',
+    'policies:submit_review',
+    'policies:approve',
+    'policies:history:read',
+    'policies:rollback',
+    'policies:read_receipts'
   ]
 };
 let token = '';
@@ -130,6 +152,9 @@ let currentPage = '';
 let currentTrackerFeed = [];
 let policyHubData = [];
 let selectedPolicyId = '';
+let policyHistoryData = [];
+let policyReadReceiptsData = [];
+let policyNotificationsData = [];
 let trackerStatusFilter = '';
 let selectedDashboardHomeId = '';
 let selectedDashboardOrgId = '';
@@ -1068,7 +1093,7 @@ const PAGE_ACCESS_RULES = {
   askSection: 'ask:approved_guidance:read',
   patientWorkspaceSection: ['clients:assigned:read', 'clients:all:read'],
   careModulesSection: 'tracker:entry:read',
-  policyHubSection: 'tracker:entry:read',
+  policyHubSection: 'policies:read',
   homesSection: 'homes:read',
   reportingSection: 'reports:export',
   uploadSection: 'documents:upload',
@@ -1267,11 +1292,16 @@ function handlePageNavigation(pageId) {
   if (pageId === 'policyHubSection') {
     const adminPanel = document.getElementById('policyHubAdminPanel');
     if (adminPanel) {
-      const role = getActiveRole();
-      const canManagePolicies = role === 'org_admin' || role === 'super_admin';
+      const canManagePolicies = hasPermission('policies:update')
+        || hasPermission('policies:create')
+        || hasPermission('policies:approve')
+        || hasPermission('policies:archive');
       adminPanel.style.display = canManagePolicies ? '' : 'none';
     }
-    loadPolicyHub().catch(() => {});
+    Promise.all([
+      loadPolicyHub(),
+      loadPolicyNotifications().catch(() => {})
+    ]).catch(() => {});
     return;
   }
 
@@ -2263,6 +2293,151 @@ function splitLineValues(value) {
     .filter(Boolean);
 }
 
+function canManagePoliciesInUi() {
+  return hasPermission('policies:update')
+    || hasPermission('policies:create')
+    || hasPermission('policies:approve')
+    || hasPermission('policies:archive');
+}
+
+function getSelectedPolicy() {
+  return policyHubData.find((item) => String(item._id || item.id || item.slug) === String(selectedPolicyId)) || null;
+}
+
+function syncPolicyEditor(policy) {
+  const form = document.getElementById('policyEditForm');
+  if (!form) return;
+
+  form.policyId.value = String(policy?._id || policy?.id || policy?.slug || '');
+  form.title.value = String(policy?.title || '');
+  form.category.value = String(policy?.category || '');
+  form.incidentTypes.value = Array.isArray(policy?.incidentTypes) ? policy.incidentTypes.join(', ') : '';
+  form.summary.value = String(policy?.summary || '');
+  form.procedureSteps.value = Array.isArray(policy?.procedureSteps) ? policy.procedureSteps.join('\n') : '';
+}
+
+function renderPolicyHistory(revisions) {
+  const container = document.getElementById('policyHistoryList');
+  if (!container) return;
+
+  if (!Array.isArray(revisions) || !revisions.length) {
+    container.innerHTML = '<p class="empty-state">No revision history found.</p>';
+    return;
+  }
+
+  container.innerHTML = revisions.map((revision) => {
+    const revisionId = String(revision._id || '');
+    const createdAt = revision.createdAt ? formatDate(revision.createdAt) : 'Unknown date';
+    return `
+      <div class="data-item" style="display:block;">
+        <span class="data-item-label">${safeText(revision.changeType || 'update')} | v${safeText(String(revision.version || 1))}</span>
+        <span class="data-item-meta">${safeText(createdAt)} | status: ${safeText(revision.status || 'n/a')}</span>
+        <span class="data-item-meta">${safeText(revision.note || '')}</span>
+        ${hasPermission('policies:rollback') ? `<button type="button" class="btn-secondary btn-sm" data-policy-rollback-id="${safeText(revisionId)}">Rollback To This Revision</button>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('[data-policy-rollback-id]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const revisionId = String(button.getAttribute('data-policy-rollback-id') || '');
+      if (!revisionId || !selectedPolicyId) return;
+
+      const confirmed = window.confirm('Rollback this policy to the selected revision and publish it?');
+      if (!confirmed) return;
+
+      try {
+        await api(`/api/policies/${encodeURIComponent(selectedPolicyId)}/rollback/${encodeURIComponent(revisionId)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        showToast('Policy rolled back and published.', 'success');
+        await Promise.all([loadPolicyHub(), loadPolicyHistory(), loadPolicyNotifications()]);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
+}
+
+async function loadPolicyHistory() {
+  if (!selectedPolicyId || !hasPermission('policies:history:read')) {
+    renderPolicyHistory([]);
+    return;
+  }
+
+  const data = await api(`/api/policies/${encodeURIComponent(selectedPolicyId)}/history`);
+  policyHistoryData = Array.isArray(data.revisions) ? data.revisions : [];
+  renderPolicyHistory(policyHistoryData);
+}
+
+function renderPolicyReadReceipts(rows) {
+  const container = document.getElementById('policyReadReceipts');
+  if (!container) return;
+
+  if (!Array.isArray(rows) || !rows.length) {
+    container.innerHTML = '<p class="empty-state">No published policies found for read receipts.</p>';
+    return;
+  }
+
+  container.innerHTML = rows.map((row) => `
+    <div class="data-item" style="display:block;">
+      <span class="data-item-label">${safeText(row.title || 'Untitled policy')}</span>
+      <span class="data-item-meta">Coverage: ${safeText(String(row.coveragePct || 0))}% (${safeText(String(row.acknowledgedCount || 0))}/${safeText(String(row.totalUsers || 0))})</span>
+      <span class="data-item-meta">Pending: ${safeText((row.pendingUsers || []).map((u) => u.fullName).join(', ') || 'none')}</span>
+    </div>
+  `).join('');
+}
+
+async function loadPolicyReadReceipts() {
+  if (!hasPermission('policies:read_receipts')) return;
+  const data = await api('/api/policies/dashboard/read-receipts');
+  policyReadReceiptsData = Array.isArray(data.readReceipts) ? data.readReceipts : [];
+  renderPolicyReadReceipts(policyReadReceiptsData);
+}
+
+function renderPolicyNotifications(items) {
+  const container = document.getElementById('policyNotificationsList');
+  if (!container) return;
+
+  if (!Array.isArray(items) || !items.length) {
+    container.innerHTML = '<p class="empty-state">No policy notifications.</p>';
+    return;
+  }
+
+  container.innerHTML = items.map((item) => `
+    <div class="data-item" style="display:block;${item.isRead ? '' : 'border-color:#16a34a;'}">
+      <span class="data-item-label">${safeText(item.title || 'Policy update')}</span>
+      <span class="data-item-meta">${safeText(formatDate(item.createdAt || item.updatedAt || new Date().toISOString()))}</span>
+      <span class="data-item-meta">${safeText(item.message || '')}</span>
+      ${item.isRead ? '' : `<button type="button" class="btn-secondary btn-sm" data-policy-notification-read="${safeText(String(item._id || ''))}">Mark Read</button>`}
+    </div>
+  `).join('');
+
+  container.querySelectorAll('[data-policy-notification-read]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const notificationId = String(button.getAttribute('data-policy-notification-read') || '');
+      if (!notificationId) return;
+      try {
+        await api(`/api/policies/notifications/${encodeURIComponent(notificationId)}/read`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        await loadPolicyNotifications();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
+}
+
+async function loadPolicyNotifications() {
+  if (!hasPermission('policies:notifications:read')) return;
+  const data = await api('/api/policies/notifications/me');
+  policyNotificationsData = Array.isArray(data.notifications) ? data.notifications : [];
+  renderPolicyNotifications(policyNotificationsData);
+}
+
 function renderPolicyDetail(policy) {
   const detail = document.getElementById('policyHubDetail');
   if (!detail) return;
@@ -2277,11 +2452,13 @@ function renderPolicyDetail(policy) {
   const reportingRequirements = Array.isArray(policy.reportingRequirements) ? policy.reportingRequirements : [];
   const contacts = Array.isArray(policy.contacts) ? policy.contacts : [];
   const incidentTypes = Array.isArray(policy.incidentTypes) ? policy.incidentTypes : [];
+  const workflowStatus = String(policy.workflowStatus || 'draft');
 
   detail.innerHTML = `
     <div class="data-item" style="display:block;">
       <span class="data-item-label">${safeText(policy.title || 'Untitled policy')}</span>
       <span class="data-item-meta">Category: ${safeText(policy.category || 'uncategorized')} | Version: ${safeText(policy.version || '1.0')}</span>
+      <span class="data-item-meta">Workflow: ${safeText(workflowStatus)}</span>
       <span class="data-item-meta">Incident Types: ${safeText(incidentTypes.join(', ') || 'none')}</span>
       <p style="margin:8px 0 0 0;color:#334155;">${safeText(policy.summary || 'No summary provided.')}</p>
       <div style="margin-top:12px;display:grid;gap:10px;">
@@ -2307,6 +2484,8 @@ function renderPolicyDetail(policy) {
       </div>
     </div>
   `;
+
+  syncPolicyEditor(policy);
 
   document.getElementById('ackPolicyBtn')?.addEventListener('click', async () => {
     try {
@@ -2342,6 +2521,7 @@ function renderPolicyList(items) {
       <div class="data-item" role="button" tabindex="0" data-policy-id="${safeText(String(policyId || ''))}" style="cursor:pointer;${isSelected ? 'border-color:#16a34a;background:#f0fdf4;' : ''}">
         <span class="data-item-label">${safeText(policy.title || 'Untitled policy')}</span>
         <span class="data-item-meta">Category: ${safeText(policy.category || 'uncategorized')} | Version: ${safeText(policy.version || '1.0')}</span>
+        <span class="data-item-meta">Workflow: ${safeText(policy.workflowStatus || 'draft')}</span>
         <span class="data-item-meta">Incident Types: ${safeText(incidentText || 'none')}</span>
       </div>
     `;
@@ -2354,6 +2534,9 @@ function renderPolicyList(items) {
       const selected = policyHubData.find((item) => String(item._id || item.id || item.slug) === String(id));
       renderPolicyList(policyHubData);
       renderPolicyDetail(selected || null);
+      if (canManagePoliciesInUi()) {
+        loadPolicyHistory().catch(() => {});
+      }
     };
     node.addEventListener('click', open);
     node.addEventListener('keydown', (event) => {
@@ -2374,6 +2557,7 @@ async function loadPolicyHub(options = {}) {
   if (incidentType) params.set('incidentType', incidentType);
   if (category) params.set('category', category);
   if (query) params.set('query', query);
+  if (canManagePoliciesInUi()) params.set('includeDrafts', 'true');
 
   const route = options.quickIncidentLookup && incidentType
     ? `/api/policies/incident/${encodeURIComponent(incidentType)}`
@@ -2390,6 +2574,10 @@ async function loadPolicyHub(options = {}) {
   renderPolicyList(items);
   const selected = items.find((item) => String(item._id || item.id || item.slug) === String(selectedPolicyId));
   renderPolicyDetail(selected || items[0] || null);
+
+  if (canManagePoliciesInUi()) {
+    await loadPolicyHistory().catch(() => {});
+  }
 }
 
 function buildReportPayload(entries, filters) {
@@ -5613,6 +5801,118 @@ document.getElementById('policyCreateForm')?.addEventListener('submit', async (e
     showToast('Policy created successfully.', 'success');
   } catch (err) {
     if (output) output.textContent = err.message;
+    showToast(err.message, 'error');
+  }
+});
+
+document.getElementById('policyEditForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const output = document.getElementById('policyAdminOutput');
+
+  try {
+    const policyId = String(form.policyId?.value || selectedPolicyId || '').trim();
+    if (!policyId) throw new Error('Select a policy to edit first.');
+
+    const payload = {
+      title: String(form.title?.value || '').trim(),
+      category: String(form.category?.value || '').trim(),
+      incidentTypes: splitCsvValues(form.incidentTypes?.value || ''),
+      summary: String(form.summary?.value || '').trim(),
+      procedureSteps: splitLineValues(form.procedureSteps?.value || '')
+    };
+
+    await api(`/api/policies/${encodeURIComponent(policyId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (output) output.textContent = `Policy updated and moved to draft: ${payload.title || policyId}`;
+    await loadPolicyHub();
+    showToast('Policy updated. Submit it for review to publish changes.', 'success');
+  } catch (err) {
+    if (output) output.textContent = err.message;
+    showToast(err.message, 'error');
+  }
+});
+
+document.getElementById('policySubmitReviewBtn')?.addEventListener('click', async () => {
+  const output = document.getElementById('policyAdminOutput');
+  try {
+    if (!selectedPolicyId) throw new Error('Select a policy first.');
+    await api(`/api/policies/${encodeURIComponent(selectedPolicyId)}/submit-review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (output) output.textContent = 'Policy submitted for review.';
+    await loadPolicyHub();
+    showToast('Policy submitted for review.', 'success');
+  } catch (err) {
+    if (output) output.textContent = err.message;
+    showToast(err.message, 'error');
+  }
+});
+
+document.getElementById('policyApprovePublishBtn')?.addEventListener('click', async () => {
+  const output = document.getElementById('policyAdminOutput');
+  try {
+    if (!selectedPolicyId) throw new Error('Select a policy first.');
+    await api(`/api/policies/${encodeURIComponent(selectedPolicyId)}/approve-publish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note: 'Approved from Policy Hub UI' })
+    });
+    if (output) output.textContent = 'Policy approved and published.';
+    await Promise.all([loadPolicyHub(), loadPolicyNotifications()]);
+    showToast('Policy published and notifications sent.', 'success');
+  } catch (err) {
+    if (output) output.textContent = err.message;
+    showToast(err.message, 'error');
+  }
+});
+
+document.getElementById('policyArchiveBtn')?.addEventListener('click', async () => {
+  const output = document.getElementById('policyAdminOutput');
+  try {
+    if (!selectedPolicyId) throw new Error('Select a policy first.');
+    const selected = getSelectedPolicy();
+    const confirmed = window.confirm(`Archive ${selected?.title || 'this policy'}?`);
+    if (!confirmed) return;
+    await api(`/api/policies/${encodeURIComponent(selectedPolicyId)}/archive`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    selectedPolicyId = '';
+    if (output) output.textContent = 'Policy archived.';
+    await Promise.all([loadPolicyHub(), loadPolicyNotifications()]);
+    showToast('Policy archived.', 'success');
+  } catch (err) {
+    if (output) output.textContent = err.message;
+    showToast(err.message, 'error');
+  }
+});
+
+document.getElementById('policyLoadHistoryBtn')?.addEventListener('click', async () => {
+  try {
+    await loadPolicyHistory();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
+
+document.getElementById('policyReadReceiptsBtn')?.addEventListener('click', async () => {
+  try {
+    await loadPolicyReadReceipts();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
+
+document.getElementById('policyNotificationsBtn')?.addEventListener('click', async () => {
+  try {
+    await loadPolicyNotifications();
+  } catch (err) {
     showToast(err.message, 'error');
   }
 });

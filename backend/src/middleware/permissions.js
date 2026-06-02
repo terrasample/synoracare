@@ -1,4 +1,4 @@
-const { getPermissionsForRole } = require('../config/accessControl');
+const { getEffectivePermissionsForUser } = require('../config/accessControl');
 
 function requirePermissions(...requiredPermissions) {
   const expected = requiredPermissions.map((permission) => String(permission || '').trim()).filter(Boolean);
@@ -7,8 +7,8 @@ function requirePermissions(...requiredPermissions) {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     if (expected.length === 0) return next();
 
-    const rolePermissions = getPermissionsForRole(req.user.role);
-    const hasAll = expected.every((permission) => rolePermissions.includes(permission));
+    const effectivePermissions = getEffectivePermissionsForUser(req.user);
+    const hasAll = expected.every((permission) => effectivePermissions.includes(permission));
     if (!hasAll) {
       return res.status(403).json({ error: 'Forbidden' });
     }

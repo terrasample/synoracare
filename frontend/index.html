@@ -1041,6 +1041,35 @@
               <textarea name="procedureSteps" placeholder="Procedure steps (one per line)"></textarea>
               <button type="submit">Create Policy</button>
             </form>
+            <form id="policyEditForm" style="display:grid;gap:8px;margin-top:12px;">
+              <input name="policyId" type="hidden" />
+              <input name="title" placeholder="Edit title" required />
+              <input name="category" placeholder="Category (incident-response, compliance...)" />
+              <input name="incidentTypes" placeholder="Incident types (comma separated)" />
+              <input name="summary" placeholder="Edit summary" />
+              <textarea name="procedureSteps" placeholder="Edit procedure steps (one per line)"></textarea>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="submit">Update Draft</button>
+                <button id="policySubmitReviewBtn" type="button" class="btn-secondary">Submit Review</button>
+                <button id="policyApprovePublishBtn" type="button" class="btn-secondary">Approve & Publish</button>
+                <button id="policyArchiveBtn" type="button" class="btn-secondary">Archive</button>
+                <button id="policyLoadHistoryBtn" type="button" class="btn-secondary">Load History</button>
+              </div>
+            </form>
+            <div style="margin-top:12px;">
+              <h5 style="margin:0 0 6px 0;">Policy Revision Timeline</h5>
+              <div id="policyHistoryList" class="data-list"><p class="empty-state">Select a policy and click Load History.</p></div>
+            </div>
+            <div style="margin-top:12px;">
+              <h5 style="margin:0 0 6px 0;">Read Receipts Dashboard</h5>
+              <button id="policyReadReceiptsBtn" type="button" class="btn-secondary" style="margin-bottom:8px;">Load Read Receipts</button>
+              <div id="policyReadReceipts" class="data-list"><p class="empty-state">Load to view acknowledgement coverage by policy.</p></div>
+            </div>
+            <div style="margin-top:12px;">
+              <h5 style="margin:0 0 6px 0;">Policy Notifications</h5>
+              <button id="policyNotificationsBtn" type="button" class="btn-secondary" style="margin-bottom:8px;">Refresh Notifications</button>
+              <div id="policyNotificationsList" class="data-list"><p class="empty-state">No notifications loaded yet.</p></div>
+            </div>
             <pre id="policyAdminOutput" class="output-pre" style="margin-top:8px;"></pre>
           </div>
         </article>

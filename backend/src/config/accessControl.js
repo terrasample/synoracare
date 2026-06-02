@@ -7,6 +7,17 @@ const DEFAULT_ROLE_DISPLAY_LABELS = {
   super_admin: 'Super Admin'
 };
 
+const POLICY_MANAGER_PERMISSIONS = [
+  'policies:create',
+  'policies:update',
+  'policies:archive',
+  'policies:submit_review',
+  'policies:approve',
+  'policies:history:read',
+  'policies:rollback',
+  'policies:read_receipts'
+];
+
 const ROLE_PERMISSIONS = {
   dsp: [
     'clients:assigned:read',
@@ -14,7 +25,10 @@ const ROLE_PERMISSIONS = {
     'tracker:entry:read',
     'ask:approved_guidance:read',
     'shifts:handoff:create',
-    'shifts:own:read'
+    'shifts:own:read',
+    'policies:read',
+    'policies:ack',
+    'policies:notifications:read'
   ],
   supervisor: [
     'clients:assigned:read',
@@ -34,7 +48,10 @@ const ROLE_PERMISSIONS = {
     'shifts:all:read',
     'legal_records:export',
     'homes:read',
-    'homes:update'
+    'homes:update',
+    'policies:read',
+    'policies:ack',
+    'policies:notifications:read'
   ],
   org_admin: [
     'clients:all:read',
@@ -56,7 +73,11 @@ const ROLE_PERMISSIONS = {
     'homes:read',
     'homes:create',
     'homes:update',
-    'homes:manage'
+    'homes:manage',
+    'users:permissions:update',
+    'policies:read',
+    'policies:ack',
+    'policies:notifications:read'
   ],
   super_admin: [
     'clients:all:read',
@@ -81,13 +102,36 @@ const ROLE_PERMISSIONS = {
     'homes:create',
     'homes:update',
     'homes:archive',
-    'homes:manage'
+    'homes:manage',
+    'users:permissions:update',
+    'policies:read',
+    'policies:ack',
+    'policies:notifications:read',
+    ...POLICY_MANAGER_PERMISSIONS
   ]
 };
+
+const KNOWN_PERMISSIONS = Array.from(new Set(Object.values(ROLE_PERMISSIONS).flat()));
 
 function getPermissionsForRole(role) {
   const normalizedRole = String(role || '').trim();
   return ROLE_PERMISSIONS[normalizedRole] ? [...ROLE_PERMISSIONS[normalizedRole]] : [];
+}
+
+function normalizeCustomPermissions(customPermissions) {
+  if (!Array.isArray(customPermissions)) return [];
+  return Array.from(new Set(
+    customPermissions
+      .map((permission) => String(permission || '').trim())
+      .filter(Boolean)
+      .filter((permission) => KNOWN_PERMISSIONS.includes(permission) || permission.startsWith('policies:'))
+  ));
+}
+
+function getEffectivePermissionsForUser(user) {
+  const rolePermissions = getPermissionsForRole(user?.role);
+  const customPermissions = normalizeCustomPermissions(user?.customPermissions);
+  return Array.from(new Set([...rolePermissions, ...customPermissions]));
 }
 
 function canRole(role, permission) {
@@ -130,8 +174,12 @@ function getRoleDisplayLabel(role, rawLabels) {
 module.exports = {
   SYSTEM_ROLES,
   ROLE_PERMISSIONS,
+  POLICY_MANAGER_PERMISSIONS,
+  KNOWN_PERMISSIONS,
   DEFAULT_ROLE_DISPLAY_LABELS,
   getPermissionsForRole,
+  getEffectivePermissionsForUser,
+  normalizeCustomPermissions,
   canRole,
   sanitizeRoleDisplayLabels,
   mergeRoleDisplayLabels,
